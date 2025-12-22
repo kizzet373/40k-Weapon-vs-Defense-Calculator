@@ -912,7 +912,8 @@ function weaponVsDefenseApp(){
       const anti = effAnti;
       const autoWoundFromAnti = anti > 0 ? ((7 - anti) / 6) : 0;
 
-      const effectiveWoundSuccess = Math.min(1, autoWoundFromLethal + Math.max(pWound, autoWoundFromAnti));
+      const pLethalAmongHits = effLethal ? critPortionOfHits : 0;  
+      const effectiveWoundSuccess = pLethalAmongHits + (1 - pLethalAmongHits) * pWound;
       const expectedWounds = expectedHits * effectiveWoundSuccess;
 
       // Saves
@@ -950,22 +951,21 @@ function weaponVsDefenseApp(){
 
       // Breakdown pills
       const lines = [];
-      lines.push(`<span class="pill">A=${A.toFixed(2)} → Aeff=${Aeff.toFixed(2)}</span>`);
-      lines.push(`<span class="pill">pHit=${pHit.toFixed(3)}</span>`);
-      lines.push(`<span class="pill">crit%=${(pCrit*100).toFixed(1)}%</span>`);
-      if(effSustained>0) lines.push(`<span class="pill">extra hits/att=${extraHitsPerAttack.toFixed(3)}</span>`);
-      lines.push(`<span class="pill">need W ${neededAfterMod}+ → pWound=${pWound.toFixed(3)}</span>`);
-      if(effLethal) lines.push(`<span class="pill">auto(Lethal)≈${(autoWoundFromLethal*100).toFixed(1)}%</span>`);
+      if(Aeff != A)
+        lines.push(`<span class="pill">ATKs: Base(${A.toFixed(1)}) + Extra(${Aeff-A}) → Total=${Aeff.toFixed(1)}</span>`);
+      else
+        lines.push(`<span class="pill">ATKs: ${Aeff.toFixed(1)}</span>`)
+      lines.push(`<span class="pill">Hit%=${pHit.toFixed(3)*100}%</span>`);
+      lines.push(`<span class="pill">Crit%=${(pCrit*100).toFixed(1)}%</span>`);
+      if(effSustained>0) lines.push(`<span class="pill">extra hits/ATK=${extraHitsPerAttack.toFixed(3)}</span>`);
+      lines.push(`<span class="pill">Need ${neededAfterMod}+ to Wound → ${(pWound*100).toFixed(1)}%</span>`);
       if(anti>0) lines.push(`<span class="pill">Anti=${anti}+</span>`);
-      lines.push(`<span class="pill">save need ${neededSave===7?'—':neededSave+'+'} → pSave=${pSave.toFixed(3)} ${cover==='Light'&&!ignoresCover?'(cover)':''}</span>`);
+      lines.push(`<span class="pill">save need ${neededSave===7?'—':neededSave+'+'} → pSave=${(pSave*100).toFixed(1)}%</span>`);
       if(effDevw) lines.push(`<span class="pill">DevW portion≈${(portionDevastating*100).toFixed(1)}%</span>`);
       if(dmgRed>0) lines.push(`<span class="pill">Damage Reduction ${dmgRed}</span>`);
       if(fnp) lines.push(`<span class="pill">FNP ${fnp}+</span>`);
       if(kwMelta>0 && withinHalf) lines.push(`<span class="pill">Melta +${kwMelta}</span>`);
-      if(kwRapidFire>0 && withinHalf) lines.push(`<span class="pill">Rapid Fire +${kwRapidFire}A</span>`);
-      if(hasBlast && blastBonusA>0) lines.push(`<span class="pill">Blast +${blastBonusA}A</span>`);
-      lines.push(`<span class="pill">Models killed (exp)≈${modelsKilled.toFixed(2)}</span>`);
-      if(this.modifierTags.length) lines.push(`<span class="pill">Modifiers: ${this.modifierTags.map(this.normalizeModifierDisplay.bind(this)).join(', ')}</span>`);
+      lines.push(`<span class="pill">Expected Models Killed≈${modelsKilled.toFixed(2)}</span>`);
 
       this.output.breakdownHtml = lines.join(' ');
 
