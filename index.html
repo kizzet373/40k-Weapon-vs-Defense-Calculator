@@ -741,7 +741,7 @@ function weaponVsDefenseApp(){
         return;
       }
 
-      const padL = 44, padR = 14, padT = 14, padB = 44;
+      const padL = 44, padR = 30, padT = 24, padB = 44;
       const plotW = Math.max(10, w - padL - padR);
       const plotH = Math.max(10, h - padT - padB);
 
@@ -798,10 +798,10 @@ function weaponVsDefenseApp(){
 
         ctx.save();
         ctx.translate(x, padT + plotH + 10);
-        ctx.rotate(-Math.PI/6);
+        //ctx.rotate(-Math.PI/6);
         ctx.fillStyle = '#90a4b4';
         const lbl = String(s.label || '');
-        ctx.fillText(lbl, -Math.min(120, lbl.length*3.5), 18);
+        ctx.fillText(lbl, -Math.min(120, lbl.length*3), 18);
         ctx.restore();
       });
 
@@ -1007,7 +1007,7 @@ function weaponVsDefenseApp(){
       const dmgAfterDamageMods = dmgNormal + dmgMortal;
 
       const steps = [
-        { label: this.buildStepLabel('Attacks', [`Aeff ${Aeff.toFixed(2)}`]), value: Aeff * effD },
+        { label: this.buildStepLabel('Attacks', [`+${Aeff-A}`]), value: Aeff * effD },
         { label: this.buildStepLabel('Hits', hitExtras), value: dmgIfAllHits },
         { label: this.buildStepLabel('Wounds', woundExtras), value: dmgIfAllWounds },
         { label: this.buildStepLabel('After Saves', saveExtras), value: dmgAfterSaves },
