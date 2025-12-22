@@ -879,7 +879,7 @@ function weaponVsDefenseApp(){
         { label: this.buildStepLabel('Hits', hitExtras), value: dmgAfterHits, percent: (dmgAfterHits - baseTotalDamage)/baseTotalDamage },
         { label: this.buildStepLabel('Wounds', woundExtras), value: dmgAfterWounds, percent: (dmgAfterWounds - dmgAfterHits)/dmgAfterHits },
         { label: this.buildStepLabel('After Saves', saveExtras), value: dmgAfterSaves, percent: (dmgAfterSaves - dmgAfterWounds)/dmgAfterWounds },
-        { label: this.buildStepLabel('After Damage', dmgExtras), value: dmgAfterDamageMods, percent: (dmgAfterDamageMods - dmgAfterSaves)/dmgAfterSaves },
+        { label: this.buildStepLabel('Damage Reduction', dmgExtras), value: dmgAfterDamageMods, percent: (dmgAfterDamageMods - dmgAfterSaves)/dmgAfterSaves },
         { label: this.buildStepLabel('After FNP', fnpExtras), value: totalDamage, percent: (totalDamage - dmgAfterDamageMods)/dmgAfterDamageMods },
       ];
 
