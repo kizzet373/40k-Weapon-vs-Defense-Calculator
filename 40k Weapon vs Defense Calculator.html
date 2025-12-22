@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>40k Weapon vs Defense Calculator</title>
+
+  <link rel="stylesheet" href="40k Weapon vs Defense Calculator.css">
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+
+<body>
+<div class="app" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''" x-data="weaponVsDefenseApp()" x-init="init()">
+  <aside id="sidebar">
+    <div class="asideHead">
+      <h1>Army Loader</h1>
+      <button
+        type="button"
+        class="secondary iconBtn"
+        aria-controls="sidebar"
+        :aria-expanded="(!sidebarCollapsed).toString()"
+        x-text="sidebarCollapsed ? '⟩' : '⟨'"
+        @click="sidebarCollapsed = !sidebarCollapsed"
+      ></button>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <input type="file" accept=".json" @change="onRosterFile($event)" />
+        <button class="secondary" type="button" @click="loadPastedRoster()">Load pasted JSON</button>
+      </div>
+
+      <label>
+        Paste JSON (optional)
+        <textarea x-model="jsonPaste" rows="6" placeholder="Paste your roster JSON here and click 'Load pasted JSON'"></textarea>
+      </label>
+
+      <div class="row">
+        <label>
+          Force
+          <select x-model.number="selectedForceIdx" @change="refreshUnits()">
+            <template x-for="(f, i) in forces" :key="`force-${i}`">
+              <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+            </template>
+            <template x-if="forces.length === 0">
+              <option value="0">No forces found</option>
+            </template>
+          </select>
+        </label>
+      </div>
+
+      <div class="row">
+        <label>
+          Unit / Model
+          <select x-model.number="selectedUnitIdx" @change="onUnitChanged()">
+            <template x-for="(u, i) in units" :key="`unit-${i}`">
+              <option :value="i" x-text="u.label || `Unit ${i+1}`"></option>
+            </template>
+            <template x-if="units.length === 0">
+              <option value="0">No units found</option>
+            </template>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <h2>Unit Defense</h2>
+    <div class="card" id="unitDefense">
+      <template x-if="!activeUnit">
+        <div class="muted">Select a unit to see its defensive profile.</div>
+      </template>
+
+      <template x-if="activeUnit">
+        <div>
+          <div class="muted" style="margin-bottom:6px" x-text="activeUnit.label || 'Unit'"></div>
+          <div x-html="renderDefensePills(activeUnit.defense)"></div>
+        </div>
+      </template>
+    </div>
+
+    <div class="row">
+      <button class="secondary" type="button" @click="loadSelectedDefenseIntoForm()">Load defensive profile</button>
+    </div>
+
+    <h2>Pick a weapon</h2>
+    <div class="card" id="weaponList">
+      <template x-if="!activeWeapons || activeWeapons.length === 0">
+        <div class="muted">Load an army then choose a unit to see its weapons.</div>
+      </template>
+
+      <template x-if="activeWeapons && activeWeapons.length > 0">
+        <div style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th>Range</th><th>A</th><th>SKILL</th><th>S</th><th>AP</th><th>D</th><th>Modifiers</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(w, i) in activeWeapons" :key="`wpn-${i}`">
+                <tr>
+                  <td x-text="w.name || ''"></td>
+                  <td x-text="w.range || ''"></td>
+                  <td x-text="w.A || ''"></td>
+                  <td x-text="w.skill || ''"></td>
+                  <td x-text="w.S || ''"></td>
+                  <td x-text="w.AP || ''"></td>
+                  <td x-text="w.D || ''"></td>
+                  <td>
+                    <template x-if="(w.modifiers || '').trim().length === 0">
+                      <span class="muted">—</span>
+                    </template>
+                    <template x-if="(w.modifiers || '').trim().length > 0">
+                      <span>
+                        <template x-for="(k, ki) in (w.modifiers || '').split(',').map(x=>x.trim()).filter(Boolean)" :key="`kw-${i}-${ki}`">
+                          <span class="modifier" x-text="k"></span>
+                        </template>
+                      </span>
+                    </template>
+                  </td>
+                  <td>
+                    <button class="secondary" type="button" @click="loadWeapon(w)">Load</button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+    </div>
+
+    <h2>Presets</h2>
+    <div class="card">
+      <div class="row">
+        <button class="secondary" type="button" @click="applyPresetInfantry()">Infantry (T4 3+)</button>
+        <button class="secondary" type="button" @click="applyPresetVehicle()">Vehicle (T10 3+ 5++)</button>
+      </div>
+    </div>
+  </aside>
+
+  <button
+    type="button"
+    class="secondary sidebarHandle"
+    aria-controls="sidebar"
+    :aria-expanded="(!sidebarCollapsed).toString()"
+    @click="sidebarCollapsed = false"
+  > ⟩ </button>
+
+  <main>
+    <h1 style="padding-left:15px">Weapon vs Defense Calculator</h1>
+
+    <div class="grid">
+      <!-- Weapon -->
+      <div class="card">
+        <h2>Weapon Profile</h2>
+
+        <div class="grid">
+          <label>
+            A (Attacks)
+            <input class="smallInput" x-model="weapon.A" inputmode="numeric" />
+          </label>
+
+          <label>
+            BS/WS (Skill)
+            <input class="smallInput" x-model="weapon.skill" inputmode="numeric" />
+          </label>
+
+          <label>
+            S (Strength)
+            <input class="smallInput" x-model="weapon.S" inputmode="numeric" />
+          </label>
+
+          <label>
+            AP (Armor Pen)
+            <input class="smallInput" x-model="weapon.AP" inputmode="numeric" />
+          </label>
+
+          <label>
+            D (Damage)
+            <input class="smallInput" x-model="weapon.D" inputmode="numeric" />
+          </label>
+        </div>
+
+        <!-- Weapon-side modifiers -->
+        <div class="grid">
+          <div class="row" style="gap:6px;align-items:flex-end;">
+            <label style="flex:1;width:100px">
+              Weapon-side modifiers
+              <select style="min-width:220px" x-model="modAdd.key" @change="syncModValueDefault()">
+                <template x-for="m in MODIFIERS" :key="m.key">
+                  <option :value="m.key" x-text="m.label"></option>
+                </template>
+              </select>
+            </label>
+
+            <label style="min-width:50px;flex:1;margin-right:100px;">
+              Value
+              <div class="kwValueRow">
+                <!-- numeric -->
+                <template x-if="modDef(modAdd.key)?.type === 'number'">
+                  <input
+                    type="number"
+                    step="1"
+                    x-model.number="modAdd.value"
+                  />
+                </template>
+
+                <!-- select -->
+                <template x-if="modDef(modAdd.key)?.type === 'select'">
+                  <select x-model="modAdd.value" style="min-width:160px">
+                    <template x-for="opt in (modDef(modAdd.key)?.options || [])" :key="opt.value">
+                      <option :value="opt.value" x-text="opt.label"></option>
+                    </template>
+                  </select>
+                </template>
+
+                <!-- flag -->
+                <template x-if="modDef(modAdd.key)?.type === 'flag'">
+                  <input class="disabled" disabled value="—" />
+                </template>
+
+                <button type="button" class="secondary" @click="addModifierTag()">Add</button>
+              </div>
+            </label>
+          </div>
+        </div>
+        
+        <div class="grid">
+          <label style="min-width:40px;flex:1;">
+            <div style="margin-top:8px">
+              <template x-if="modifierTags.length === 0">
+                <div class="muted">No modifiers added.</div>
+              </template>
+
+              <template x-for="(t, i) in modifierTags" :key="`tag-${t.key}`">
+                <span class="pill tagPill">
+                  <span x-text="normalizeModifierDisplay(t)"></span>
+                  <button type="button" class="secondary tagX" @click="removeModifierTag(i)">x</button>
+                </span>
+              </template>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Defense -->
+      <div class="card">
+        <h2>Defensive Profile</h2>
+
+        <div class="grid">
+          <label>Toughness (T) <input type="number" x-model="defense.T" /></label>
+
+          <label>
+            Save (SV)
+            <div class="plusWrap">
+              <input class="smallInput" x-model="defense.Sv" inputmode="numeric" />
+            </div>
+          </label>
+
+          <label>
+            Invuln
+            <div class="plusWrap">
+              <input class="smallInput" x-model="defense.Inv" inputmode="numeric" placeholder="" />
+            </div>
+          </label>
+
+          <label>
+            Cover?
+            <select class="smallInput" x-model="defense.cover">
+              <option>No</option>
+              <option>Light</option>
+            </select>
+          </label>
+
+          <label>Wounds per model <input type="number" x-model="defense.W" /></label>
+
+          <label>
+            Feel No Pain
+            <div class="plusWrap">
+              <input class="smallInput" x-model="defense.Fnp" inputmode="numeric" placeholder="" />
+            </div>
+          </label>
+
+          <label>Damage Reduction (flat) <input type="number" x-model="defense.DR" /></label>
+          <label>Target models (for Blast) <input type="number" min="1" x-model="defense.models" /></label>
+        </div>
+
+        <details style="margin-top:8px">
+          <summary>Defensive modifiers</summary>
+          <div class="grid" style="margin-top:8px">
+            <label>Save mod (±) <input type="number" x-model="defenseMods.saveMod" /></label>
+            <label>To-hit forced cap (min needed) <input class="smallInput" x-model="defenseMods.forceHit" inputmode="numeric" /></label>
+            <label>To-wound forced cap (min needed) <input class="smallInput" x-model="defenseMods.forceWound" inputmode="numeric" /></label>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="row" style="margin:12px 0">
+      <button type="button" @click="calculate()">Calculate</button>
+      <button class="secondary" type="button" @click="resetOutput()">Reset</button>
+      <span class="muted">All math is expectation-based (averages). Handles NdX and NdX±C in Attacks.</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="muted">Expected Hits</div><div class="v" x-text="fmtOut(output.hits)"></div></div>
+      <div class="metric"><div class="muted">Expected Wounds</div><div class="v" x-text="fmtOut(output.wounds)"></div></div>
+      <div class="metric"><div class="muted">Failed Saves</div><div class="v" x-text="fmtOut(output.fails)"></div></div>
+      <div class="metric"><div class="muted">Expected Damage</div><div class="v" x-text="fmtOut(output.dmg)"></div></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Breakdown</h2>
+      <div class="muted" x-html="output.breakdownHtml || 'No calculation yet.'"></div>
+
+      <div class="chartWrap">
+        <canvas id="breakdownChart" x-ref="chart" height="220"></canvas>
+        <div class="chartHint">Y: expected damage | X: resolution steps (attacks → hits → wounds → saves → damage → FNP)</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Designed for quick list-tech and what-if analysis. Assumes standard 10e crits on unmodified rolls and applies re-rolls before crit checks.
+      Torrent auto-hits supported via the Torrent Modifier tag. Modifier are applied from the tag system.
+    </div>
+  </main>
+</div>
+
+<script>
+function weaponVsDefenseApp(){
+  return {
+    // ---------------- UI ----------------
+    sidebarCollapsed: false,
+    jsonPaste: '',
+
+    // ---------------- Roster state ----------------
+    roster: null,
+    forces: [],
+    units: [],
+    selectedForceIdx: 0,
+    selectedUnitIdx: 0,
+
+    // ---------------- Weapon state ----------------
+    weapon: {
+      A: '6',
+      skill: '3',
+      S: '4',
+      AP: '0',
+      D: '1',
+    },
+
+    // ---------------- Modifiers ----------------
+    MODIFIERS: [
+      { key:'torrent',      label:'Torrent',            type:'flag' },
+      { key:'sustained',    label:'Sustained Hits',     type:'number', defaultValue:1 },
+      { key:'lethal',       label:'Lethal Hits',        type:'flag' },
+      { key:'devw',         label:'Devastating Wounds', type:'flag' },
+      { key:'twinlinked',   label:'Twin-linked',        type:'flag' },
+      { key:'anti',         label:'Anti',               type:'number', defaultValue:4 },
+      { key:'ignorescover', label:'Ignores Cover',      type:'flag' },
+      { key:'melta',        label:'Melta',              type:'number', defaultValue:2 },
+      { key:'rapidfire',    label:'Rapid Fire',         type:'number', defaultValue:1 },
+      { key:'blast',        label:'Blast',              type:'flag' },
+      { key:'heavy',        label:'Heavy',              type:'flag' },
+      { key:'lance',        label:'Lance',              type:'flag' },
+      { key:'mod_hit',      label:'Hit mod (±)',        type:'number', defaultValue:0 },
+      { key:'mod_wound',    label:'Wound mod (±)',      type:'number', defaultValue:0 },
+      { key:'mod_ap',       label:'AP mod (±)',         type:'number', defaultValue:0 },
+      { key:'mod_dmg',      label:'Damage mod (±)',     type:'number', defaultValue:0 },
+      { key:'mod_critmin',  label:'Min Roll for Crit',  type:'number', defaultValue:6 },
+
+      { key:'mod_rrhit',    label:'Reroll hits',                 type:'select', defaultValue:'none',
+        options:[{value:'none',label:'None'},{value:'ones',label:'Ones'},{value:'all',label:'All'}] },
+
+      { key:'mod_rrwound',  label:'Reroll wounds',               type:'select', defaultValue:'none',
+        options:[{value:'none',label:'None'},{value:'ones',label:'Ones'},{value:'all',label:'All'}] },
+
+      // Optional override (keeps old “anti threshold” control capability distinct from Anti modifier)
+      { key:'mod_antiover', label:'Anti threshold override',      type:'number', defaultValue:0 },
+
+      { key:'mod_within',   label:'Within Half Range? (Melta/RF)',type:'flag' },
+      { key:'mod_station',  label:'Remained Stationary? (Heavy)', type:'flag' },
+      { key:'mod_charged',  label:'Charged? (Lance)',             type:'flag' },
+    ],
+
+    modAdd: { key: 'torrent', value: 1 },
+    modifierTags: [],
+
+    modDef(key){
+      return this.MODIFIERS.find(m => m.key === key) || null;
+    },
+
+    syncModValueDefault(){
+      const def = this.modDef(this.modAdd.key);
+      if(!def) return;
+
+      if(def.type === 'number'){
+        this.modAdd.value = Number(def.defaultValue ?? 0);
+      }else if(def.type === 'select'){
+        this.modAdd.value = String(def.defaultValue ?? (def.options?.[0]?.value ?? 'none'));
+      }else{
+        this.modAdd.value = 1; // unused for flags
+      }
+    },
+
+    addModifierTag(){
+      const def = this.modDef(this.modAdd.key);
+      if(!def) return;
+
+      const key = def.key;
+      let value = null;
+
+      if(def.type === 'number'){
+        value = parseInt(this.modAdd.value ?? def.defaultValue ?? 0, 10);
+        if(!Number.isFinite(value)) value = parseInt(def.defaultValue ?? 0, 10) || 0;
+      }else if(def.type === 'select'){
+        value = String(this.modAdd.value ?? def.defaultValue ?? 'none');
+      }else{
+        value = true; // flags
+      }
+
+      const i = this.modifierTags.findIndex(t => t.key === key);
+      if(i >= 0){
+        // Update existing
+        if(def.type === 'number'){
+          this.modifierTags[i].value = value;
+        }else if(def.type === 'select'){
+          this.modifierTags[i].value = value;
+        }else{
+          this.modifierTags[i].value = true;
+        }
+      }else{
+        this.modifierTags.push({ key, value });
+      }
+    },
+
+    removeModifierTag(i){
+      this.modifierTags.splice(i, 1);
+    },
+
+    hasMod(key){
+      return this.modifierTags.some(t => t.key === key);
+    },
+
+    modValue(key, fallback=null){
+      const t = this.modifierTags.find(x => x.key === key);
+      return (t && t.value != null) ? t.value : fallback;
+    },
+
+    modNumber(key, fallback=0){
+      const v = this.modValue(key, null);
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) ? n : fallback;
+    },
+
+    modSelect(key, fallback='none'){
+      const v = this.modValue(key, null);
+      return (v == null) ? fallback : String(v);
+    },
+
+    normalizeModifierDisplay(t){
+      const def = this.modDef(t.key);
+      const lbl = def?.label || t.key;
+
+      if(def?.type === 'number') return `${lbl}: ${t.value}`;
+      if(def?.type === 'select'){
+        const opt = (def.options || []).find(o => o.value === t.value);
+        return `${lbl}: ${opt ? opt.label : t.value}`;
+      }
+      return lbl;
+    },
+
+    // ---------------- Defense ----------------
+    defense: {
+      T: 4,
+      Sv: '3',
+      Inv: '',
+      cover: 'No',
+      W: 2,
+      Fnp: '',
+      DR: 0,
+      models: 5,
+    },
+
+    defenseMods: {
+      saveMod: 0,
+      forceHit: '',
+      forceWound: '',
+    },
+
+    // ---------------- Output ----------------
+    output: {
+      hits: null,
+      wounds: null,
+      fails: null,
+      dmg: null,
+      breakdownHtml: '',
+      steps: null,
+    },
+
+    // ---------------- Lifecycle ----------------
+    init(){
+      this.syncModValueDefault();
+      this.renderBreakdownChart(null);
+
+      window.addEventListener('resize', () => {
+        if (this.output && Number.isFinite(this.output.dmg)) this.calculate();
+        else this.renderBreakdownChart(null);
+      });
+    },
+
+    // ---------------- Derived ----------------
+    get activeUnit(){
+      return this.units?.[this.selectedUnitIdx] || null;
+    },
+
+    get activeWeapons(){
+      return this.activeUnit?.weapons || [];
+    },
+
+    get activeForce(){
+      return this.forces?.[this.selectedForceIdx] || null;
+    },
+
+    // ---------------- Roster loading ----------------
+    async onRosterFile(evt){
+      const f = evt.target.files?.[0];
+      if(!f) return;
+      const text = await f.text();
+      try{
+        const obj = JSON.parse(text);
+        this.loadRoster(obj);
+      }catch(e){
+        alert('Invalid JSON');
+        console.error(e);
+      }
+    },
+
+    loadPastedRoster(){
+      const t = (this.jsonPaste || '').trim();
+      if(!t){ alert('Paste JSON first.'); return; }
+      try{
+        this.loadRoster(JSON.parse(t));
+      }catch(e){
+        alert('Invalid JSON');
+        console.error(e);
+      }
+    },
+
+    loadRoster(obj){
+      this.roster = obj;
+
+      // Try both common shapes
+      const forces = (obj?.roster?.forces) || (obj?.forces) || [];
+      this.forces = forces;
+
+      this.selectedForceIdx = 0;
+      this.refreshUnits();
+    },
+
+    refreshUnits(){
+      const force = this.getForceByIdx(this.selectedForceIdx);
+      this.units = force ? this.collectUnits(force) : [];
+      this.selectedUnitIdx = 0;
+      // keep unit-defense and weapon table reactive automatically
+    },
+
+    onUnitChanged(){
+      // no-op; kept for symmetry & future hooks
+    },
+
+    getForceByIdx(i){
+      const obj = this.roster;
+      if(!obj) return null;
+      const forces = (obj?.roster?.forces) || (obj?.forces) || [];
+      return forces?.[i] || null;
+    },
+
+    // ---------------- Presets ----------------
+    applyPresetInfantry(){
+      this.defense.T = 4;
+      this.defense.Sv = '3';
+      this.defense.Inv = '';
+      this.defense.cover = 'No';
+      this.defense.W = 2;
+      this.defense.Fnp = '';
+      this.defense.DR = 0;
+      this.calculate();
+    },
+
+    applyPresetVehicle(){
+      this.defense.T = 10;
+      this.defense.Sv = '3';
+      this.defense.Inv = '5';
+      this.defense.cover = 'No';
+      this.defense.W = 12;
+      this.defense.Fnp = '';
+      this.defense.DR = 0;
+      this.calculate();
+    },
+
+    // ---------------- Load weapon into form ----------------
+    loadWeapon(w){
+      this.weapon.A = (w.A ?? '1').toString();
+      this.weapon.skill = (String(w.skill || '3').trim()).replace(/\s*\+\s*$/,'') || '3';
+      this.weapon.S = (w.S ?? '4').toString();
+      this.weapon.AP = (w.AP ?? '0').toString();
+      this.weapon.D = (w.D ?? '1').toString();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    // ---------------- Load selected defense into form ----------------
+    loadSelectedDefenseIntoForm(){
+      const u = this.activeUnit;
+      if(!u){ alert('No unit selected.'); return; }
+      const def = u.defense || {};
+      if(def.T != null) this.defense.T = def.T;
+      if(def.Sv) this.defense.Sv = def.Sv;
+      if(def.Inv) this.defense.Inv = def.Inv;
+      if(def.W != null) this.defense.W = def.W;
+    },
+
+    renderDefensePills(def){
+      if(!def) return '<div class="muted">No defensive data.</div>';
+      const p = (label, v, suffix='') => (v!=null && v!=='') ? `<span class="pill">${label}: ${v}${suffix}</span>` : '';
+      const html = [p('T', def.T), p('Save', def.Sv), p('Inv', def.Inv), p('W', def.W)].filter(Boolean).join(' ');
+      return html || '<div class="muted">No defensive data.</div>';
+    },
+
+    // ---------------- Output helpers ----------------
+    resetOutput(){
+      this.output = { hits:null, wounds:null, fails:null, dmg:null, breakdownHtml:'', steps:null };
+      this.renderBreakdownChart(null);
+    },
+
+    fmtOut(n){
+      return Number.isFinite(n) ? n.toFixed(2) : '—';
+    },
+
+    // ---------------- Math utils ----------------
+    clamp(x,min,max){ return Math.max(min, Math.min(max, x)); },
+
+    parsePlus(s){
+      if(s === null || s === undefined) return null;
+      s = String(s).trim();
+      if(!s) return null;
+      if(s.toLowerCase() === 'auto') return 1;
+      const m = s.match(/(\d+)\s*\+/);
+      if(m) return parseInt(m[1], 10);
+      if(s === '-' ) return null;
+      const v = parseInt(s, 10);
+      return Number.isFinite(v) ? v : null;
+    },
+
+    parseNdX(expr){
+      if(!expr) return { mean:0, text:'0' };
+      const s = String(expr).replace(/\s+/g,'');
+      if(/^\d+$/.test(s)) return { mean: parseFloat(s), text:s };
+      const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
+      if(!m) return { mean: parseFloat(s) || 0, text:s };
+      const n = parseInt(m[1] || '1', 10);
+      const faces = parseInt(m[2], 10);
+      const k = m[3] ? parseInt(m[3], 10) : 0;
+      const dieMean = (1 + faces) / 2;
+      return { mean: (n * dieMean) + k, text:s };
+    },
+
+    probAtLeast(target, mod=0, cap=null){
+      if(target === 1) return 1;
+      if(target === null) return 0;
+      let t = this.clamp(target - mod, 2, 6);
+      if(cap){
+        const c = parseInt(cap, 10);
+        if(Number.isFinite(c)) t = Math.max(t, c);
+      }
+      return (7 - t) / 6;
+    },
+
+    applyRerolls(p, mode){
+      if(mode === 'none') return p;
+      if(mode === 'all') return p + (1-p)*p;
+      if(mode === 'ones'){
+        // Approx: reroll only 1s (1/6 of rolls)
+        return p + (1/6)*p - (1/6)*p*p;
+      }
+      return p;
+    },
+
+    woundNeeded(S,T){
+      if(S >= 2*T) return 2;
+      if(S > T) return 3;
+      if(S === T) return 4;
+      if(S*2 <= T) return 6;
+      return 5;
+    },
+
+    pickSave(sv, inv, ap, saveMod){
+      const svp = this.parsePlus(sv);
+      const invp = this.parsePlus(inv);
+      const worsened = svp ? this.clamp(svp - ap, 2, 7) : 7;
+      const final = saveMod ? this.clamp(worsened + saveMod, 2, 7) : worsened;
+      if(invp) return Math.min(final, invp);
+      return final;
+    },
+
+    // ---------------- Chart ----------------
+    _fmtChart(n){
+      if(!Number.isFinite(n)) return '—';
+      if(Math.abs(n) >= 100) return n.toFixed(0);
+      if(Math.abs(n) >= 10) return n.toFixed(1);
+      return n.toFixed(2);
+    },
+
+    buildStepLabel(base, extras){
+      const xs = (extras || []).filter(Boolean);
+      if(xs.length === 0) return base;
+      return `${base} (${xs.join(', ')})`;
+    },
+
+    renderBreakdownChart(steps){
+      const canvas = this.$refs.chart;
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0,0,w,h);
+
+      if(!steps || steps.length < 2){
+        ctx.fillStyle = '#90a4b4';
+        ctx.font = '12px system-ui, Segoe UI, Roboto, Arial';
+        ctx.fillText('No chart data yet.', 12, 20);
+        return;
+      }
+
+      const padL = 44, padR = 14, padT = 14, padB = 44;
+      const plotW = Math.max(10, w - padL - padR);
+      const plotH = Math.max(10, h - padT - padB);
+
+      const vals = steps.map(s => Math.max(0, Number(s.value) || 0));
+      const maxV = Math.max(1e-9, ...vals);
+
+      const xFor = (i)=> padL + (steps.length===1 ? plotW/2 : (i*(plotW/(steps.length-1))));
+      const yFor = (v)=> padT + (plotH - (v/maxV)*plotH);
+
+      // grid
+      ctx.strokeStyle = '#223044';
+      ctx.lineWidth = 1;
+      for(let k=0;k<=4;k++){
+        const y = padT + (k*(plotH/4));
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL+plotW, y);
+        ctx.stroke();
+      }
+
+      // axes
+      ctx.strokeStyle = '#2a3a4f';
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, padT+plotH);
+      ctx.lineTo(padL+plotW, padT+plotH);
+      ctx.stroke();
+
+      // line
+      ctx.strokeStyle = '#6ee7ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      steps.forEach((s,i)=>{
+        const x = xFor(i);
+        const y = yFor(vals[i]);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      // points + labels
+      ctx.font = '12px system-ui, Segoe UI, Roboto, Arial';
+      steps.forEach((s,i)=>{
+        const x = xFor(i);
+        const y = yFor(vals[i]);
+
+        ctx.fillStyle = '#a78bfa';
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = '#e8eef7';
+        const valText = this._fmtChart(vals[i]);
+        ctx.fillText(valText, x - (valText.length*3), y - 8);
+
+        ctx.save();
+        ctx.translate(x, padT + plotH + 10);
+        ctx.rotate(-Math.PI/6);
+        ctx.fillStyle = '#90a4b4';
+        const lbl = String(s.label || '');
+        ctx.fillText(lbl, -Math.min(120, lbl.length*3.5), 18);
+        ctx.restore();
+      });
+
+      // y ticks
+      ctx.fillStyle = '#90a4b4';
+      for(let k=0;k<=4;k++){
+        const v = maxV * (1 - k/4);
+        const y = padT + (k*(plotH/4));
+        ctx.fillText(this._fmtChart(v), 8, y+4);
+      }
+    },
+
+    // ---------------- Core calculation ----------------
+    calculate(){
+      // Inputs
+      const A = this.parseNdX(this.weapon.A).mean;
+
+      const skill = this.parsePlus(this.weapon.skill);
+      const S = parseFloat(this.weapon.S) || 0;
+
+      const baseAP = parseFloat(this.weapon.AP) || 0;
+      const modAP = this.modNumber('mod_ap', 0);
+      const AP = baseAP + modAP;
+
+      const baseD = parseFloat(this.weapon.D) || 0;
+      const modD  = this.modNumber('mod_dmg', 0);
+      let D = Math.max(0, baseD + modD);
+
+      const hitMod   = this.modNumber('mod_hit', 0);
+      const woundMod = this.modNumber('mod_wound', 0);
+      const critMin  = this.modNumber('mod_critmin', 6);
+      const rrHit = this.modSelect('mod_rrhit', 'none');
+
+      const hasTwinlinked = this.hasMod('twinlinked');
+      const rrWound = hasTwinlinked ? 'all' : this.modSelect('mod_rrwound', 'none');
+
+      const T = parseFloat(this.defense.T) || 0;
+      const sv = this.defense.Sv;
+      const inv = this.defense.Inv;
+      const cover = this.defense.cover || 'No';
+      const W = parseFloat(this.defense.W) || 0;
+      const fnp = this.parsePlus(this.defense.Fnp);
+      const dmgRed = parseFloat(this.defense.DR) || 0;
+      const targetModels = Math.max(1, parseInt(this.defense.models || '5', 10) || 5);
+
+      const saveMod = parseInt(this.defenseMods.saveMod || '0', 10) || 0;
+      const forceHit = (this.defenseMods.forceHit || '').trim();
+      const forceWound = (this.defenseMods.forceWound || '').trim();
+
+      const withinHalf = this.hasMod('mod_within');
+      const stationary = this.hasMod('mod_station');
+      const charged    = this.hasMod('mod_charged');
+
+      // Keyword effects
+      const torrent      = this.hasMod('torrent');
+      const ignoresCover = this.hasMod('ignorescover');
+      const hasBlast     = this.hasMod('blast');
+      const hasHeavy     = this.hasMod('heavy');
+      const hasLance     = this.hasMod('lance');
+
+      const kwSustained  = this.modNumber('sustained', 0);
+      const kwRapidFire  = this.modNumber('rapidfire', 0);
+      const kwMelta      = this.modNumber('melta', 0);
+      const kwAnti       = this.modNumber('anti', 0);
+
+      // Merge “controls” with “tags” for these
+      const effSustained = kwSustained;
+      const effLethal = this.hasMod('lethal');
+      const effDevw   = this.hasMod('devw');
+      const antiOverride = this.modNumber('mod_antiover', 0);
+      const effAnti = Math.max(antiOverride, kwAnti);
+
+      // Effective attacks
+      const blastBonusA = hasBlast ? Math.floor(targetModels / 5) : 0;
+      const rapidFireBonusA = (kwRapidFire > 0 && withinHalf) ? kwRapidFire : 0;
+      const Aeff = A + blastBonusA + rapidFireBonusA;
+
+      // Hits
+      let pHit = 0;
+      let pCrit = 0;
+
+      if(skill === 1 || String(this.weapon.skill).trim().toLowerCase() === 'auto' || torrent){
+        pHit = 1;
+        pCrit = 0; // auto-hits => no crit-hit modeling here
+      }else{
+        const heavyBonus = (hasHeavy && stationary) ? 1 : 0;
+        const basePHit = this.probAtLeast(skill, hitMod + heavyBonus, forceHit || null);
+        pHit = this.applyRerolls(basePHit, rrHit);
+
+        const baseCrit = (7 - critMin) / 6;
+        pCrit = this.applyRerolls(baseCrit, rrHit);
+      }
+
+      const extraHitsPerAttack = effSustained * pCrit;
+      const expectedHits = Aeff * (pHit + extraHitsPerAttack);
+
+      // Wounds
+      const need = this.woundNeeded(S, T);
+      const lanceBonus = (hasLance && charged) ? 1 : 0;
+      const neededAfterMod = this.clamp(need - woundMod + lanceBonus, 2, 6);
+
+      const pWoundBase = this.probAtLeast(neededAfterMod, 0, forceWound || null);
+      const pWound = this.applyRerolls(pWoundBase, rrWound);
+
+      const critPortionOfHits = (pHit > 0) ? (pCrit / pHit) : 0;
+      const autoWoundFromLethal = effLethal ? critPortionOfHits : 0;
+
+      const anti = effAnti;
+      const autoWoundFromAnti = anti > 0 ? ((7 - anti) / 6) : 0;
+
+      const effectiveWoundSuccess = Math.min(1, autoWoundFromLethal + Math.max(pWound, autoWoundFromAnti));
+      const expectedWounds = expectedHits * effectiveWoundSuccess;
+
+      // Saves
+      const coverMod = (cover === 'Light' && !ignoresCover) ? +1 : 0;
+      const neededSave = this.pickSave(sv, inv, AP, saveMod + coverMod);
+      const pSave = (neededSave >= 7) ? 0 : (7 - this.clamp(neededSave, 2, 6)) / 6;
+
+      // Dev Wounds portion (approx)
+      const pWoundCrit = this.applyRerolls((7 - critMin) / 6, rrWound);
+      const portionDevastating = effDevw ? Math.min(1, pWoundCrit) : 0;
+
+      const unsavedNormal = expectedWounds * (1 - portionDevastating) * (1 - pSave);
+      const mortals = expectedWounds * portionDevastating;
+
+      // Damage
+      const meltaBonusD = (kwMelta > 0 && withinHalf) ? kwMelta : 0;
+      const DwithMelta = Math.max(0, D + meltaBonusD);
+
+      const effD = Math.max(0, DwithMelta - dmgRed);
+      const dmgNormal = unsavedNormal * effD;
+      const dmgMortal = mortals * effD;
+
+      // FNP
+      const pFnp = fnp ? ((7 - this.clamp(fnp, 2, 6)) / 6) : 0;
+      const totalDamage = (dmgNormal + dmgMortal) * (1 - pFnp);
+
+      // Models killed (expected)
+      const modelsKilled = (W > 0) ? (totalDamage / W) : 0;
+
+      // Output numbers
+      this.output.hits = expectedHits;
+      this.output.wounds = expectedWounds;
+      this.output.fails = unsavedNormal;
+      this.output.dmg = totalDamage;
+
+      // Breakdown pills
+      const lines = [];
+      lines.push(`<span class="pill">A=${A.toFixed(2)} → Aeff=${Aeff.toFixed(2)}</span>`);
+      lines.push(`<span class="pill">pHit=${pHit.toFixed(3)}</span>`);
+      lines.push(`<span class="pill">crit%=${(pCrit*100).toFixed(1)}%</span>`);
+      if(effSustained>0) lines.push(`<span class="pill">extra hits/att=${extraHitsPerAttack.toFixed(3)}</span>`);
+      lines.push(`<span class="pill">need W ${neededAfterMod}+ → pWound=${pWound.toFixed(3)}</span>`);
+      if(effLethal) lines.push(`<span class="pill">auto(Lethal)≈${(autoWoundFromLethal*100).toFixed(1)}%</span>`);
+      if(anti>0) lines.push(`<span class="pill">Anti=${anti}+</span>`);
+      lines.push(`<span class="pill">save need ${neededSave===7?'—':neededSave+'+'} → pSave=${pSave.toFixed(3)} ${cover==='Light'&&!ignoresCover?'(cover)':''}</span>`);
+      if(effDevw) lines.push(`<span class="pill">DevW portion≈${(portionDevastating*100).toFixed(1)}%</span>`);
+      if(dmgRed>0) lines.push(`<span class="pill">Damage Reduction ${dmgRed}</span>`);
+      if(fnp) lines.push(`<span class="pill">FNP ${fnp}+</span>`);
+      if(kwMelta>0 && withinHalf) lines.push(`<span class="pill">Melta +${kwMelta}</span>`);
+      if(kwRapidFire>0 && withinHalf) lines.push(`<span class="pill">Rapid Fire +${kwRapidFire}A</span>`);
+      if(hasBlast && blastBonusA>0) lines.push(`<span class="pill">Blast +${blastBonusA}A</span>`);
+      lines.push(`<span class="pill">Models killed (exp)≈${modelsKilled.toFixed(2)}</span>`);
+      if(this.modifierTags.length) lines.push(`<span class="pill">Modifiers: ${this.modifierTags.map(this.normalizeModifierDisplay.bind(this)).join(', ')}</span>`);
+
+      this.output.breakdownHtml = lines.join(' ');
+
+      // Chart steps
+      const hitExtras = [];
+      if(torrent || String(this.weapon.skill).trim().toLowerCase()==='auto') hitExtras.push('auto-hit');
+      if(hitMod) hitExtras.push(`hit ${hitMod>0?'+':''}${hitMod}`);
+      if(forceHit) hitExtras.push(`cap ${forceHit}`);
+      if(rrHit!=='none') hitExtras.push(`rr ${rrHit}`);
+      if(effSustained>0) hitExtras.push(`Sust ${effSustained}`);
+      if(hasHeavy && stationary) hitExtras.push('Heavy');
+
+      const woundExtras = [];
+      if(woundMod) woundExtras.push(`wound ${woundMod>0?'+':''}${woundMod}`);
+      if(forceWound) woundExtras.push(`cap ${forceWound}`);
+      if(rrWound!=='none') woundExtras.push(`rr ${rrWound}`);
+      if(hasLance && charged) woundExtras.push('Lance');
+      if(effLethal) woundExtras.push('Lethal');
+      if(anti>0) woundExtras.push(`Anti ${anti}+`);
+      if(effDevw) woundExtras.push('DevW');
+
+      const saveExtras = [];
+      if(saveMod) saveExtras.push(`save ${saveMod>0?'+':''}${saveMod}`);
+      if(cover==='Light' && !ignoresCover) saveExtras.push('cover');
+      if(inv && String(inv).trim()) saveExtras.push(`inv ${String(inv).trim()}+`);
+
+      const dmgExtras = [];
+      if(modD) dmgExtras.push(`dmg ${modD>0?'+':''}${modD}`);
+      if(kwMelta>0 && withinHalf) dmgExtras.push(`Melta +${kwMelta}`);
+      if(dmgRed>0) dmgExtras.push(`-DR ${dmgRed}`);
+
+      const fnpExtras = [];
+      if(fnp) fnpExtras.push(`${fnp}+`);
+
+      const dmgIfAllHits = expectedHits * effD;
+      const dmgIfAllWounds = expectedWounds * effD;
+      const expectedUnsavedIncludingMortals = (unsavedNormal + mortals);
+      const dmgAfterSaves = expectedUnsavedIncludingMortals * effD;
+      const dmgAfterDamageMods = dmgNormal + dmgMortal;
+
+      const steps = [
+        { label: this.buildStepLabel('Attacks', [`Aeff ${Aeff.toFixed(2)}`]), value: Aeff * effD },
+        { label: this.buildStepLabel('Hits', hitExtras), value: dmgIfAllHits },
+        { label: this.buildStepLabel('Wounds', woundExtras), value: dmgIfAllWounds },
+        { label: this.buildStepLabel('After Saves', saveExtras), value: dmgAfterSaves },
+        { label: this.buildStepLabel('After Damage', dmgExtras), value: dmgAfterDamageMods },
+        { label: this.buildStepLabel('After FNP', fnpExtras), value: totalDamage },
+      ];
+
+      this.output.steps = steps;
+      this.renderBreakdownChart(steps);
+    },
+
+    // ---------------- Army JSON parsing / unit collection ----------------
+    getAllSelections(node){
+      const out = [];
+      (node?.selections || []).forEach(s => { out.push(s); out.push(...this.getAllSelections(s)); });
+      return out;
+    },
+
+    extractWeaponsFromProfiles(profiles){
+      const list = [];
+      (profiles || []).forEach(p => {
+        const tn = (p.typeName || '').toLowerCase();
+        if(tn.includes('ranged weapons') || tn.includes('melee weapons')){
+          const c = p.characteristics || [];
+          const get = (name) => (c.find(x => x.name === name) || {}).$text || '';
+          list.push({
+            name: p.name,
+            range: get('Range'),
+            A: get('A') || get('Attacks') || '',
+            skill: get('BS') || get('WS') || '',
+            S: get('S'),
+            AP: get('AP'),
+            D: get('D'),
+            modifier: get('modifiers')
+          });
+        }
+      });
+      return list;
+    },
+
+    collectUnits(force){
+      const unitMap = new Map();
+
+      (force?.selections || []).forEach(root => {
+        const all = [root, ...this.getAllSelections(root)];
+        all.forEach(s => {
+          const isUnit = (s.type === 'unit' || s.type === 'model');
+          const hasUnitProfile = (s.profiles || []).some(p => /\bunit\b/i.test(p.typeName || ''));
+          if(!(isUnit || hasUnitProfile)) return;
+
+          const key = s.name || s.entryId || Math.random();
+
+          // Collect weapons
+          const weapons = [];
+          const under = [s, ...(s.selections || [])];
+          under.forEach(n => weapons.push(...this.extractWeaponsFromProfiles(n.profiles)));
+          if(weapons.length === 0){
+            under.push(...this.getAllSelections(s));
+            under.forEach(n => weapons.push(...this.extractWeaponsFromProfiles(n.profiles)));
+          }
+
+          // Collect defense (T, Sv, Inv, W)
+          let defense = { T:null, Sv:null, Inv:null, W:null };
+
+          const extractDef = (profiles) => {
+            (profiles || []).forEach(p => {
+              const tn = (p.typeName || '').toLowerCase();
+              if(/\b(unit|model)\b/.test(tn)){
+                const c = p.characteristics || [];
+                const get = (name) => {
+                  const f = c.find(x => (x.name || '').toLowerCase() === name.toLowerCase());
+                  return f ? (f.$text || '') : '';
+                };
+
+                if(defense.T == null){
+                  const t = parseFloat(get('T')) || parseFloat(get('Toughness'));
+                  if(!Number.isNaN(t)) defense.T = t;
+                }
+
+                if(!defense.Sv) defense.Sv = get('SV') || get('Sv') || get('Save') || '';
+                if(!defense.Inv) defense.Inv = get('Invulnerable Save') || get('Invuln') || '';
+
+                if(defense.W == null){
+                  const w = parseFloat(get('W')) || parseFloat(get('Wounds'));
+                  if(!Number.isNaN(w)) defense.W = w;
+                }
+              }
+            });
+          };
+
+          [s, ...(s.selections || [])].forEach(n => extractDef(n.profiles));
+          if(defense.T == null || !defense.Sv || defense.W == null){
+            this.getAllSelections(s).forEach(n => extractDef(n.profiles));
+          }
+
+          if(weapons.length > 0 || defense.T != null || defense.Sv || defense.W != null){
+            unitMap.set(key, { label: s.name, weapons, defense });
+          }
+        });
+      });
+
+      return [...unitMap.values()];
+    },
+  }
+}
+</script>
+</body>
+</html>
