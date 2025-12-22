@@ -66,24 +66,6 @@
       </div>
     </div>
 
-    <h2>Unit Defense</h2>
-    <div class="card" id="unitDefense">
-      <template x-if="!activeUnit">
-        <div class="muted">Select a unit to see its defensive profile.</div>
-      </template>
-
-      <template x-if="activeUnit">
-        <div>
-          <div class="muted" style="margin-bottom:6px" x-text="activeUnit.label || 'Unit'"></div>
-          <div x-html="renderDefensePills(activeUnit.defense)"></div>
-        </div>
-      </template>
-    </div>
-
-    <div class="row">
-      <button class="secondary" type="button" @click="loadSelectedDefenseIntoForm()">Load defensive profile</button>
-    </div>
-
     <h2>Pick a weapon</h2>
     <div class="card" id="weaponList">
       <template x-if="!activeWeapons || activeWeapons.length === 0">
@@ -131,11 +113,52 @@
       </template>
     </div>
 
+    <h2>Unit Defense</h2>
+    <div class="card" id="unitDefense">
+      <template x-if="!activeUnit">
+        <div class="muted">Select a unit to see its defensive profile.</div>
+      </template>
+
+      <template x-if="activeUnit">
+        <div>
+          <div class="muted" style="margin-bottom:6px" x-text="activeUnit.label || 'Unit'"></div>
+          <div x-html="renderDefensePills(activeUnit.defense)"></div>
+        </div>
+      </template>
+    </div>
+
+    <div class="row">
+      <button class="secondary" type="button" @click="loadSelectedDefenseIntoForm()">Load defensive profile</button>
+    </div>
+
     <h2>Presets</h2>
+
+    <div class="card">
+      <h3 class="muted" style="margin:0 0 10px;">Infantry</h3>
+      <div class="row">
+        <button class="secondary" type="button"
+          @click="applyPreset(3, 5, 0, false, 0, 0, 1)"><!--(T,Sv,Inv,cover,DR,Fnp,W) -->
+          Guardsman (T3 5+ 1W)
+        </button>
+
+        <button class="secondary" type="button"
+          @click="applyPreset(4, 3, 0, false, 0, 0, 2)"><!--(T,Sv,Inv,cover,DR,Fnp,W) -->
+          Marine (T4 3+ 2W)
+        </button>
+
+        <button class="secondary" type="button"
+          @click="applyPreset(6, 2, 4, false, 0, 0, 3)"><!--(T,Sv,Inv,cover,DR,Fnp,W) -->
+          Elite (Custodes) (T6 2+ 4++ 3W)
+        </button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="row">
-        <button class="secondary" type="button" @click="applyPresetInfantry()">Infantry (T4 3+)</button>
-        <button class="secondary" type="button" @click="applyPresetVehicle()">Vehicle (T10 3+ 5++)</button>
+        <button class="secondary" type="button"
+          @click="applyPreset(10, 3, 0, false, 0, 0, 12)"><!--(T,Sv,Inv,cover,DR,Fnp,W) -->
+          Vehicle (T10 3+ 12W)
+        </button>
       </div>
     </div>
   </aside>
@@ -266,12 +289,9 @@
             </div>
           </label>
 
-          <label>
+          <label style="align-items: flex-start;">
             Cover?
-            <select class="smallInput" x-model="defense.cover">
-              <option>No</option>
-              <option>Yes</option>
-            </select>
+            <input style="width:20px;height:20px;" type="checkbox" x-model="defense.cover">
           </label>
 
           <label>Wounds per model <input type="number" x-model="defense.W" /></label>
@@ -363,10 +383,6 @@ function weaponVsDefenseApp(){
       { key:'rapidfire',    label:'Rapid Fire',         type:'number', defaultValue:1 },
       { key:'blast',        label:'Blast',              type:'flag' },
       { key:'heavy',        label:'Heavy',              type:'flag' },
-      { key:'mod_hit',      label:'Hit mod (±)',        type:'number', defaultValue:0 },
-      { key:'mod_wound',    label:'Wound mod (±)',      type:'number', defaultValue:0 },
-      { key:'mod_ap',       label:'AP mod (±)',         type:'number', defaultValue:0 },
-      { key:'mod_dmg',      label:'Damage mod (±)',     type:'number', defaultValue:0 },
       { key:'mod_critmin',  label:'Min Roll for Crit',  type:'number', defaultValue:6 },
 
       { key:'mod_rrhit',    label:'Reroll hits',                 type:'select', defaultValue:'ones',
@@ -472,7 +488,7 @@ function weaponVsDefenseApp(){
       T: 4,
       Sv: '3',
       Inv: '',
-      cover: 'No',
+      cover: 0,
       W: 2,
       Fnp: '',
       DR: 0,
@@ -572,26 +588,15 @@ function weaponVsDefenseApp(){
       return forces?.[i] || null;
     },
 
-    // ---------------- Presets ----------------
-    applyPresetInfantry(){
-      this.defense.T = 4;
-      this.defense.Sv = '3';
-      this.defense.Inv = '';
-      this.defense.cover = 'No';
-      this.defense.W = 2;
-      this.defense.Fnp = '';
-      this.defense.DR = 0;
-      this.calculate();
-    },
-
-    applyPresetVehicle(){
-      this.defense.T = 10;
-      this.defense.Sv = '3';
-      this.defense.Inv = '5';
-      this.defense.cover = 'No';
-      this.defense.W = 12;
-      this.defense.Fnp = '';
-      this.defense.DR = 0;
+    // ---------------- Preset Template ----------------
+    applyPreset(T,Sv,Inv,cover,DR,Fnp,W){
+      this.defense.T = T;
+      this.defense.Sv = Sv;
+      this.defense.Inv = Inv;
+      this.defense.cover = cover;
+      this.defense.DR = DR;
+      this.defense.Fnp = Fnp;
+      this.defense.W = W;
       this.calculate();
     },
 
@@ -693,16 +698,11 @@ function weaponVsDefenseApp(){
       const skill = this.weapon.skill;
       const S = parseFloat(this.weapon.S) || 0;
 
-      const baseAP = parseFloat(this.weapon.AP) || 0;
-      const modAP = this.modNumber('mod_ap', 0);
-      const AP = baseAP + modAP;
+      const AP = parseFloat(this.weapon.AP) || 0;
 
       const baseD = parseFloat(this.weapon.D) || 0;
-      const modD  = this.modNumber('mod_dmg', 0);
-      let D = Math.max(0, baseD + modD);
+      let D = Math.max(0, baseD);
 
-      const hitMod   = this.modNumber('mod_hit', 0);
-      const woundMod = this.modNumber('mod_wound', 0);
       const critMin  = this.modNumber('mod_critmin', 6);
       const rrHit = this.modSelect('mod_rrhit', 'none');
 
@@ -758,7 +758,7 @@ function weaponVsDefenseApp(){
         pCrit = 0; // auto-hits => no crit-hit modeling here
       }else{
         const heavyBonus = (hasHeavy && stationary) ? 1 : 0;
-        const basePHit = this.probAtLeast(skill, hitMod + heavyBonus, forceHit || null);
+        const basePHit = this.probAtLeast(skill, heavyBonus, forceHit || null);
         pHit = this.applyRerolls(basePHit, rrHit);
 
         const baseCrit = (7 - critMin) / 6;
@@ -771,7 +771,7 @@ function weaponVsDefenseApp(){
       // Wounds
       const need = this.woundNeeded(S, T);
       const lanceBonus = charged ? 1 : 0;
-      const neededAfterMod = this.clamp(need - woundMod + lanceBonus, 2, 6);
+      const neededAfterMod = this.clamp(need + lanceBonus, 2, 6);
 
       const pWoundBase = this.probAtLeast(neededAfterMod, 0, forceWound || null);
       const pWound = this.applyRerolls(pWoundBase, rrWound);
@@ -787,7 +787,7 @@ function weaponVsDefenseApp(){
       const expectedWounds = expectedHits * effectiveWoundSuccess;
 
       // Saves
-      const coverMod = (cover === 'Yes' && !ignoresCover) ? -1 : 0;
+      const coverMod = (cover && !ignoresCover) ? -1 : 0;
       const neededSave = this.pickSave(sv, inv, AP, coverMod);
       const pSave = (neededSave >= 7) ? 0 : (7 - this.clamp(neededSave, 2, 6)) / 6;
 
@@ -842,14 +842,12 @@ function weaponVsDefenseApp(){
       // Chart steps
       const hitExtras = [];
       if(torrent || String(this.weapon.skill).trim().toLowerCase()==='auto') hitExtras.push('auto-hit');
-      if(hitMod) hitExtras.push(`hit ${hitMod>0?'+':''}${hitMod}`);
       if(forceHit) hitExtras.push(`cap ${forceHit}`);
       if(rrHit!=='none') hitExtras.push(`rr ${rrHit}`);
       if(effSustained>0) hitExtras.push(`Sust ${effSustained}`);
       if(hasHeavy && stationary) hitExtras.push('Heavy');
 
       const woundExtras = [];
-      if(woundMod) woundExtras.push(`wound ${woundMod>0?'+':''}${woundMod}`);
       if(forceWound) woundExtras.push(`cap ${forceWound}`);
       if(rrWound!=='none') woundExtras.push(`rr ${rrWound}`);
       if(charged) woundExtras.push('Lance');
@@ -858,11 +856,10 @@ function weaponVsDefenseApp(){
       if(effDevw) woundExtras.push('DevW');
 
       const saveExtras = [];
-      if(cover==='Yes' && !ignoresCover) saveExtras.push('cover');
+      if(cover && !ignoresCover) saveExtras.push('cover');
       if(inv && String(inv).trim()) saveExtras.push(`inv ${String(inv).trim()}+`);
 
       const dmgExtras = [];
-      if(modD) dmgExtras.push(`dmg ${modD>0?'+':''}${modD}`);
       if(kwMelta>0 && withinHalf) dmgExtras.push(`Melta +${kwMelta}`);
       if(dmgRed>0) dmgExtras.push(`-DR ${dmgRed}`);
 
