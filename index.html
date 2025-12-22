@@ -270,7 +270,7 @@
             Cover?
             <select class="smallInput" x-model="defense.cover">
               <option>No</option>
-              <option>Light</option>
+              <option>Yes</option>
             </select>
           </label>
 
@@ -283,18 +283,17 @@
             </div>
           </label>
 
-          <label>Damage Reduction (flat) <input type="number" x-model="defense.DR" /></label>
-          <label>Target models (for Blast) <input type="number" min="1" x-model="defense.models" /></label>
+          <label>Damage Reduction <input type="number" x-model="defense.DR" /></label>
+          <label>Target Models <input type="number" min="1" x-model="defense.models" /></label>
         </div>
 
-        <details style="margin-top:8px">
+        <!--<details style="margin-top:8px">
           <summary>Defensive modifiers</summary>
           <div class="grid" style="margin-top:8px">
-            <label>Save mod (±) <input type="number" x-model="defenseMods.saveMod" /></label>
             <label>To-hit forced cap (min needed) <input class="smallInput" x-model="defenseMods.forceHit" inputmode="numeric" /></label>
             <label>To-wound forced cap (min needed) <input class="smallInput" x-model="defenseMods.forceWound" inputmode="numeric" /></label>
           </div>
-        </details>
+        </details>-->
       </div>
     </div>
 
@@ -364,21 +363,17 @@ function weaponVsDefenseApp(){
       { key:'rapidfire',    label:'Rapid Fire',         type:'number', defaultValue:1 },
       { key:'blast',        label:'Blast',              type:'flag' },
       { key:'heavy',        label:'Heavy',              type:'flag' },
-      { key:'lance',        label:'Lance',              type:'flag' },
       { key:'mod_hit',      label:'Hit mod (±)',        type:'number', defaultValue:0 },
       { key:'mod_wound',    label:'Wound mod (±)',      type:'number', defaultValue:0 },
       { key:'mod_ap',       label:'AP mod (±)',         type:'number', defaultValue:0 },
       { key:'mod_dmg',      label:'Damage mod (±)',     type:'number', defaultValue:0 },
       { key:'mod_critmin',  label:'Min Roll for Crit',  type:'number', defaultValue:6 },
 
-      { key:'mod_rrhit',    label:'Reroll hits',                 type:'select', defaultValue:'none',
-        options:[{value:'none',label:'None'},{value:'ones',label:'Ones'},{value:'all',label:'All'}] },
+      { key:'mod_rrhit',    label:'Reroll hits',                 type:'select', defaultValue:'ones',
+        options:[{value:'ones',label:'Ones'},{value:'all',label:'All'}] },
 
-      { key:'mod_rrwound',  label:'Reroll wounds',               type:'select', defaultValue:'none',
-        options:[{value:'none',label:'None'},{value:'ones',label:'Ones'},{value:'all',label:'All'}] },
-
-      // Optional override (keeps old “anti threshold” control capability distinct from Anti modifier)
-      { key:'mod_antiover', label:'Anti threshold override',      type:'number', defaultValue:0 },
+      { key:'mod_rrwound',  label:'Reroll wounds',               type:'select', defaultValue:'ones',
+        options:[{value:'ones',label:'Ones'},{value:'all',label:'All'}] },
 
       { key:'mod_within',   label:'Within Half Range? (Melta/RF)',type:'flag' },
       { key:'mod_station',  label:'Remained Stationary? (Heavy)', type:'flag' },
@@ -485,7 +480,6 @@ function weaponVsDefenseApp(){
     },
 
     defenseMods: {
-      saveMod: 0,
       forceHit: '',
       forceWound: '',
     },
@@ -642,18 +636,6 @@ function weaponVsDefenseApp(){
     // ---------------- Math utils ----------------
     clamp(x,min,max){ return Math.max(min, Math.min(max, x)); },
 
-    parsePlus(s){
-      if(s === null || s === undefined) return null;
-      s = String(s).trim();
-      if(!s) return null;
-      if(s.toLowerCase() === 'auto') return 1;
-      const m = s.match(/(\d+)\s*\+/);
-      if(m) return parseInt(m[1], 10);
-      if(s === '-' ) return null;
-      const v = parseInt(s, 10);
-      return Number.isFinite(v) ? v : null;
-    },
-
     parseNdX(expr){
       if(!expr) return { mean:0, text:'0' };
       const s = String(expr).replace(/\s+/g,'');
@@ -697,121 +679,10 @@ function weaponVsDefenseApp(){
     },
 
     pickSave(sv, inv, ap, saveMod){
-      const svp = this.parsePlus(sv);
-      const invp = this.parsePlus(inv);
-      const worsened = svp ? this.clamp(svp - ap, 2, 7) : 7;
+      const worsened = sv ? this.clamp(sv - ap, 2, 7) : 7;
       const final = saveMod ? this.clamp(worsened + saveMod, 2, 7) : worsened;
-      if(invp) return Math.min(final, invp);
+      if(inv) return Math.min(final, inv);
       return final;
-    },
-
-    // ---------------- Chart ----------------
-    _fmtChart(n){
-      if(!Number.isFinite(n)) return '—';
-      if(Math.abs(n) >= 100) return n.toFixed(0);
-      if(Math.abs(n) >= 10) return n.toFixed(1);
-      return n.toFixed(2);
-    },
-
-    buildStepLabel(base, extras){
-      const xs = (extras || []).filter(Boolean);
-      if(xs.length === 0) return base;
-      return `${base} (${xs.join(', ')})`;
-    },
-
-    renderBreakdownChart(steps){
-      const canvas = this.$refs.chart;
-      if(!canvas) return;
-      const ctx = canvas.getContext('2d');
-
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-
-      const w = rect.width;
-      const h = rect.height;
-      ctx.clearRect(0,0,w,h);
-
-      if(!steps || steps.length < 2){
-        ctx.fillStyle = '#90a4b4';
-        ctx.font = '12px system-ui, Segoe UI, Roboto, Arial';
-        ctx.fillText('No chart data yet.', 12, 20);
-        return;
-      }
-
-      const padL = 44, padR = 30, padT = 24, padB = 44;
-      const plotW = Math.max(10, w - padL - padR);
-      const plotH = Math.max(10, h - padT - padB);
-
-      const vals = steps.map(s => Math.max(0, Number(s.value) || 0));
-      const maxV = Math.max(1e-9, ...vals);
-
-      const xFor = (i)=> padL + (steps.length===1 ? plotW/2 : (i*(plotW/(steps.length-1))));
-      const yFor = (v)=> padT + (plotH - (v/maxV)*plotH);
-
-      // grid
-      ctx.strokeStyle = '#223044';
-      ctx.lineWidth = 1;
-      for(let k=0;k<=4;k++){
-        const y = padT + (k*(plotH/4));
-        ctx.beginPath();
-        ctx.moveTo(padL, y);
-        ctx.lineTo(padL+plotW, y);
-        ctx.stroke();
-      }
-
-      // axes
-      ctx.strokeStyle = '#2a3a4f';
-      ctx.beginPath();
-      ctx.moveTo(padL, padT);
-      ctx.lineTo(padL, padT+plotH);
-      ctx.lineTo(padL+plotW, padT+plotH);
-      ctx.stroke();
-
-      // line
-      ctx.strokeStyle = '#6ee7ff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      steps.forEach((s,i)=>{
-        const x = xFor(i);
-        const y = yFor(vals[i]);
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke();
-
-      // points + labels
-      ctx.font = '12px system-ui, Segoe UI, Roboto, Arial';
-      steps.forEach((s,i)=>{
-        const x = xFor(i);
-        const y = yFor(vals[i]);
-
-        ctx.fillStyle = '#a78bfa';
-        ctx.beginPath();
-        ctx.arc(x, y, 3.5, 0, Math.PI*2);
-        ctx.fill();
-
-        ctx.fillStyle = '#e8eef7';
-        const valText = this._fmtChart(vals[i]);
-        ctx.fillText(valText, x - (valText.length*3), y - 8);
-
-        ctx.save();
-        ctx.translate(x, padT + plotH + 10);
-        //ctx.rotate(-Math.PI/6);
-        ctx.fillStyle = '#90a4b4';
-        const lbl = String(s.label || '');
-        ctx.fillText(lbl, -Math.min(120, lbl.length*3), 18);
-        ctx.restore();
-      });
-
-      // y ticks
-      ctx.fillStyle = '#90a4b4';
-      for(let k=0;k<=4;k++){
-        const v = maxV * (1 - k/4);
-        const y = padT + (k*(plotH/4));
-        ctx.fillText(this._fmtChart(v), 8, y+4);
-      }
     },
 
     // ---------------- Core calculation ----------------
@@ -819,7 +690,7 @@ function weaponVsDefenseApp(){
       // Inputs
       const A = this.parseNdX(this.weapon.A).mean;
 
-      const skill = this.parsePlus(this.weapon.skill);
+      const skill = this.weapon.skill;
       const S = parseFloat(this.weapon.S) || 0;
 
       const baseAP = parseFloat(this.weapon.AP) || 0;
@@ -841,13 +712,12 @@ function weaponVsDefenseApp(){
       const T = parseFloat(this.defense.T) || 0;
       const sv = this.defense.Sv;
       const inv = this.defense.Inv;
-      const cover = this.defense.cover || 'No';
+      const cover = this.defense.cover;
       const W = parseFloat(this.defense.W) || 0;
-      const fnp = this.parsePlus(this.defense.Fnp);
+      const fnp = this.defense.Fnp;
       const dmgRed = parseFloat(this.defense.DR) || 0;
       const targetModels = Math.max(1, parseInt(this.defense.models || '5', 10) || 5);
 
-      const saveMod = parseInt(this.defenseMods.saveMod || '0', 10) || 0;
       const forceHit = (this.defenseMods.forceHit || '').trim();
       const forceWound = (this.defenseMods.forceWound || '').trim();
 
@@ -900,7 +770,7 @@ function weaponVsDefenseApp(){
 
       // Wounds
       const need = this.woundNeeded(S, T);
-      const lanceBonus = (hasLance && charged) ? 1 : 0;
+      const lanceBonus = charged ? 1 : 0;
       const neededAfterMod = this.clamp(need - woundMod + lanceBonus, 2, 6);
 
       const pWoundBase = this.probAtLeast(neededAfterMod, 0, forceWound || null);
@@ -917,8 +787,8 @@ function weaponVsDefenseApp(){
       const expectedWounds = expectedHits * effectiveWoundSuccess;
 
       // Saves
-      const coverMod = (cover === 'Light' && !ignoresCover) ? +1 : 0;
-      const neededSave = this.pickSave(sv, inv, AP, saveMod + coverMod);
+      const coverMod = (cover === 'Yes' && !ignoresCover) ? -1 : 0;
+      const neededSave = this.pickSave(sv, inv, AP, coverMod);
       const pSave = (neededSave >= 7) ? 0 : (7 - this.clamp(neededSave, 2, 6)) / 6;
 
       // Dev Wounds portion (approx)
@@ -982,14 +852,13 @@ function weaponVsDefenseApp(){
       if(woundMod) woundExtras.push(`wound ${woundMod>0?'+':''}${woundMod}`);
       if(forceWound) woundExtras.push(`cap ${forceWound}`);
       if(rrWound!=='none') woundExtras.push(`rr ${rrWound}`);
-      if(hasLance && charged) woundExtras.push('Lance');
+      if(charged) woundExtras.push('Lance');
       if(effLethal) woundExtras.push('Lethal');
       if(anti>0) woundExtras.push(`Anti ${anti}+`);
       if(effDevw) woundExtras.push('DevW');
 
       const saveExtras = [];
-      if(saveMod) saveExtras.push(`save ${saveMod>0?'+':''}${saveMod}`);
-      if(cover==='Light' && !ignoresCover) saveExtras.push('cover');
+      if(cover==='Yes' && !ignoresCover) saveExtras.push('cover');
       if(inv && String(inv).trim()) saveExtras.push(`inv ${String(inv).trim()}+`);
 
       const dmgExtras = [];
@@ -1000,23 +869,140 @@ function weaponVsDefenseApp(){
       const fnpExtras = [];
       if(fnp) fnpExtras.push(`${fnp}+`);
 
-      const dmgIfAllHits = expectedHits * effD;
-      const dmgIfAllWounds = expectedWounds * effD;
+      const baseTotalDamage = Aeff * effD;
+      const dmgAfterHits = expectedHits * effD;
+      const dmgAfterWounds = expectedWounds * effD;
       const expectedUnsavedIncludingMortals = (unsavedNormal + mortals);
       const dmgAfterSaves = expectedUnsavedIncludingMortals * effD;
       const dmgAfterDamageMods = dmgNormal + dmgMortal;
 
       const steps = [
-        { label: this.buildStepLabel('Attacks', [`+${Aeff-A}`]), value: Aeff * effD },
-        { label: this.buildStepLabel('Hits', hitExtras), value: dmgIfAllHits },
-        { label: this.buildStepLabel('Wounds', woundExtras), value: dmgIfAllWounds },
-        { label: this.buildStepLabel('After Saves', saveExtras), value: dmgAfterSaves },
-        { label: this.buildStepLabel('After Damage', dmgExtras), value: dmgAfterDamageMods },
-        { label: this.buildStepLabel('After FNP', fnpExtras), value: totalDamage },
+        { label: this.buildStepLabel('Attacks', [`+${Aeff-A}`]), value: baseTotalDamage },
+        { label: this.buildStepLabel('Hits', hitExtras), value: dmgAfterHits, percent: (dmgAfterHits - baseTotalDamage)/baseTotalDamage },
+        { label: this.buildStepLabel('Wounds', woundExtras), value: dmgAfterWounds, percent: (dmgAfterWounds - dmgAfterHits)/dmgAfterHits },
+        { label: this.buildStepLabel('After Saves', saveExtras), value: dmgAfterSaves, percent: (dmgAfterSaves - dmgAfterWounds)/dmgAfterWounds },
+        { label: this.buildStepLabel('After Damage', dmgExtras), value: dmgAfterDamageMods, percent: (dmgAfterDamageMods - dmgAfterSaves)/dmgAfterSaves },
+        { label: this.buildStepLabel('After FNP', fnpExtras), value: totalDamage, percent: (totalDamage - dmgAfterDamageMods)/dmgAfterDamageMods },
       ];
 
       this.output.steps = steps;
       this.renderBreakdownChart(steps);
+    },
+
+    // ---------------- Chart ----------------
+    _fmtChart(n){
+      if(!Number.isFinite(n)) return "";
+      if(Math.abs(n) >= 100) return n.toFixed(0);
+      if(Math.abs(n) >= 10) return n.toFixed(1);
+      return n.toFixed(2);
+    },
+
+    buildStepLabel(base, extras){
+      const xs = (extras || []).filter(Boolean);
+      if(xs.length === 0) return base;
+      return `${base} (${xs.join(', ')})`;
+    },
+
+    renderBreakdownChart(steps){
+      const canvas = this.$refs.chart;
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+
+      const w = rect.width;
+      const h = rect.height;
+      ctx.clearRect(0,0,w,h);
+
+      if(!steps || steps.length < 2){
+        ctx.fillStyle = '#90a4b4';
+        ctx.font = '12px system-ui, Segoe UI, Roboto, Arial';
+        ctx.fillText('No chart data yet.', 12, 20);
+        return;
+      }
+
+      const padL = 44, padR = 30, padT = 24, padB = 44;
+      const plotW = Math.max(10, w - padL - padR);
+      const plotH = Math.max(10, h - padT - padB);
+
+      const vals = steps.map(s => Math.max(0, Number(s.value) || 0));
+      const maxV = Math.max(1e-9, ...vals);
+      const percentChanges = steps.map(s => s.percent != null ? s.percent : null)
+
+      const xFor = (i)=> padL + (steps.length===1 ? plotW/2 : (i*(plotW/(steps.length-1))));
+      const yFor = (v)=> padT + (plotH - (v/maxV)*plotH);
+
+      // grid
+      ctx.strokeStyle = '#223044';
+      ctx.lineWidth = 1;
+      for(let k=0;k<=4;k++){
+        const y = padT + (k*(plotH/4));
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(padL+plotW, y);
+        ctx.stroke();
+      }
+
+      // axes
+      ctx.strokeStyle = '#2a3a4f';
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, padT+plotH);
+      ctx.lineTo(padL+plotW, padT+plotH);
+      ctx.stroke();
+
+      // line
+      ctx.strokeStyle = '#6ee7ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      steps.forEach((s,i)=>{
+        const x = xFor(i);
+        const y = yFor(vals[i]);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      // points + labels
+      ctx.font = '12px system-ui, Segoe UI, Roboto, Arial';
+      steps.forEach((s,i)=>{
+        const x = xFor(i);
+        const y = yFor(vals[i]);
+
+        ctx.fillStyle = '#a78bfa';
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = '#e8eef7';
+        const valText = this._fmtChart(vals[i]);
+        ctx.fillText(valText, x - (valText.length*3), y - 8);
+
+        if(percentChanges[i] != null) {
+          ctx.fillStyle = percentChanges[i] >= 0 ? '#b6d7a8' : '#ea9999';
+          const percentText = percentChanges[i] ? `(${percentChanges[i].toFixed(2)*100}%)` : "( - )"
+          ctx.fillText(percentText, x + 3 - (percentText.length*3), y - 25);
+        }
+
+        ctx.save();
+        ctx.translate(x, padT + plotH + 10);
+        //ctx.rotate(-Math.PI/6);
+        ctx.fillStyle = '#90a4b4';
+        const lbl = String(s.label || '');
+        ctx.fillText(lbl, -Math.min(120, lbl.length*3), 18);
+        ctx.restore();
+      });
+
+      // y ticks
+      ctx.fillStyle = '#90a4b4';
+      for(let k=0;k<=4;k++){
+        const v = maxV * (1 - k/4);
+        const y = padT + (k*(plotH/4));
+        ctx.fillText(this._fmtChart(v), 8, y+4);
+      }
     },
 
     // ---------------- Army JSON parsing / unit collection ----------------
