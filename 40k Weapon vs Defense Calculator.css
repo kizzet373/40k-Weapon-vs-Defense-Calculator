@@ -7,6 +7,35 @@ body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe
 h1{font-size:20px;margin:0 0 8px}
 h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
 
+@media (max-width: 800px) {
+  .app{
+    grid-template-columns: 1fr !important;
+    gap: 0;                 /* optional */
+    width: 100vw;
+  }
+
+  aside#sidebar {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: 100%;
+    z-index: 1000;
+    transform: translateX(-100%);
+    opacity: 1;              /* ensure it doesn't fade out oddly */
+    pointer-events: auto;
+  }
+
+  /* when open (NOT collapsed), slide in */
+  .app:not(.sidebar-collapsed) aside#sidebar {
+    transform: translateX(0);
+  }
+
+  /* when collapsed, keep it off-screen */
+  .app.sidebar-collapsed aside#sidebar {
+    transform: translateX(-100%);
+  }
+}
+
 .app{
   display:grid;
   grid-template-columns:500px 1fr;
