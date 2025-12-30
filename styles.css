@@ -178,3 +178,28 @@ details summary{cursor:pointer}
   border-radius:10px
 }
 .chartHint{margin-top:6px;color:var(--muted);font-size:12px}
+
+/* ---------------- Matchup Modal ---------------- */
+[x-cloak]{display:none!important}
+.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}
+.modal{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:16px;max-width:1050px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden}
+.modalWide{max-width:1400px}
+.modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.modalBody{padding:12px 14px}
+
+.matchupControls{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:10px}
+.matchupSide{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px}
+.matchupToggles{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+
+.segRow{display:flex;gap:8px;flex-wrap:wrap}
+.seg{padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.02);color:var(--fg);cursor:pointer}
+.seg.active{border-color:rgba(110,231,255,.55);box-shadow:0 0 0 2px rgba(110,231,255,.12) inset}
+
+.matchupGridWrap{overflow:auto;max-height:70vh;border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.matchupGrid{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+.matchupGrid th,.matchupGrid td{border-bottom:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06);padding:8px 10px;vertical-align:top;background:rgba(255,255,255,.01)}
+.matchupGrid thead th{position:sticky;top:0;background:rgba(18,24,34,.98);z-index:2}
+.matchupGrid .stickyCol{position:sticky;left:0;background:rgba(18,24,34,.98);z-index:3;min-width:220px;max-width:220px}
+.matchupGrid td{min-width:160px}
+.matchupGrid tr:last-child td,.matchupGrid tr:last-child th{border-bottom:0}
+.matchupGrid th:last-child,.matchupGrid td:last-child{border-right:0}
