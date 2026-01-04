@@ -162,10 +162,10 @@ function weaponVsDefenseApp(){
     defense: {
       T: 4,
       Sv: 3,
-      Inv: 0,
+      Inv: null,
       cover: 0,
       W: 2,
-      Fnp: 0,
+      Fnp: null,
       DR: 0,
       models: 5,
     },
@@ -725,7 +725,7 @@ function weaponVsDefenseApp(){
     pickSave(sv, inv, ap, saveMod){
       const worsened = sv ? this.clamp(sv + ap, 2, 7) : 7;
       const final = saveMod ? this.clamp(worsened + saveMod, 2, 7) : worsened;
-      if(inv) return Math.min(final, inv);
+      if(inv > 0) return Math.min(final, inv);
       return final;
     },
 
@@ -748,11 +748,11 @@ function weaponVsDefenseApp(){
       const rrWound = hasTwinlinked ? 'all' : this.modSelect('mod_rrwound', 'none');
 
       const T = parseFloat(this.defense.T) || 0;
-      const sv = this.defense.Sv;
-      const inv = this.defense.Inv;
+      const sv = parseFloat(this.defense.Sv) || 7;
+      const inv = parseFloat(this.defense.Inv) || 0;
       const cover = this.defense.cover;
       const W = parseFloat(this.defense.W) || 0;
-      const fnp = this.defense.Fnp;
+      const fnp = parseFloat(this.defense.Fnp) || 0;
       const dmgRed = parseFloat(this.defense.DR) || 0;
       const targetModels = Math.max(1, parseInt(this.defense.models || '5', 10) || 5);
 
@@ -768,7 +768,6 @@ function weaponVsDefenseApp(){
       const ignoresCover = this.hasMod('ignorescover');
       const hasBlast     = this.hasMod('blast');
       const hasHeavy     = this.hasMod('heavy');
-      const hasLance     = this.hasMod('lance');
 
       const kwSustained  = this.modNumber('sustained', 0);
       const kwRapidFire  = this.modNumber('rapidfire', 0);
@@ -845,7 +844,7 @@ function weaponVsDefenseApp(){
       const dmgMortal = mortals * effD;
 
       // FNP
-      const pFnp = fnp ? ((7 - this.clamp(fnp, 2, 6)) / 6) : 0;
+      const pFnp = fnp > 0 ? ((7 - this.clamp(fnp, 2, 6)) / 6) : 0;
       const totalDamage = (dmgNormal + dmgMortal) * (1 - pFnp);
 
       // Models killed (expected)
