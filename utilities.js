@@ -3,6 +3,7 @@ function weaponVsDefenseApp(){
     // ---------------- UI ----------------
     sidebarCollapsed: false,
     jsonPaste: '',
+    importStatus: { type: '', text: '' },
 
     // ---------------- Matchups ----------------
     matchupModalOpen: false,
@@ -15,8 +16,8 @@ function weaponVsDefenseApp(){
       sortAttackers: 'overallDamage',
       sortAttackersDirection: 'desc',
       sortAttackersColumnKey: '',
-      sortDefenders: 'leastDamage',
-      sortDefendersDirection: 'asc',
+      sortDefenders: 'overallDamage',
+      sortDefendersDirection: 'desc',
       sortDefendersRowKey: '',
       combineShootingProfiles: true,
       showMelee: true,
@@ -29,6 +30,7 @@ function weaponVsDefenseApp(){
       visibleRows: [],
       visibleDefenders: [],
       metricRange: { min: 0, max: 0 },
+      scoreMaps: { attackers: {}, defenders: {} },
       cellCache: {},
       cacheWarmToken: 0,
     },
@@ -41,6 +43,8 @@ function weaponVsDefenseApp(){
     modifierToggleState: {},
     unitToggleState: {},
     matchupClipboardStatus: '',
+    matchupExportFormat: 'visible',
+    matchupActionMenu: '',
     matchupMerge: {
       attackerFrom: '',
       attackerTo: '',
@@ -239,14 +243,46 @@ function weaponVsDefenseApp(){
     },
 
     // ---------------- Roster loading ----------------
+    setImportStatus(type, name){
+      const fallback = name || 'army';
+      this.importStatus = {
+        type,
+        text: type === 'success'
+          ? `successfully imported ${fallback}`
+          : `unsuccessfully imported ${fallback}`,
+      };
+    },
+
+    importNameFromText(text, fallback='pasted JSON'){
+      try{
+        const obj = JSON.parse(text);
+        const normalized = window.ArmyImportService?.normalizeRosterData(obj, fallback) || obj;
+        return (normalized?.roster?.name || normalized?.name || fallback || 'army').trim();
+      }catch(_err){
+        const match = String(text || '').match(/"name"\s*:\s*"([^"]+)"/i);
+        return match?.[1] || fallback || 'army';
+      }
+    },
+
+    importRoster(){
+      if((this.jsonPaste || '').trim()){
+        this.loadPastedRoster();
+        return;
+      }
+      this.$refs?.rosterFileInput?.click?.();
+    },
+
     async onRosterFile(evt){
       const f = evt.target.files?.[0];
       if(!f) return;
       const text = await f.text();
       try{
         const obj = JSON.parse(text);
-        this.addRoster(obj, f?.name || 'Uploaded JSON');
+        const label = this.addRoster(obj, f?.name || 'Uploaded JSON');
+        this.setImportStatus('success', label);
+        if(evt?.target) evt.target.value = '';
       }catch(e){
+        this.setImportStatus('error', f?.name || 'army file');
         alert('Invalid JSON');
         console.error(e);
       }
@@ -255,9 +291,12 @@ function weaponVsDefenseApp(){
     loadPastedRoster(){
       const t = (this.jsonPaste || '').trim();
       if(!t){ alert('Paste JSON first.'); return; }
+      const importName = this.importNameFromText(t, 'pasted JSON');
       try{
-        this.addRoster(JSON.parse(t), 'Pasted JSON');
+        const label = this.addRoster(JSON.parse(t), 'Pasted JSON');
+        this.setImportStatus('success', label || importName);
       }catch(e){
+        this.setImportStatus('error', importName);
         alert('Invalid JSON');
         console.error(e);
       }
@@ -271,6 +310,7 @@ function weaponVsDefenseApp(){
       this.selectedRosterIdx = this.rosters.length - 1;
 
       this.refreshForces();
+      return label;
     },
 
     removeRoster(idx){
@@ -321,8 +361,8 @@ function weaponVsDefenseApp(){
       this.matchup.defenderRosterIdx = this.clamp(dR, 0, this.rosters.length-1);
       this.matchup.defenderForceIdx  = 0;
 
-      this.onMatchupRosterChanged('attacker');
-      this.onMatchupRosterChanged('defender');
+      this.onMatchupRosterChanged('attacker', false);
+      this.onMatchupRosterChanged('defender', false);
       this.rebuildMatchup();
     },
 
@@ -337,8 +377,8 @@ function weaponVsDefenseApp(){
       this.matchup.attackerForceIdx  = this.matchup.defenderForceIdx;
       this.matchup.defenderRosterIdx = aR;
       this.matchup.defenderForceIdx  = aF;
-      this.onMatchupRosterChanged('attacker');
-      this.onMatchupRosterChanged('defender');
+      this.onMatchupRosterChanged('attacker', false);
+      this.onMatchupRosterChanged('defender', false);
       this.rebuildMatchup();
     },
 
@@ -348,7 +388,7 @@ function weaponVsDefenseApp(){
       return (obj?.roster?.forces) || (obj?.forces) || [];
     },
 
-    onMatchupRosterChanged(side){
+    onMatchupRosterChanged(side, rebuild=true){
       if(side === 'attacker'){
         this.matchupAttackerForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
         this.matchup.attackerForceIdx = this.clamp(this.matchup.attackerForceIdx, 0, Math.max(0, this.matchupAttackerForces.length-1));
@@ -356,6 +396,7 @@ function weaponVsDefenseApp(){
         this.matchupDefenderForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
         this.matchup.defenderForceIdx = this.clamp(this.matchup.defenderForceIdx, 0, Math.max(0, this.matchupDefenderForces.length-1));
       }
+      if(rebuild && this.matchupModalOpen) this.rebuildMatchup();
     },
 
     matchupDefenseLabel(u){
@@ -367,6 +408,50 @@ function weaponVsDefenseApp(){
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
       const models = d.models ?? u?.size ?? null;
+      const size = (models!=null) ? `${models} models` : '';
+      return [t, saves, w, size].filter(Boolean).join(' - ');
+    },
+
+    matchupDefenseHeaderLabel(u){
+      return this.matchupDefenseProfileLines(u).join('\n');
+    },
+
+    matchupDefenseProfileLines(u){
+      const profileUnits = (Array.isArray(u?._children) && u._children.length) ? u._children : [u];
+      const order = [];
+      const profiles = new Map();
+      profileUnits.forEach(profileUnit => {
+        const d = profileUnit?.defense || {};
+        const key = [
+          d.T ?? '',
+          d.Sv ?? '',
+          d.Inv ?? '',
+          d.Fnp ?? '',
+          d.W ?? '',
+        ].join('|');
+        const models = parseFloat(d.models ?? profileUnit?.size ?? 1);
+        if(!profiles.has(key)){
+          profiles.set(key, { unit: profileUnit, models: 0 });
+          order.push(key);
+        }
+        profiles.get(key).models += Number.isFinite(models) && models > 0 ? models : 1;
+      });
+
+      return order.map(key => {
+        const entry = profiles.get(key);
+        const d = entry.unit?.defense || {};
+        return this.matchupDefenseProfileLine(d, entry.models);
+      }).filter(Boolean);
+    },
+
+    matchupDefenseProfileLine(d, modelsOverride=null){
+      const t = (d.T!=null) ? `T${d.T}` : '';
+      const saves = [
+        (d.Sv!=null && d.Sv!=='') ? `${d.Sv}+` : '',
+        (d.Inv!=null && d.Inv!=='') ? `${d.Inv}++` : '',
+      ].filter(Boolean).join(' ');
+      const w = (d.W!=null) ? `W${d.W}` : '';
+      const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
       return [t, saves, w, size].filter(Boolean).join(' - ');
     },
@@ -390,6 +475,19 @@ function weaponVsDefenseApp(){
         return `${parts.join(' / ')} (shoot combined)`;
       }
       return parts.join(' / ');
+    },
+
+    matchupWeaponTypeSummary(u){
+      const attackMode = u?._attackMode || 'all';
+      const filtered = (u?.weapons || [])
+        .filter(w => this.isWeaponEnabledByToggles(w))
+        .filter(w => this.weaponMatchesAttackMode(w, attackMode));
+      const hasMelee = filtered.some(w => this.isMeleeWeapon(w));
+      const hasShooting = filtered.some(w => !this.isMeleeWeapon(w));
+      const parts = [];
+      if(hasMelee) parts.push('melee');
+      if(hasShooting) parts.push('shoot');
+      return parts.length ? parts.join(' / ') : 'No weapons';
     },
 
     unitKey(unit){
@@ -430,6 +528,98 @@ function weaponVsDefenseApp(){
         }
       });
       return cols;
+    },
+
+    unitPointValue(unit){
+      const direct = parseFloat(unit?._points);
+      if(Number.isFinite(direct) && direct > 0) return direct;
+
+      const base = unit?._baseUnit || null;
+      if(base && base !== unit){
+        const basePoints = this.unitPointValue(base);
+        if(Number.isFinite(basePoints) && basePoints > 0) return basePoints;
+      }
+      return null;
+    },
+
+    averageFinite(values){
+      const finite = (values || []).filter(value => Number.isFinite(value));
+      if(!finite.length) return null;
+      return finite.reduce((sum, value) => sum + value, 0) / finite.length;
+    },
+
+    rawEfficiencyScores(items){
+      const finite = (items || []).filter(item => Number.isFinite(item.raw));
+      const scores = {};
+      finite.forEach(item => {
+        scores[item.key] = item.raw;
+        if(item.stableKey) scores[item.stableKey] = scores[item.key];
+      });
+      return scores;
+    },
+
+    efficiencyScoreMultiplier(side){
+      const mode = this.matchup.metric || 'damage';
+      if(side === 'defender'){
+        if(mode === 'damage') return 38400;
+        if(mode === 'unitKill') return 11520;
+        return 4800;
+      }
+      if(mode === 'damage') return 1800;
+      if(mode === 'unitKill') return 28800;
+      return 11700;
+    },
+
+    updateMatchupScoreMaps(rows=this.matchup.visibleRows || [], defenders=this.matchup.visibleDefenders || []){
+      const attackerItems = (rows || []).map(row => {
+        const points = this.unitPointValue(row.unit);
+        const avgMetric = this.averageFinite((row.cells || []).map(cell => this.matchupCellMetric(cell)));
+        return {
+          key: this.unitKey(row.unit),
+          stableKey: String(row.unit?._unitKey || ''),
+          raw: points && avgMetric != null ? (avgMetric / points) * this.efficiencyScoreMultiplier('attacker') : null,
+        };
+      });
+
+      const defenderItems = (defenders || []).map((col, colIndex) => {
+        const points = this.unitPointValue(col.unit);
+        const avgIncoming = this.averageFinite((rows || []).map(row => this.matchupCellMetric(row.cells?.[colIndex])));
+        const raw = (() => {
+          if(!points || avgIncoming == null || avgIncoming <= 0) return null;
+          if((this.matchup.metric || 'damage') === 'unitKill'){
+            const survivalRate = Math.max(0, 1 - Math.min(avgIncoming, 1));
+            return (survivalRate / points) * this.efficiencyScoreMultiplier('defender');
+          }
+          return (1 / (avgIncoming * points)) * this.efficiencyScoreMultiplier('defender');
+        })();
+        return {
+          key: this.unitKey(col.unit),
+          stableKey: String(col.unit?._unitKey || ''),
+          raw,
+        };
+      });
+
+      this.matchup.scoreMaps = {
+        attackers: this.rawEfficiencyScores(attackerItems),
+        defenders: this.rawEfficiencyScores(defenderItems),
+      };
+      return this.matchup.scoreMaps;
+    },
+
+    formatEfficiencyScore(value){
+      if(!Number.isFinite(value)) return '—';
+      return String(Math.round(value));
+    },
+
+    matchupHeaderScore(unit, side){
+      const map = side === 'defender' ? this.matchup.scoreMaps?.defenders : this.matchup.scoreMaps?.attackers;
+      const value = map?.[this.unitKey(unit)];
+      return this.formatEfficiencyScore(value);
+    },
+
+    matchupHeaderMeta(unit, side){
+      const points = this.unitPointsText(unit) || '(— pts)';
+      return `${points} - Score: ${this.matchupHeaderScore(unit, side)}`;
     },
 
     flattenMatchupUnits(units){
@@ -582,6 +772,7 @@ function weaponVsDefenseApp(){
       this.matchup.visibleRows = rows;
       const range = this.updateMatchupMetricRange();
       this.decorateVisibleMatchupCells(range);
+      this.updateMatchupScoreMaps(rows, defenders);
     },
 
     decorateVisibleMatchupCells(range=this.matchupMetricRange()){
@@ -681,6 +872,21 @@ function weaponVsDefenseApp(){
       this.rebuildMatchup();
     },
 
+    unmergeSelectedUnit(side){
+      const targetKey = side === 'attacker' ? this.matchupMerge.attackerTo : this.matchupMerge.defenderTo;
+      const force = this.forceForMatchupSide(side);
+      const ok = window.ArmyImportService?.unmergeUnit(force, targetKey);
+      if(!ok){ alert('No uniquely named models or merges found for that unit.'); return; }
+      if(side === 'attacker'){
+        this.matchupMerge.attackerFrom = '';
+        this.matchupMerge.attackerTo = '';
+      }else{
+        this.matchupMerge.defenderFrom = '';
+        this.matchupMerge.defenderTo = '';
+      }
+      this.rebuildMatchup();
+    },
+
     isWeaponEnabledByToggles(w){
       const mode = (w?.mode || '').toLowerCase();
       if(mode === 'melee') return !!this.matchup.showMelee;
@@ -736,7 +942,15 @@ function weaponVsDefenseApp(){
       const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
       const decorate = (unit, path='unit') => {
         unit._viewKey = `${side}:${rosterIdx}:${forceIdx}:${unit._unitKey || unit.label}:${path}`;
-        (unit._children || []).forEach((child, index) => decorate(child, `${path}.${index}`));
+        (unit._children || []).forEach((child, index) => {
+          Object.defineProperty(child, '_parentUnit', {
+            value: unit,
+            enumerable: false,
+            configurable: true,
+            writable: true,
+          });
+          decorate(child, `${path}.${index}`);
+        });
         return unit;
       };
       return (units || []).map((unit, index) => decorate(unit, String(index)));
@@ -790,7 +1004,7 @@ function weaponVsDefenseApp(){
       const rowDirection = this.matchup.sortAttackersDirection || 'desc';
       const colDirection = this.matchup.sortDefendersDirection || 'asc';
       const rowMode = this.matchup.sortAttackers || 'overallDamage';
-      const colMode = this.matchup.sortDefenders || 'leastDamage';
+      const colMode = this.matchup.sortDefenders || 'overallDamage';
       const rowAnchor = this.sortAnchorDefender();
       const colAnchor = this.sortAnchorAttacker();
 
@@ -817,7 +1031,7 @@ function weaponVsDefenseApp(){
         if(colMode === 'dmg' || colMode === 'pkill'){
           return this.compareSortValues(maxCol(a), maxCol(b), colDirection) || alpha('asc')(a, b);
         }
-        if(focusAttacker){
+        if(colMode === 'leastDamage' && focusAttacker){
           return this.compareSortValues(metricFor(focusAttacker, a), metricFor(focusAttacker, b), colDirection)
             || this.compareSortValues(colTotal(a), colTotal(b), colDirection)
             || alpha('asc')(a, b);
@@ -839,10 +1053,48 @@ function weaponVsDefenseApp(){
         this.matchup.sortAttackers = this.matchup.sortAttackers || 'overallDamage';
         this.matchup.sortAttackersDirection = this.matchup.sortAttackersDirection || 'desc';
       }else if(side === 'defender'){
-        this.matchup.sortDefenders = this.matchup.sortDefenders || 'leastDamage';
-        this.matchup.sortDefendersDirection = this.matchup.sortDefendersDirection || 'asc';
+        this.matchup.sortDefenders = this.matchup.sortDefenders || 'overallDamage';
+        this.matchup.sortDefendersDirection = this.matchup.sortDefendersDirection || 'desc';
       }
       this.refreshMatchupPresentation();
+    },
+
+    cycleMatchupSideSort(side){
+      const isAttacker = side === 'attacker';
+      const modeKey = isAttacker ? 'sortAttackers' : 'sortDefenders';
+      const directionKey = isAttacker ? 'sortAttackersDirection' : 'sortDefendersDirection';
+      const anchorKey = isAttacker ? 'sortAttackersColumnKey' : 'sortDefendersRowKey';
+      const defaultDirection = 'desc';
+      const mode = this.matchup[modeKey] || 'overallDamage';
+      const direction = this.matchup[directionKey] || defaultDirection;
+
+      if(mode === 'alpha'){
+        this.matchup[modeKey] = 'overallDamage';
+        this.matchup[directionKey] = 'desc';
+      }else if(direction === 'desc'){
+        this.matchup[modeKey] = 'overallDamage';
+        this.matchup[directionKey] = 'asc';
+      }else{
+        this.matchup[modeKey] = 'alpha';
+        this.matchup[directionKey] = 'asc';
+      }
+
+      this.matchup[anchorKey] = '';
+      this.refreshMatchupPresentation();
+    },
+
+    matchupSideSortLabel(side){
+      const isAttacker = side === 'attacker';
+      const mode = isAttacker ? this.matchup.sortAttackers : this.matchup.sortDefenders;
+      const direction = isAttacker ? this.matchup.sortAttackersDirection : this.matchup.sortDefendersDirection;
+      if(mode === 'alpha') return 'A-Z';
+      return direction === 'asc' ? 'ASC' : 'DESC';
+    },
+
+    matchupSideSortTitle(side){
+      const label = side === 'attacker' ? 'attackers' : 'defenders';
+      const current = this.matchupSideSortLabel(side);
+      return `Sort ${label}: ${current}`;
     },
 
     toggleDirection(current, defaultDirection='desc'){
@@ -953,54 +1205,512 @@ function weaponVsDefenseApp(){
       return String(value ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
     },
 
-    matchupCopyHeader(unit){
+    htmlCell(value){
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+
+    matchupMetricLabel(){
+      const mode = this.matchup.metric || 'damage';
+      if(mode === 'modelWounds') return 'Damage %';
+      if(mode === 'unitKill') return 'Chance to Kill';
+      return 'Damage';
+    },
+
+    matchupCopyHeader(unit, item=null){
+      const prefix = item?.isChild ? '↳ ' : '';
       return this.tsvCell([
-        this.unitLabelText(unit),
-        this.unitPointsText(unit),
+        `${prefix}${this.unitLabelText(unit)}`,
+        this.matchupHeaderMeta(unit, 'defender'),
         this.matchupDefenseLabel(unit),
       ].filter(Boolean).join(' '));
     },
 
-    matchupCopyRowHeader(unit){
+    matchupCopyRowHeader(unit, item=null){
+      const prefix = item?.isChild ? '↳ ' : '';
       return this.tsvCell([
-        this.unitLabelText(unit),
-        this.unitPointsText(unit),
+        `${prefix}${this.unitLabelText(unit)}`,
+        this.matchupHeaderMeta(unit, 'attacker'),
         this.matchupWeaponSummary(unit),
       ].filter(Boolean).join(' '));
     },
 
     matchupCellCopyText(cell){
-      const weapons = cell?.weaponName ? ` ${cell.weaponName}` : '';
+      const weapons = cell?.weaponName ? ` - ${cell.weaponName}` : '';
       return this.tsvCell(`${this.formatMatchupMetric(cell)}${weapons}`);
     },
 
-    matchupGridTsv(){
-      const defenders = this.matchupVisibleDefenders();
-      const rows = this.matchupVisibleRows();
-      const header = ['Attacker \\ Defender', ...defenders.map(col => this.matchupCopyHeader(col.unit))];
-      const body = rows.map(row => [
-        this.matchupCopyRowHeader(row.unit),
+    normalizedMatchupExportFormat(format=this.matchupExportFormat){
+      const value = String(format || '');
+      if(value.startsWith('import:')) return value;
+      if(value === 'excel') return value;
+      return 'visible';
+    },
+
+    matchupExportOptions(){
+      const base = [
+        { value: 'visible', label: 'Visible Grid' },
+        { value: 'excel', label: 'Excel Detailed' },
+      ];
+      const seen = new Set();
+      ['attacker', 'defender'].forEach(side => {
+        const payload = this.matchupSidePayload(side);
+        const key = `${payload.rosterIndex}:${payload.forceIndex}:${payload.rosterLabel}`;
+        if(seen.has(key)) return;
+        seen.add(key);
+        const label = payload.rosterLabel || (side === 'attacker' ? 'Attacker roster' : 'Defender roster');
+        base.push({ value: `import:${side}`, label: `${label} import` });
+      });
+      return base;
+    },
+
+    toggleMatchupActionMenu(menu){
+      this.matchupActionMenu = this.matchupActionMenu === menu ? '' : menu;
+    },
+
+    childAttackerRows(unit, rowIndex){
+      return (unit?._children || [])
+        .filter(child => this.hasMatchupWeaponProfiles(child))
+        .map((child, childIndex) => ({
+          unit: child,
+          rowIndex,
+          childIndex,
+          depth: 1,
+          isChild: true,
+          isSubtotal: false,
+          parentKey: this.unitKey(unit),
+        }));
+    },
+
+    childDefenderColumns(unit, colIndex){
+      return this.sortedDefenderChildren(unit?._children || [])
+        .map((child, childIndex) => ({
+          unit: child,
+          colIndex,
+          childIndex,
+          depth: 1,
+          isChild: true,
+          isSubtotal: false,
+          parentKey: this.unitKey(unit),
+        }));
+    },
+
+    matchupExportRows(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      const rows = [];
+      (this.matchup.rows || []).forEach((row, rowIndex) => {
+        rows.push({
+          unit: row.unit,
+          rowIndex,
+          depth: 0,
+          isChild: false,
+          isSubtotal: true,
+          parentKey: '',
+        });
+        if(mode !== 'visible') rows.push(...this.childAttackerRows(row.unit, rowIndex));
+      });
+      return rows.map(row => ({
+        ...row,
+        cells: this.matchupExportColumns(mode).map(col => this.cachedMatchupCell(row.unit, col.unit)),
+      }));
+    },
+
+    matchupExportColumns(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      const cols = [];
+      (this.matchupDefenderUnits || []).forEach((unit, colIndex) => {
+        cols.push({ unit, colIndex, depth: 0, isChild: false, isSubtotal: true, parentKey: '' });
+        if(mode !== 'visible') cols.push(...this.childDefenderColumns(unit, colIndex));
+      });
+      return cols;
+    },
+
+    matchupExportGrid(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      const columns = this.matchupExportColumns(mode);
+      const rows = [];
+      (this.matchup.rows || []).forEach((row, rowIndex) => {
+        const parentRow = {
+          unit: row.unit,
+          rowIndex,
+          depth: 0,
+          isChild: false,
+          isSubtotal: true,
+        };
+        rows.push(parentRow);
+        if(mode !== 'visible') rows.push(...this.childAttackerRows(row.unit, rowIndex));
+      });
+      const shapedRows = rows.map(row => ({
+        ...row,
+        cells: columns.map(col => this.cachedMatchupCell(row.unit, col.unit)),
+      }));
+      const range = window.MatchupEngine.metricRange(shapedRows, this.matchup.metric || 'damage');
+      return { format: mode, rows: shapedRows, columns, range };
+    },
+
+    matchupCurrentVisibleGrid(){
+      const columns = this.matchupVisibleDefenders();
+      const rows = (this.matchupVisibleRows() || []).map(row => ({
+        ...row,
+        isSubtotal: !row.isChild,
+        cells: columns.map(col => this.cachedMatchupCell(row.unit, col.unit)),
+      }));
+      const range = window.MatchupEngine.metricRange(rows, this.matchup.metric || 'damage');
+      return { format: 'visible-current', rows, columns, range };
+    },
+
+    visibleElementText(el){
+      if(!el) return '';
+      if(typeof window !== 'undefined' && window.getComputedStyle){
+        const style = window.getComputedStyle(el);
+        if(style.display === 'none' || style.visibility === 'hidden') return '';
+      }
+      return String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    },
+
+    matchupDisplayLinesForCell(cell){
+      if(!cell) return [];
+      const lines = [];
+      const add = value => {
+        const text = String(value || '').replace(/\s+/g, ' ').trim();
+        if(text) lines.push(text);
+      };
+
+      if(cell.classList?.contains('matchupCell')){
+        add(this.visibleElementText(cell.querySelector('.matchupCellValue')));
+        add(this.visibleElementText(cell.querySelector('.matchupCellNote')));
+        return lines;
+      }
+
+      const corner = cell.querySelector?.('.matchupCornerHeader > div');
+      if(corner){
+        String(corner.innerText || corner.textContent || '')
+          .split(/\r?\n/)
+          .forEach(add);
+        return lines;
+      }
+
+      const headerLink = cell.querySelector?.('.matchupHeaderProfileLink');
+      if(headerLink){
+        add(this.visibleElementText(headerLink.querySelector('.profileNameText')));
+        add(this.visibleElementText(headerLink.querySelector('.profileMetaText')));
+        headerLink.querySelectorAll('.matchupWeaponTypeText,.matchupDefenseText').forEach(el => add(this.visibleElementText(el)));
+        return lines;
+      }
+
+      add(this.visibleElementText(cell));
+      return lines;
+    },
+
+    matchupDisplayedGridData(){
+      if(typeof document === 'undefined') return null;
+      const table = document.querySelector('.matchupGrid');
+      if(!table) return null;
+      const readCell = cell => {
+        const computed = typeof window !== 'undefined' && window.getComputedStyle ? window.getComputedStyle(cell) : null;
+        return {
+          tag: cell.tagName?.toLowerCase() || 'td',
+          isDataCell: cell.classList?.contains('matchupCell') || false,
+          classes: cell.className || '',
+          lines: this.matchupDisplayLinesForCell(cell),
+          style: computed ? {
+            backgroundColor: computed.backgroundColor,
+            color: computed.color,
+            fontWeight: computed.fontWeight,
+            textAlign: computed.textAlign,
+          } : {},
+        };
+      };
+      const headerRows = [...(table.tHead?.rows || [])].map(row => [...row.cells].map(readCell));
+      const bodyRows = [...(table.tBodies?.[0]?.rows || [])].map(row => [...row.cells].map(readCell));
+      if(!headerRows.length && !bodyRows.length) return null;
+      return { headerRows, bodyRows };
+    },
+
+    displayedCellPlainText(cell){
+      const lines = (cell?.lines || []).filter(Boolean);
+      if(cell?.isDataCell && lines.length > 1) return `${lines[0]} - ${lines.slice(1).join(' - ')}`;
+      return lines.join(' ');
+    },
+
+    displayedGridTsv(grid){
+      if(!grid) return '';
+      const rows = [...(grid.headerRows || []), ...(grid.bodyRows || [])];
+      return rows
+        .map(row => row.map(cell => this.tsvCell(this.displayedCellPlainText(cell))).join('\t'))
+        .join('\n');
+    },
+
+    displayedCellStyle(cell){
+      const style = cell?.style || {};
+      const out = [];
+      if(style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent') out.push(`background-color:${style.backgroundColor}`);
+      if(style.color) out.push(`color:${style.color}`);
+      if(style.textAlign) out.push(`text-align:${style.textAlign}`);
+      if(style.fontWeight) out.push(`font-weight:${style.fontWeight}`);
+      return out.join(';');
+    },
+
+    displayedGridHtml(grid){
+      if(!grid) return '';
+      const styles = [
+        'table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px}',
+        'th,td{border:1px solid #a6a6a6;padding:5px 7px;vertical-align:top;white-space:normal}',
+        '.cellValue{font-weight:700}',
+        '.cellNote{font-size:10px;color:#1f2937}',
+      ].join('');
+      const excelOptions = [
+        '<!--[if gte mso 9]><xml>',
+        '<x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>',
+        '<x:Name>Matchups</x:Name>',
+        '</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook>',
+        '</xml><![endif]-->',
+      ].join('');
+      const renderCell = cell => {
+        const tag = cell.tag === 'th' ? 'th' : 'td';
+        const style = this.htmlCell(this.displayedCellStyle(cell));
+        const content = (() => {
+          const lines = (cell.lines || []).filter(Boolean);
+          if(cell.isDataCell && lines.length > 1){
+            return `<span class="cellValue">${this.htmlCell(lines[0])}</span><span class="cellNote"> - ${this.htmlCell(lines.slice(1).join(' - '))}</span>`;
+          }
+          return lines.map(line => this.htmlCell(line)).join('<br>');
+        })();
+        return `<${tag} style="${style}">${content}</${tag}>`;
+      };
+      const renderRows = rows => (rows || []).map(row => `<tr>${row.map(renderCell).join('')}</tr>`).join('');
+      return `<!doctype html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">${excelOptions}<style>${styles}</style></head><body><table><thead>${renderRows(grid.headerRows)}</thead><tbody>${renderRows(grid.bodyRows)}</tbody></table></body></html>`;
+    },
+
+    matchupGridTsv(format='visible'){
+      const displayed = this.matchupDisplayedGridData();
+      if(displayed) return this.displayedGridTsv(displayed);
+      const grid = this.matchupCurrentVisibleGrid();
+      const header = ['Attacker \\ Defender', ...grid.columns.map(col => this.matchupCopyHeader(col.unit, col))];
+      const body = grid.rows.map(row => [
+        this.matchupCopyRowHeader(row.unit, row),
         ...(row.cells || []).map(cell => this.matchupCellCopyText(cell)),
       ]);
       return [header, ...body].map(line => line.map(value => this.tsvCell(value)).join('\t')).join('\n');
     },
 
-    async copyMatchupGrid(){
-      const text = this.matchupGridTsv();
+    matchupCellStyleForExport(cell, range){
+      const color = window.MatchupEngine.colorHexForValue(this.matchupCellMetric(cell), range || this.matchupMetricRange());
+      return color ? `background-color:${color}; color:#071016; mso-pattern:auto none;` : '';
+    },
+
+    excelOutlineStyle(item, collapsed=false){
+      if(!item?.isChild) return 'mso-outline-level:1;';
+      return collapsed ? 'mso-outline-level:2; display:none;' : 'mso-outline-level:2;';
+    },
+
+    matchupGridHtml(format='excel'){
+      const displayed = this.matchupDisplayedGridData();
+      if(displayed) return this.displayedGridHtml(displayed);
+      const grid = this.matchupCurrentVisibleGrid();
+      const metric = this.htmlCell(this.matchupMetricLabel());
+      const styles = [
+        'table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px}',
+        'th,td{border:1px solid #a6a6a6;padding:5px 7px;vertical-align:top;white-space:normal}',
+        'th{background:#1f2937;color:#ffffff;font-weight:700}',
+        '.subtotal th,.subtotal td{font-weight:700}',
+        '.child th{font-weight:400;padding-left:22px;background:#dbeafe}',
+        '.childCol{font-weight:400;background:#dbeafe;color:#071016}',
+        '.cellValue{font-weight:700}',
+        '.cellNote{font-size:10px;color:#1f2937}',
+      ].join('');
+      const excelOptions = [
+        '<!--[if gte mso 9]><xml>',
+        '<x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>',
+        '<x:Name>Matchups</x:Name>',
+        '<x:WorksheetOptions><x:Outline><x:SummaryBelow>False</x:SummaryBelow><x:SummaryRight>False</x:SummaryRight></x:Outline></x:WorksheetOptions>',
+        '</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook>',
+        '</xml><![endif]-->',
+      ].join('');
+      const colgroup = [
+        '<col style="width:260px">',
+        ...grid.columns.map(col => `<col style="width:150px; ${this.excelOutlineStyle(col)}">`),
+      ].join('');
+      const headerCells = grid.columns.map(col => {
+        const label = `${col.isChild ? '↳ ' : ''}${this.unitLabelText(col.unit)}\n${this.matchupHeaderMeta(col.unit, 'defender')}\n${this.matchupDefenseLabel(col.unit)}`;
+        const cls = col.isChild ? ' class="childHeader childCol"' : '';
+        return `<th${cls} style="${this.htmlCell(this.excelOutlineStyle(col))}">${this.htmlCell(label).replace(/\n/g, '<br>')}</th>`;
+      }).join('');
+      const bodyRows = grid.rows.map(row => {
+        const rowClass = row.isChild ? 'child' : 'subtotal';
+        const rowLabel = `${row.isChild ? '↳ ' : ''}${this.unitLabelText(row.unit)}\n${this.matchupHeaderMeta(row.unit, 'attacker')}\n${this.matchupWeaponSummary(row.unit)}`;
+        const cells = row.cells.map((cell, index) => {
+          const col = grid.columns[index];
+          const style = `${this.matchupCellStyleForExport(cell, grid.range)} ${this.excelOutlineStyle(col)}`;
+          const note = cell?.weaponName ? `<span class="cellNote"> - ${this.htmlCell(cell.weaponName)}</span>` : '';
+          return `<td style="${this.htmlCell(style)}"><span class="cellValue">${this.htmlCell(this.formatMatchupMetric(cell))}</span>${note}</td>`;
+        }).join('');
+        return `<tr class="${rowClass}" style="${this.htmlCell(this.excelOutlineStyle(row))}"><th>${this.htmlCell(rowLabel).replace(/\n/g, '<br>')}</th>${cells}</tr>`;
+      }).join('');
+      return `<!doctype html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">${excelOptions}<style>${styles}</style></head><body><table><colgroup>${colgroup}</colgroup><caption>${metric} Matchup Grid</caption><thead><tr><th>Attacker \\ Defender</th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></body></html>`;
+    },
+
+    matchupExportUnit(unit){
+      const cleanWeapons = (unit?.weapons || []).map(w => ({
+        name: w.name || '',
+        count: window.MatchupEngine.weaponProfileCount(w),
+        range: w.range || '',
+        A: w.A || '',
+        skill: w.skill || '',
+        S: w.S || '',
+        AP: w.AP || '',
+        D: w.D || '',
+        modifiers: w.modifiers || '',
+        mode: w.mode || '',
+      }));
+      return {
+        key: String(unit?._unitKey || this.unitKey(unit)),
+        viewKey: this.unitKey(unit),
+        label: this.unitLabelText(unit),
+        points: parseFloat(unit?._points) || 0,
+        defense: { ...(unit?.defense || {}) },
+        weapons: cleanWeapons,
+        abilities: [...(unit?.abilities || [])],
+        enhancements: [...(unit?._enhancements || [])],
+        children: (unit?._children || []).map(child => this.matchupExportUnit(child)),
+      };
+    },
+
+    matchupSidePayload(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      const roster = this.rosters?.[rosterIdx] || null;
+      const force = this.getForcesForRoster(rosterIdx)?.[forceIdx] || null;
+      const baseUnits = side === 'attacker' ? (this.matchupAttackerBaseUnits || []) : (this.matchupDefenderUnits || []);
+      const gridUnits = side === 'attacker' ? (this.matchupAttackerUnits || []) : (this.matchupDefenderUnits || []);
+      return {
+        rosterIndex: rosterIdx,
+        forceIndex: forceIdx,
+        rosterLabel: roster?.label || '',
+        forceName: force?.name || force?.label || '',
+        sourceRoster: roster?.data || null,
+        manualMerges: [...(force?._unitMerges || [])],
+        postMergeUnits: baseUnits.map(unit => this.matchupExportUnit(unit)),
+        gridUnits: gridUnits.map(unit => this.matchupExportUnit(unit)),
+      };
+    },
+
+    matchupRosterImportPayload(side){
+      const normalizedSide = side === 'defender' ? 'defender' : 'attacker';
+      const payload = this.matchupSidePayload(normalizedSide);
+      return {
+        schema: '40k-roster-matchup-import',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        side: normalizedSide,
+        rosterLabel: payload.rosterLabel,
+        forceName: payload.forceName,
+        sourceRoster: payload.sourceRoster,
+        manualMerges: payload.manualMerges,
+        postMergeUnits: payload.postMergeUnits,
+        gridUnits: payload.gridUnits,
+        options: {
+          combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+          showShooting: !!this.matchup.showShooting,
+          showMelee: !!this.matchup.showMelee,
+        },
+      };
+    },
+
+    matchupImportPayload(){
+      const grid = this.matchupExportGrid('full');
+      const rosters = {
+        attacker: this.matchupSidePayload('attacker'),
+        defender: this.matchupSidePayload('defender'),
+      };
+      return {
+        schema: '40k-matchup-grid',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        metric: this.matchup.metric || 'damage',
+        metricLabel: this.matchupMetricLabel(),
+        options: {
+          combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+          showShooting: !!this.matchup.showShooting,
+          showMelee: !!this.matchup.showMelee,
+        },
+        rosters,
+        attackerRoster: rosters.attacker.rosterLabel,
+        defenderRoster: rosters.defender.rosterLabel,
+        attackers: grid.rows.map(row => ({
+          key: this.unitKey(row.unit),
+          parentKey: row.parentKey || '',
+          depth: row.depth || 0,
+          isChild: !!row.isChild,
+          unit: this.matchupExportUnit(row.unit),
+        })),
+        defenders: grid.columns.map(col => ({
+          key: this.unitKey(col.unit),
+          parentKey: col.parentKey || '',
+          depth: col.depth || 0,
+          isChild: !!col.isChild,
+          unit: this.matchupExportUnit(col.unit),
+        })),
+        cells: grid.rows.map(row => ({
+          attackerKey: this.unitKey(row.unit),
+          values: grid.columns.map(col => {
+            const cell = this.cachedMatchupCell(row.unit, col.unit);
+            return {
+              defenderKey: this.unitKey(col.unit),
+              display: this.formatMatchupMetric(cell),
+              damage: cell?.dmg || 0,
+              damagePct: cell?.pctModelWounds ?? null,
+              chanceToKill: cell?.pctUnitKilled ?? null,
+              kills: cell?.kills || 0,
+              weaponName: cell?.weaponName || '',
+              profilesUsed: cell?.profilesUsed || [],
+              style: this.matchupCellStyleForExport(cell, grid.range),
+            };
+          }),
+        })),
+      };
+    },
+
+    matchupExportText(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      if(mode.startsWith('import:')) return JSON.stringify(this.matchupRosterImportPayload(mode.split(':')[1]), null, 2);
+      return this.matchupGridTsv(mode);
+    },
+
+    async writeClipboardText(text, html=''){
+      if(html && typeof ClipboardItem !== 'undefined' && typeof navigator !== 'undefined' && navigator.clipboard?.write){
+        const item = new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([text], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([item]);
+        return;
+      }
+      if(typeof navigator !== 'undefined' && navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.setAttribute('readonly', '');
+      el.style.position = 'fixed';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    },
+
+    async copyMatchupGrid(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      const text = this.matchupExportText(mode);
+      const html = mode === 'excel' ? this.matchupGridHtml('excel') : '';
       try{
-        if(typeof navigator !== 'undefined' && navigator.clipboard?.writeText){
-          await navigator.clipboard.writeText(text);
-        }else{
-          const el = document.createElement('textarea');
-          el.value = text;
-          el.setAttribute('readonly', '');
-          el.style.position = 'fixed';
-          el.style.left = '-9999px';
-          document.body.appendChild(el);
-          el.select();
-          document.execCommand('copy');
-          document.body.removeChild(el);
-        }
+        await this.writeClipboardText(text, html);
         this.matchupClipboardStatus = 'Copied';
       }catch(err){
         this.matchupClipboardStatus = 'Copy failed';
@@ -1010,6 +1720,42 @@ function weaponVsDefenseApp(){
           if(this.matchupClipboardStatus) this.matchupClipboardStatus = '';
         }, 1600);
       }
+    },
+
+    matchupExportFilename(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      if(mode === 'excel') return `matchup-grid-${stamp}.xls`;
+      if(mode.startsWith('import:')){
+        const side = mode.split(':')[1] === 'defender' ? 'defender' : 'attacker';
+        const label = (this.matchupSidePayload(side).rosterLabel || side)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || side;
+        return `${label}-import-${stamp}.json`;
+      }
+      return `matchup-grid-${mode}-${stamp}.tsv`;
+    },
+
+    exportMatchupGrid(format=this.matchupExportFormat){
+      const mode = this.normalizedMatchupExportFormat(format);
+      const content = mode === 'excel' ? this.matchupGridHtml('excel') : this.matchupExportText(mode);
+      const type = mode === 'excel'
+        ? 'application/vnd.ms-excel;charset=utf-8'
+        : (mode.startsWith('import:') ? 'application/json;charset=utf-8' : 'text/tab-separated-values;charset=utf-8');
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = this.matchupExportFilename(mode);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      this.matchupClipboardStatus = 'Exported';
+      setTimeout(() => {
+        if(this.matchupClipboardStatus === 'Exported') this.matchupClipboardStatus = '';
+      }, 1600);
     },
 
     unitLabelText(unit, fallback='Unit'){

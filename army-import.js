@@ -368,6 +368,45 @@
     return [...map.values()];
   }
 
+  function positivePointValue(value){
+    const points = parseFloat(value);
+    return Number.isFinite(points) && points > 0 ? points : null;
+  }
+
+  function modelWeight(unit){
+    const models = parseFloat(unit?.defense?.models ?? unit?.size ?? 1);
+    return Number.isFinite(models) && models > 0 ? models : 1;
+  }
+
+  function allocateUnitPointRemainder(unit){
+    if(!unit || typeof unit !== 'object') return unit;
+    const children = Array.isArray(unit._children) ? unit._children : [];
+    children.forEach(child => allocateUnitPointRemainder(child));
+    if(!children.length) return unit;
+
+    const unitPoints = positivePointValue(unit._points);
+    const childPoints = child => positivePointValue(child?._points) || 0;
+    const knownChildTotal = children.reduce((sum, child) => sum + childPoints(child), 0);
+
+    if(unitPoints != null){
+      const remaining = unitPoints - knownChildTotal;
+      if(remaining > 1e-9){
+        const missing = children.filter(child => positivePointValue(child?._points) == null);
+        const targets = missing.length ? missing : children;
+        const totalWeight = targets.reduce((sum, child) => sum + modelWeight(child), 0) || targets.length || 1;
+        targets.forEach(child => {
+          const current = childPoints(child);
+          child._points = current + (remaining * modelWeight(child) / totalWeight);
+          allocateUnitPointRemainder(child);
+        });
+      }
+    }
+
+    const summedChildren = children.reduce((sum, child) => sum + childPoints(child), 0);
+    if(summedChildren > 0) unit._points = summedChildren;
+    return unit;
+  }
+
   function aggregateChildren(children, key, label, sourceUnits=[]){
     const resolvedLabel = label || pickAggregateLabel(children);
     const resolvedChildren = resolveCopiedTtsEquipment(children, resolvedLabel);
@@ -384,7 +423,7 @@
       return sum + (Number.isFinite(wounds) ? wounds * models : 0);
     }, 0);
 
-    return {
+    return allocateUnitPointRemainder({
       label: resolvedLabel,
       weapons: ordered.reduce((all, ch) => mergeWeapons(all, ch.weapons || []), []),
       defense,
@@ -404,7 +443,7 @@
         sourceUnits.flatMap(unit => unit._upgrades || []),
         ordered.flatMap(unit => unit._upgrades || [])
       ),
-    };
+    });
   }
 
   function applyManualMerges(units, merges){
@@ -421,6 +460,108 @@
       byKey.delete(from._unitKey);
     });
     return [...byKey.values()].sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  }
+
+  function normalizedUnitName(value){
+    return cleanName(value)
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, '')
+      .replace(/\b\d+\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function singularish(value){
+    return normalizedUnitName(value)
+      .replace(/\bterminators\b/g, 'terminator')
+      .replace(/\bscouts\b/g, 'scout')
+      .replace(/\bcrushers\b/g, 'crusher')
+      .replace(/\bhavocs\b/g, 'havoc')
+      .replace(/\bhounds\b/g, 'hound')
+      .replace(/\bbearers\b/g, 'bearer')
+      .replace(/\bs\b/g, '')
+      .trim();
+  }
+
+  function isSquadCommandModelName(label){
+    return /\b(champion|sergeant|pack leader|bloodhunter|plagueridden|gore hound|icon bearer|instrument|standard bearer|banner|vox|watchmaster|tempestor|exarch|aspiring champion)\b/i.test(label || '');
+  }
+
+  function isUniquelyNamedChild(child, unit, siblingCounts){
+    const label = cleanName(child?.label);
+    if(!label || isSquadCommandModelName(label)) return false;
+    const normalized = normalizedUnitName(label);
+    if((siblingCounts.get(normalized) || 0) !== 1) return false;
+    const parent = singularish(unit?.label || '');
+    const childName = singularish(label);
+    if(parent && (childName === parent || childName.includes(parent) || parent.includes(childName))) return false;
+    return true;
+  }
+
+  function uniqueUnitKey(base, existingKeys){
+    let key = String(base || `unmerged-${Math.random().toString(36).slice(2)}`);
+    if(!existingKeys.has(key)) return key;
+    let i = 2;
+    while(existingKeys.has(`${key}-unmerged-${i}`)) i++;
+    return `${key}-unmerged-${i}`;
+  }
+
+  function splitUniquelyNamedChildren(units, targetKey){
+    const sourceUnits = units || [];
+    const index = sourceUnits.findIndex(unit => unit?._unitKey === targetKey);
+    if(index < 0) return { units: sourceUnits, changed: false };
+    const target = sourceUnits[index];
+    const children = target?._children || [];
+    if(children.length <= 1) return { units: sourceUnits, changed: false };
+
+    const siblingCounts = new Map();
+    children.forEach(child => {
+      const key = normalizedUnitName(child?.label);
+      siblingCounts.set(key, (siblingCounts.get(key) || 0) + 1);
+    });
+
+    const split = [];
+    const kept = [];
+    children.forEach(child => {
+      if(isUniquelyNamedChild(child, target, siblingCounts)) split.push(child);
+      else kept.push(child);
+    });
+    if(!split.length) return { units: sourceUnits, changed: false };
+
+    const existingKeys = new Set(sourceUnits.map(unit => unit?._unitKey).filter(Boolean));
+    existingKeys.delete(target._unitKey);
+
+    const rebuilt = [...sourceUnits];
+    const splitPoints = split.reduce((sum, child) => {
+      const points = parseFloat(child?._points);
+      return sum + (Number.isFinite(points) ? points : 0);
+    }, 0);
+    const originalPoints = parseFloat(target?._points);
+
+    if(kept.length){
+      const nextTarget = aggregateChildren(kept, target._unitKey, target.label, []);
+      nextTarget._unitKey = target._unitKey;
+      nextTarget._groupId = target._groupId || target._unitKey;
+      if(Number.isFinite(originalPoints)){
+        nextTarget._points = splitPoints > 0 ? Math.max(0, originalPoints - splitPoints) : originalPoints;
+      }
+      rebuilt[index] = nextTarget;
+    }else{
+      rebuilt.splice(index, 1);
+    }
+
+    split.forEach(child => {
+      const restored = cloneUnit(child);
+      restored._unitKey = uniqueUnitKey(restored._unitKey || restored._groupId || restored.label, existingKeys);
+      restored._groupId = restored._groupId || restored._unitKey;
+      existingKeys.add(restored._unitKey);
+      rebuilt.push(restored);
+    });
+
+    return {
+      units: rebuilt.sort((a, b) => String(a.label).localeCompare(String(b.label))),
+      changed: true,
+    };
   }
 
   function getAllSelections(node){
@@ -605,7 +746,7 @@
     return [...unitMap.values()].map(unit => {
       unit.defense = unit.defense || { T:null, Sv:null, Inv:null, W:null, models:1 };
       if(!Number.isFinite(parseInt(unit.defense.models, 10))) unit.defense.models = 1;
-      return unit;
+      return allocateUnitPointRemainder(unit);
     });
   }
 
@@ -815,7 +956,7 @@
     const points = totalPointsForTree(selection);
     const key = `nr-${selection?.id || selection?.entryId || `${selection?.name || 'unit'}-${index}`}`;
 
-    return {
+    return allocateUnitPointRemainder({
       label: cleanName(selection?.name) || 'Imported unit',
       weapons: children.length
         ? children.reduce((all, child) => mergeWeapons(all, child.weapons || []), directWeapons)
@@ -829,7 +970,7 @@
       _isAggregate: children.length > 0,
       _points: points || null,
       _enhancements: enhancementList,
-    };
+    });
   }
 
   function looksLikeNewRecruitRoster(obj){
@@ -850,7 +991,7 @@
     return {
       roster: {
         ...roster,
-        name: label || roster?.name || 'NewRecruit import',
+        name: roster?.name || label || 'NewRecruit import',
         forces: (roster?.forces || []).map((force, forceIndex) => {
           const units = (force?.selections || [])
             .map((selection, selectionIndex) => parseNewRecruitUnit(selection, selectionIndex))
@@ -883,7 +1024,7 @@
 
     return {
       roster: {
-        name: label || obj.SaveName || 'Tabletop Simulator import',
+        name: obj.SaveName || label || 'Tabletop Simulator import',
         forces: [{
           name: 'Imported force',
           _importedUnits: units,
@@ -894,7 +1035,58 @@
     };
   }
 
+  function parseMatchupImportUnit(unit){
+    return allocateUnitPointRemainder({
+      label: cleanName(unit?.label) || 'Imported unit',
+      weapons: (unit?.weapons || []).map(weapon => ({
+        name: weapon.name || '',
+        range: weapon.range || '',
+        A: weapon.A || '',
+        skill: weapon.skill || '',
+        S: weapon.S || '',
+        AP: weapon.AP || '',
+        D: weapon.D || '',
+        modifiers: weapon.modifiers || '',
+        mode: weapon.mode || '',
+        _profileCount: Math.max(1, parseInt(weapon.count ?? weapon._profileCount ?? 1, 10) || 1),
+        _count: Math.max(1, parseInt(weapon.count ?? weapon._count ?? 1, 10) || 1),
+      })),
+      defense: { ...(unit?.defense || {}) },
+      abilities: [...(unit?.abilities || [])],
+      _children: (unit?.children || unit?._children || []).map(parseMatchupImportUnit),
+      _tags: [...(unit?._tags || [])],
+      _points: unit?.points ?? unit?._points ?? null,
+      _enhancements: (unit?.enhancements || unit?._enhancements || []).map(enh => ({ ...enh })),
+      _upgrades: (unit?.upgrades || unit?._upgrades || []).map(upgrade => ({ ...upgrade })),
+      _unitKey: String(unit?.key || unit?._unitKey || unit?.viewKey || unit?.label || Math.random()),
+      _groupId: String(unit?._groupId || unit?.key || unit?._unitKey || unit?.label || Math.random()),
+      _isAggregate: (unit?.children || unit?._children || []).length > 0,
+      source: unit?.source || 'Matchup roster import',
+    });
+  }
+
+  function parseMatchupRosterImport(obj, label){
+    const units = (obj?.postMergeUnits || obj?.gridUnits || [])
+      .map(parseMatchupImportUnit)
+      .filter(Boolean);
+    return {
+      roster: {
+        name: obj?.rosterLabel || label || 'Roster import',
+        forces: [{
+          name: obj?.forceName || 'Imported force',
+          _importedUnits: units,
+          _unitMerges: [],
+          _sourceRoster: obj?.sourceRoster || null,
+          _exportedManualMerges: [...(obj?.manualMerges || [])],
+          _matchupImportOptions: { ...(obj?.options || {}) },
+        }],
+      },
+      _sourceFormat: 'matchup-roster-import',
+    };
+  }
+
   function normalizeRosterData(obj, label){
+    if(obj?.schema === '40k-roster-matchup-import') return parseMatchupRosterImport(obj, label);
     if(obj && Array.isArray(obj.ObjectStates)) return parseTtsSave(obj, label);
     if(looksLikeNewRecruitRoster(obj)) return parseNewRecruitRoster(obj, label);
     return obj;
@@ -921,7 +1113,8 @@
     normalizeRosterData,
     collectImportedUnits(force){
       if(!Array.isArray(force && force._importedUnits)) return null;
-      return applyManualMerges(force._importedUnits.map(cloneUnit), force._unitMerges || []);
+      return applyManualMerges(force._importedUnits.map(cloneUnit), force._unitMerges || [])
+        .map(unit => allocateUnitPointRemainder(unit));
     },
     collectUnits(force, opts){
       const imported = this.collectImportedUnits(force);
@@ -935,6 +1128,23 @@
       const exists = force._unitMerges.some(m => m.from === fromKey && m.to === toKey);
       if(!exists) force._unitMerges.push({ from: fromKey, to: toKey });
       return true;
+    },
+    unmergeUnit(force, targetKey){
+      if(!force || !targetKey) return false;
+      let changed = false;
+      if(Array.isArray(force._unitMerges)){
+        const before = force._unitMerges.length;
+        force._unitMerges = force._unitMerges.filter(merge => merge?.to !== targetKey);
+        changed = force._unitMerges.length !== before;
+      }
+      if(Array.isArray(force._importedUnits)){
+        const split = splitUniquelyNamedChildren(force._importedUnits, targetKey);
+        if(split.changed){
+          force._importedUnits = split.units;
+          changed = true;
+        }
+      }
+      return changed;
     },
     clearMerges(force){
       if(!force || !Array.isArray(force._unitMerges)) return;

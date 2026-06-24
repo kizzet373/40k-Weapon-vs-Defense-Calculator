@@ -33,6 +33,14 @@ vm.createContext(context);
 const sample = JSON.parse(fs.readFileSync(samplePath, 'utf8'));
 const app = context.weaponVsDefenseApp();
 
+const cappedDamageCheck = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'D6 overkill', A: '6', skill: 'auto', S: '8', AP: '6', D: 'D6', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  ''
+);
+assert.ok(Math.abs(cappedDamageCheck.dmg - (55 / 6)) < 1e-9, 'normal D6 damage is capped per failed save into W2 models instead of spilling over');
+assert.ok(Math.abs(context.window.WeaponCalc.expectedCappedDamage('D6', 2) - (11 / 6)) < 1e-9, 'expected capped dice damage uses the roll distribution');
+
 app.addRoster(sample, '11th Daemons A');
 assert.strictEqual(app.rosters.length, 1, 'loads NewRecruit roster');
 assert.strictEqual(app.forces.length, 1, 'loads one force');
@@ -62,6 +70,8 @@ assert.strictEqual(
 );
 assert.ok(!app.units.some(unit => unit.label === 'Bloodhunter'), 'does not leak child models into top-level units');
 assert.ok(bloodcrushers.weapons.some(w => w.name === "Juggernaut's bladed horn" && w._profileCount === 6 && /Extra Attacks/i.test(w.modifiers)), 'aggregates child weapon counts and extra attacks');
+assert.strictEqual(Math.round(bloodcrushers._children.reduce((sum, child) => sum + (Number(child._points) || 0), 0)), bloodcrushers._points, 'allocates parent unit points into child model rows');
+assert.ok(bloodcrushers._children.every(child => Math.abs(child._points - (bloodcrushers._points / 6)) < 1e-9), 'splits unassigned unit points evenly across same-size child models');
 
 const mergeForce = app.forces[0];
 assert.ok(context.window.ArmyImportService.mergeUnits(mergeForce, greatUnclean._unitKey, bloodcrushers._unitKey), 'allows manual unit merge');
@@ -70,6 +80,7 @@ const mergedBloodcrushers = mergedUnits.find(unit => unit._unitKey === bloodcrus
 assert.ok(mergedBloodcrushers, 'keeps target unit after manual merge');
 assert.ok(!mergedUnits.some(unit => unit._unitKey === greatUnclean._unitKey), 'removes source unit after manual merge');
 assert.strictEqual(mergedBloodcrushers._points, 475, 'manual merge preserves and sums full unit points including enhancements');
+assert.strictEqual(Math.round(mergedBloodcrushers._children.reduce((sum, child) => sum + (Number(child._points) || 0), 0)), mergedBloodcrushers._points, 'manual merge keeps displayed unit points as the sum of child model points');
 assert.strictEqual(
   JSON.stringify((mergedBloodcrushers._enhancements || []).map(enh => `${enh.name}:${enh.points}`).sort()),
   JSON.stringify(['Mantle of Gloom (Aura):20', 'Soul-shattering Charge:10'].sort()),
@@ -98,6 +109,30 @@ havocs.forEach(unit => {
   assert.ok(unit.weapons.some(w => w.name === 'Power fist' && w._profileCount === 1), 'aggregates one champion power fist');
 });
 
+const partialPointsApp = context.weaponVsDefenseApp();
+partialPointsApp.addRoster({
+  schema: '40k-roster-matchup-import',
+  rosterLabel: 'Partial points',
+  forceName: 'Merged force',
+  postMergeUnits: [{
+    key: 'screamers-plus-fateskimmer',
+    label: 'Screamers with Fateskimmer',
+    points: 175,
+    defense: { T: 4, Sv: 4, W: 3, models: 4, totalWounds: 14 },
+    weapons: [],
+    children: [
+      { key: 'fateskimmer', label: 'Fateskimmer', points: 95, defense: { T: 6, Sv: 4, W: 5, models: 1 }, weapons: [] },
+      { key: 'screamer-1', label: 'Screamer 1', points: 0, defense: { T: 4, Sv: 4, W: 3, models: 1 }, weapons: [] },
+      { key: 'screamer-2', label: 'Screamer 2', points: 0, defense: { T: 4, Sv: 4, W: 3, models: 1 }, weapons: [] },
+      { key: 'screamer-3', label: 'Screamer 3', points: 0, defense: { T: 4, Sv: 4, W: 3, models: 1 }, weapons: [] },
+    ],
+  }],
+}, 'Partial points');
+const partialUnit = partialPointsApp.units.find(unit => unit.label === 'Screamers with Fateskimmer');
+assert.strictEqual(partialUnit._points, 175, 'partial point import keeps the parent total as the sum of child model points');
+assert.strictEqual(partialUnit._children.find(child => child.label === 'Fateskimmer')._points, 95, 'partial point import preserves explicit child model points');
+assert.ok(partialUnit._children.filter(child => /^Screamer/.test(child.label)).every(child => Math.abs(child._points - (80 / 3)) < 1e-9), 'partial point import splits remaining points across missing-cost models');
+
 app.addRoster(sample, '11th Daemons B');
 app.openMatchupModal();
 assert.strictEqual(app.matchupAttackerUnits.length, 14, 'matchup modal uses imported NewRecruit attacker units');
@@ -122,6 +157,15 @@ app.matchup.showMelee = false;
 const shootingOnlyBloodcrushers = app.computeMatchupCell(bloodcrushersAttacker, greatUncleanDefender);
 assert.ok(!/Brass Stampede mortal wounds/.test(shootingOnlyBloodcrushers.weaponName), 'Brass Stampede respects the melee toggle');
 app.matchup.showMelee = true;
+const bloodcrusherChildCell = app.computeMatchupCell(bloodcrushersAttacker._children[0], greatUncleanDefender);
+assert.ok(/Brass Stampede mortal wounds/.test(bloodcrusherChildCell.weaponName), 'Bloodcrusher child model rows inherit their per-model charge mortal wounds');
+
+app.toggleUnitExpanded(bloodcrushersAttacker);
+const expandedBloodcrusherRows = app.matchupVisibleRows().filter(row => row.unit.label === 'Bloodcrushers' || /^Bloodhunter$|^Bloodcrusher \d+$/.test(row.unit.label));
+const bloodcrusherParentScore = Number(app.matchupHeaderScore(expandedBloodcrusherRows.find(row => !row.isChild).unit, 'attacker'));
+const bloodcrusherChildScores = expandedBloodcrusherRows.filter(row => row.isChild).map(row => Number(app.matchupHeaderScore(row.unit, 'attacker')));
+assert.ok(bloodcrusherParentScore >= Math.min(...bloodcrusherChildScores) && bloodcrusherParentScore <= Math.max(...bloodcrusherChildScores), 'aggregate attacker score stays within the point-weighted child model score range');
+app.toggleUnitExpanded(bloodcrushersAttacker);
 
 assert.strictEqual(app.isUnitEnhancementEnabled(greatUncleanDefender, 'Mantle of Gloom (Aura)'), true, 'enhancements default to enabled');
 app.toggleUnitEnhancement(greatUncleanDefender, 'Mantle of Gloom (Aura)');

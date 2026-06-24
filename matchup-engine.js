@@ -35,14 +35,42 @@
     return values.length ? { min: Math.min(...values), max: Math.max(...values) } : { min:0, max:0 };
   }
 
-  function colorForValue(value, range){
+  function colorHueForValue(value, range){
     if(!Number.isFinite(value)) return '';
     const span = range.max - range.min;
     const raw = span > 1e-9 ? (value - range.min) / span : 0.5;
     const t = Math.max(0, Math.min(1, raw));
-    const hue = t <= 0.5
+    return t <= 0.5
       ? 0 + (60 * (t / 0.5))
       : 60 + (120 - 60) * ((t - 0.5) / 0.5);
+  }
+
+  function hslToHex(h, s, l){
+    h = ((Number(h) % 360) + 360) % 360;
+    s = Math.max(0, Math.min(100, Number(s))) / 100;
+    l = Math.max(0, Math.min(100, Number(l))) / 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    if(h < 60){ r = c; g = x; }
+    else if(h < 120){ r = x; g = c; }
+    else if(h < 180){ g = c; b = x; }
+    else if(h < 240){ g = x; b = c; }
+    else if(h < 300){ r = x; b = c; }
+    else { r = c; b = x; }
+    const toHex = channel => Math.round((channel + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  function colorHexForValue(value, range){
+    const hue = colorHueForValue(value, range);
+    return hue === '' ? '' : hslToHex(hue, 85, 43);
+  }
+
+  function colorForValue(value, range){
+    const hue = colorHueForValue(value, range);
+    if(hue === '') return '';
     return `background:hsl(${hue}, 85%, 43%); color:#071016;`;
   }
 
@@ -122,6 +150,10 @@
     return (unit?.abilities || []).some(ability => pattern.test(String(ability || '')));
   }
 
+  function parentUnit(unit){
+    return unit?._parentUnit || unit?._baseUnit?._parentUnit || null;
+  }
+
   function isAbilityEnabled(unit, name, options){
     if(typeof options?.isAbilityEnabled === 'function') return options.isAbilityEnabled(unit, name);
     return true;
@@ -140,14 +172,24 @@
   function chargeMortalDamage(unit, attackMode, options){
     if(attackMode === 'shooting') return { dmg: 0, profile: null };
     if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return { dmg: 0, profile: null };
-    if(!unitHasAbility(unit, /brass stampede/i)) return { dmg: 0, profile: null };
-    if(!isAbilityEnabled(unit, 'Brass Stampede', options)) return { dmg: 0, profile: null };
+    const inheritedFrom = parentUnit(unit);
+    const ownAbility = unitHasAbility(unit, /brass stampede/i);
+    const inheritedAbility = !ownAbility && inheritedFrom && !options?.suppressInheritedUnitAbilities && unitHasAbility(inheritedFrom, /brass stampede/i);
+    const abilityUnit = ownAbility ? unit : (inheritedAbility ? inheritedFrom : null);
+    if(!abilityUnit) return { dmg: 0, profile: null };
+    if(!isAbilityEnabled(abilityUnit, 'Brass Stampede', options)) return { dmg: 0, profile: null };
     const models = bloodcrusherChargeModelCount(unit);
     if(models <= 0) return { dmg: 0, profile: null };
     return {
       dmg: models,
       profile: { name: 'Brass Stampede mortal wounds', count: models },
     };
+  }
+
+  function fnpDamageMultiplier(def){
+    const fnp = parseFloat(def?.Fnp ?? def?.fnp);
+    if(!Number.isFinite(fnp) || fnp <= 0) return 1;
+    return 1 - ((7 - Math.max(2, Math.min(6, fnp))) / 6);
   }
 
   function defenderWoundPool(def, defenderUnit){
@@ -184,15 +226,17 @@
     const T = parseFloat(def.T) || 0;
     const sv = parseFloat(def.Sv) || 0;
     const inv = parseFloat(def.Inv) || 0;
+    const Fnp = parseFloat(def.Fnp) || 0;
     const W = parseFloat(def.W) || 0;
     const unitWoundPool = defenderWoundPool(def, defenderUnit);
     const attackMode = attackerUnit?._attackMode || 'all';
     const childUnits = Array.isArray(attackerUnit?._children) ? attackerUnit._children : [];
     if(childUnits.length){
-      const childCells = childUnits.map(child => computeCell(child, defenderUnit, options));
+      const childCells = childUnits.map(child => computeCell(child, defenderUnit, { ...options, suppressInheritedUnitAbilities: true }));
       const chargeMortals = chargeMortalDamage(attackerUnit, attackMode, options);
-      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + chargeMortals.dmg;
-      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + (W > 0 ? chargeMortals.dmg / W : 0);
+      const chargeDamage = chargeMortals.dmg * fnpDamageMultiplier(def);
+      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + chargeDamage;
+      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + (W > 0 ? chargeDamage / W : 0);
       const profilesUsed = aggregateProfiles([
         ...childCells.flatMap(cell => cell?.profilesUsed || []),
         ...(chargeMortals.profile ? [chargeMortals.profile] : []),
@@ -214,7 +258,7 @@
 
     const evalOne = (w) => {
       const modifierText = options.effectiveWeaponModifiers(w);
-      const result = window.WeaponCalc.calcOneWeapon(w, { T, sv, inv, W }, modifierText);
+      const result = window.WeaponCalc.calcOneWeapon(w, { T, sv, inv, W, Fnp }, modifierText);
       const kw = window.WeaponCalc.parseWeaponKeywords(modifierText);
       return {
         ...result,
@@ -242,10 +286,11 @@
       const normal = melee.filter(x => !x.extraAttacks);
       const extraTotals = selectedTotals(extra);
       const chargeMortals = chargeMortalDamage(attackerUnit, attackMode, options);
+      const chargeDamage = chargeMortals.dmg * fnpDamageMultiplier(def);
       const choices = normal.length ? normal : (extra.length ? [{ dmg:0, kills:0, profilesUsed:[] }] : []);
       const winner = best(choices.map(choice => ({
-        dmg: (choice?.dmg || 0) + extraTotals.dmg + chargeMortals.dmg,
-        kills: (choice?.kills || 0) + extraTotals.kills + (W > 0 ? chargeMortals.dmg / W : 0),
+        dmg: (choice?.dmg || 0) + extraTotals.dmg + chargeDamage,
+        kills: (choice?.kills || 0) + extraTotals.kills + (W > 0 ? chargeDamage / W : 0),
         profilesUsed: aggregateProfiles([
           ...(choice?.profilesUsed || []),
           ...extraTotals.profilesUsed,
@@ -286,6 +331,7 @@
     metricValue,
     metricRange,
     colorForValue,
+    colorHexForValue,
     weaponProfileCount,
     weaponProfileLabel,
     weaponProfileEntry,

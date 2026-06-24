@@ -15,6 +15,47 @@
     return { mean: (n * ((1 + faces) / 2)) + k, text:s };
   }
 
+  function diceDistribution(expr, flatMod=0){
+    const s = String(expr || '').replace(/\s+/g,'');
+    if(/^\d+(\.\d+)?$/.test(s)){
+      return [{ value: parseFloat(s) + flatMod, probability: 1 }];
+    }
+    const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
+    if(!m) return [{ value: (parseFloat(s) || 0) + flatMod, probability: 1 }];
+    const dice = parseInt(m[1] || '1', 10);
+    const faces = parseInt(m[2], 10);
+    const mod = (m[3] ? parseInt(m[3], 10) : 0) + flatMod;
+    if(!Number.isFinite(dice) || dice <= 0 || !Number.isFinite(faces) || faces <= 0){
+      return [{ value: mod, probability: 1 }];
+    }
+
+    let counts = new Map([[0, 1]]);
+    for(let i = 0; i < dice; i++){
+      const next = new Map();
+      counts.forEach((count, sum) => {
+        for(let face = 1; face <= faces; face++){
+          next.set(sum + face, (next.get(sum + face) || 0) + count);
+        }
+      });
+      counts = next;
+    }
+    const total = Math.pow(faces, dice);
+    return [...counts.entries()].map(([sum, count]) => ({
+      value: sum + mod,
+      probability: count / total,
+    }));
+  }
+
+  function expectedCappedDamage(expr, modelWounds, flatMod=0){
+    const cap = parseFloat(modelWounds);
+    const distribution = diceDistribution(expr, flatMod);
+    return distribution.reduce((sum, entry) => {
+      const damage = Math.max(0, entry.value);
+      const effective = Number.isFinite(cap) && cap > 0 ? Math.min(damage, cap) : damage;
+      return sum + effective * entry.probability;
+    }, 0);
+  }
+
   function probAtLeast(target, mod=0, cap=null){
     if(target === 1) return 1;
     if(target === null) return 0;
@@ -74,6 +115,8 @@
     const apRaw = parseFloat(weapon?.AP) || 0;
     const AP = Math.abs(apRaw);
     const D = parseNdX(weapon?.D).mean;
+    const cappedD = expectedCappedDamage(weapon?.D, def.W);
+    const fnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
     const kw = parseWeaponKeywords(modifierText || weapon?.modifiers || '');
     const critMin = 6;
 
@@ -98,7 +141,8 @@
     const portionDevastating = kw.devw ? ((7 - critMin) / 6) : 0;
     const unsavedNormal = expectedWounds * (1 - portionDevastating) * (1 - pSave);
     const mortals = expectedWounds * portionDevastating;
-    const totalDamage = (unsavedNormal + mortals) * D;
+    const pFnp = fnp > 0 ? ((7 - clamp(fnp, 2, 6)) / 6) : 0;
+    const totalDamage = ((unsavedNormal * cappedD) + (mortals * D)) * (1 - pFnp);
     return { dmg: totalDamage, kills: def.W > 0 ? (totalDamage / def.W) : 0 };
   }
 
@@ -154,7 +198,8 @@
     const mortals = expectedWounds * portionDevastating;
     const DwithMelta = Math.max(0, D + (mods.melta > 0 ? mods.melta : 0));
     const effD = Math.max(0, DwithMelta - dmgRed);
-    const dmgNormal = unsavedNormal * effD;
+    const cappedEffD = expectedCappedDamage(weapon.D, W, (mods.melta > 0 ? mods.melta : 0) - dmgRed);
+    const dmgNormal = unsavedNormal * cappedEffD;
     const dmgMortal = mortals * effD;
     const pFnp = fnp > 0 ? ((7 - clamp(fnp, 2, 6)) / 6) : 0;
     const totalDamage = (dmgNormal + dmgMortal) * (1 - pFnp);
@@ -166,10 +211,10 @@
       probabilities: { pHit, pCrit, pWound, pSave, portionDevastating, extraHitsPerAttack },
       output: { hits: expectedHits, wounds: expectedWounds, fails: unsavedNormal, dmg: totalDamage, modelsKilled },
       damageFlow: {
-        baseTotalDamage: Aeff * effD,
-        dmgAfterHits: expectedHits * effD,
-        dmgAfterWounds: expectedWounds * effD,
-        dmgAfterSaves: expectedUnsavedIncludingMortals * effD,
+        baseTotalDamage: Aeff * cappedEffD,
+        dmgAfterHits: expectedHits * cappedEffD,
+        dmgAfterWounds: expectedWounds * cappedEffD,
+        dmgAfterSaves: expectedUnsavedIncludingMortals * cappedEffD,
         dmgAfterDamageMods: dmgNormal + dmgMortal,
       },
     };
@@ -178,6 +223,7 @@
   window.WeaponCalc = {
     clamp,
     parseNdX,
+    expectedCappedDamage,
     probAtLeast,
     applyRerolls,
     woundNeeded,

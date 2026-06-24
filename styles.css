@@ -191,7 +191,7 @@ details summary{cursor:pointer}
   box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;overscroll-behavior:contain
 }
 .modalWide{max-width:1400px}
-.modalWide[aria-label="Unit matchups"]{height:calc(100vh - 36px);height:calc(100dvh - 36px)}
+.modalWide[aria-label="Unit matchups"]{width:calc(100vw - 12px);max-width:1600px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:12px}
 .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}
 .modalBody{padding:12px 14px;overflow:auto;min-height:0;overscroll-behavior:contain}
 .modalWide[aria-label="Unit matchups"] .modalBody{display:flex;flex-direction:column;overflow:hidden;flex:1 1 auto;padding-bottom:0}
@@ -203,10 +203,24 @@ details summary{cursor:pointer}
 .compactLabel{flex:0 1 auto}
 .matchupSide label{gap:2px;font-size:12px}
 .matchupSide select{padding:6px 8px}
-.matchupToolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
-.matchupToggles{display:flex;flex-direction:row;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
-.matchupActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.matchupToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:nowrap}
+.matchupToggles{display:flex;flex-direction:row;gap:6px;align-items:center;flex-wrap:nowrap;min-width:max-content;overflow:visible}
+.matchupActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;white-space:nowrap}
+.metricSelect{flex:0 0 124px;margin:0}
+.metricSelect select{width:100%;padding:7px 9px;color:var(--fg);font-size:12px}
 .copyStatus{font-size:12px;white-space:nowrap}
+.hiddenFileInput{display:none}
+.importArmyRow{align-items:center}
+.importStatus{font-size:12px;font-weight:700;line-height:1.25}
+.importStatus.success{color:#86efac}
+.importStatus.error{color:#fca5a5}
+.actionMenuWrap{position:relative}
+.dropdownButton{display:inline-flex;align-items:center;gap:6px}
+.dropdownArrow{font-size:12px;line-height:1}
+.actionMenu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:170px;padding:5px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:#111827;box-shadow:0 18px 45px rgba(0,0,0,.45)}
+.actionMenu button{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--fg);padding:8px 10px;border-radius:7px}
+.actionMenu button:hover{background:rgba(110,231,255,.12)}
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .mergeBox{margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:6px}
 .mergeRow{display:grid;grid-template-columns:minmax(90px,1fr) auto minmax(90px,1fr) auto auto;gap:5px;align-items:center;margin-top:3px}
 .mergeRow select{min-width:0}
@@ -222,17 +236,21 @@ details summary{cursor:pointer}
 .matchupAttackerCol{width:220px;min-width:220px;max-width:220px}
 .matchupDefenderCol{width:auto}
 .matchupGrid th,.matchupGrid td{border-bottom:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06);padding:8px 10px;vertical-align:top;background:rgba(255,255,255,.01)}
+.matchupGrid thead th{height:1px}
+.matchupGrid thead th:not(.stickyCol){padding-top:6px;padding-bottom:6px}
 .matchupGrid thead th{position:sticky;top:0;background:rgba(18,24,34,.98);z-index:2}
-.matchupGrid .stickyCol{position:sticky;left:0;background:rgba(18,24,34,.98);z-index:3;width:220px!important;min-width:220px;max-width:220px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere}
-.matchupGrid .stickyCol .unitNameLine{width:200px;grid-template-columns:26px minmax(0,132px) 28px}
-.matchupGrid .stickyCol .profileLink{max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.matchupGrid .stickyCol .attackerProfileLink{display:flex;flex-direction:column;align-items:flex-start;gap:1px;white-space:normal}
-.matchupGrid .stickyCol .attackerProfileLink .profileNameText{max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.matchupGrid .stickyCol .attackerProfileLink .profilePointsText{display:block;line-height:1.1}
-.matchupGrid .stickyCol .muted{display:block;max-width:200px}
-.matchupGrid thead th:not(.stickyCol){white-space:nowrap}
-.matchupGrid thead th:not(.stickyCol) .unitNameLine{grid-template-columns:26px max-content 28px}
-.matchupGrid thead th:not(.stickyCol) .profileLink,.matchupDefenseText{white-space:nowrap}
+.matchupGrid .stickyCol{position:sticky;left:0;background:rgba(18,24,34,.98);z-index:3;width:168px!important;min-width:168px;max-width:168px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere}
+.matchupGrid .stickyCol .profileLink{max-width:118px;white-space:normal;overflow:visible;text-overflow:clip}
+.matchupGrid .stickyCol .attackerProfileLink{display:flex;flex-direction:column;align-items:flex-start;gap:2px;white-space:normal}
+.matchupGrid .stickyCol .attackerProfileLink .profileNameText{max-width:118px;white-space:normal;overflow:visible;text-overflow:clip}
+.matchupGrid .stickyCol .muted{display:block;max-width:128px}
+.matchupGrid thead th:not(.stickyCol){white-space:nowrap;min-width:max-content;max-width:none}
+.matchupGrid thead th:not(.stickyCol) .profileLink,.matchupGrid thead th:not(.stickyCol) .matchupDefenseText{white-space:nowrap}
+.matchupHeaderProfileLink{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.15;text-align:left}
+.matchupHeaderProfileLink .profileNameText{font-weight:800;white-space:normal;overflow-wrap:anywhere}
+.defenderHeaderCell .profileNameText{white-space:nowrap;overflow-wrap:normal}
+.profileMetaText{font-weight:400;color:var(--muted);font-size:11px;white-space:normal;overflow-wrap:anywhere}
+.matchupWeaponTypeText,.matchupDefenseText{font-size:11px;line-height:1.2;overflow-wrap:anywhere}
 .matchupGrid td{white-space:normal;overflow-wrap:anywhere}
 .matchupGrid tr:last-child td,.matchupGrid tr:last-child th{border-bottom:0}
 .matchupGrid th:last-child,.matchupGrid td:last-child{border-right:0}
@@ -242,7 +260,15 @@ details summary{cursor:pointer}
 .childMatchupRow .stickyCol,.matchupGrid thead th.childMatchupCol{background:rgba(34,55,82,.98)}
 .childMatchupRow th,.childMatchupRow td{border-bottom-color:rgba(255,255,255,.04)}
 .unitNameLine{display:grid;grid-template-columns:26px minmax(0,1fr) 28px;column-gap:7px;align-items:center}
+.unitHeaderCell{display:grid;grid-template-columns:minmax(0,1fr) 26px;column-gap:8px;align-items:start}
+.defenderHeaderCell{grid-template-columns:max-content 26px}
+.attackerHeaderCell .matchupHeaderProfileLink{min-width:0}
+.defenderHeaderCell .matchupHeaderProfileLink{min-width:max-content}
 .gridHeaderLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}
+.matchupCornerHeader{position:relative;min-height:46px;padding-right:54px;padding-bottom:20px;font-size:12px;line-height:1.15}
+.sortIconButton.cornerSortButton{position:absolute;width:auto;min-width:48px;padding:0 7px;font-size:10px;font-weight:700}
+.attackerSortButton{left:50%;bottom:0;transform:translateX(-50%)}
+.defenderSortButton{right:0;top:50%;transform:translateY(-50%)}
 .sortIconButton{
   width:26px;
   height:24px;
@@ -264,6 +290,8 @@ details summary{cursor:pointer}
   padding:0;border-radius:6px;background:#0f141c;color:var(--fg);border:1px solid #2a3a4f;
   font-size:15px;line-height:1
 }
+.eyeButton{font-size:13px;align-self:start}
+.eyeIcon{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .expandSpacer{display:inline-block;width:24px;height:24px}
 .childBranch{
   display:inline-flex;
@@ -276,6 +304,7 @@ details summary{cursor:pointer}
   line-height:1;
   font-weight:900
 }
+.childBranchInline{color:var(--accent);font-size:20px;line-height:0;margin-right:5px;font-weight:900;vertical-align:-1px}
 .profileLink{
   background:transparent;
   border:0;
@@ -318,8 +347,8 @@ details summary{cursor:pointer}
 @media (max-width: 800px) {
   .matchupControls{grid-template-columns:1fr}
   .matchupSideHead,.matchupSelectRow{grid-template-columns:1fr}
-  .matchupToolbar{align-items:stretch;flex-direction:column}
-  .matchupActions{align-self:flex-end;flex-wrap:wrap}
+  .matchupToolbar{align-items:center;flex-direction:row}
+  .matchupActions{align-self:auto;flex-wrap:nowrap}
   .mergeRow{grid-template-columns:1fr}
   .profileBody{grid-template-columns:1fr}
 }

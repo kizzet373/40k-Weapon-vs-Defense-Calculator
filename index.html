@@ -22,14 +22,15 @@
     </div>
 
     <div class="card">
-      <div class="row">
-        <input type="file" accept=".json" @change="onRosterFile($event)" />
-        <button class="secondary" type="button" @click="loadPastedRoster()">Load pasted JSON</button>
+      <div class="row importArmyRow">
+        <input class="hiddenFileInput" type="file" accept=".json" x-ref="rosterFileInput" @change="onRosterFile($event)" />
+        <button class="primary" type="button" @click="importRoster()">Import Army</button>
+        <span class="importStatus" :class="importStatus.type" x-show="importStatus.text" x-text="importStatus.text"></span>
       </div>
 
       <label>
         Paste JSON (optional)
-        <textarea x-model="jsonPaste" rows="6" placeholder="Paste your roster JSON here and click 'Load pasted JSON'"></textarea>
+        <textarea x-model="jsonPaste" rows="6" placeholder="Paste roster JSON here, or leave blank to import a file"></textarea>
       </label>
 
       <div class="row">
@@ -351,7 +352,7 @@
                   </template>
                 </select>
                 <button type="button" class="secondary" @click="applyManualMerge('attacker')">Merge</button>
-                <button type="button" class="secondary" @click="clearManualMerges('attacker')">Clear</button>
+                <button type="button" class="secondary" @click="unmergeSelectedUnit('attacker')">Unmerge</button>
               </div>
             </div>
           </div>
@@ -394,7 +395,7 @@
                   </template>
                 </select>
                 <button type="button" class="secondary" @click="applyManualMerge('defender')">Merge</button>
-                <button type="button" class="secondary" @click="clearManualMerges('defender')">Clear</button>
+                <button type="button" class="secondary" @click="unmergeSelectedUnit('defender')">Unmerge</button>
               </div>
             </div>
           </div>
@@ -406,17 +407,13 @@
               Swap sides
             </button>
 
-            <div class="segRow">
-              <button type="button" class="seg" :class="matchup.metric === 'damage' ? 'active' : ''" @click="setMatchupMetric('damage')">
-                Damage
-              </button>
-              <button type="button" class="seg" :class="matchup.metric === 'modelWounds' ? 'active' : ''" @click="setMatchupMetric('modelWounds')">
-                Damage %
-              </button>
-              <button type="button" class="seg" :class="matchup.metric === 'unitKill' ? 'active' : ''" @click="setMatchupMetric('unitKill')">
-                Chance to Kill
-              </button>
-            </div>
+            <label class="metricSelect">
+              <select aria-label="Display metric" :value="matchup.metric" @change="setMatchupMetric($event.target.value)">
+                <option value="damage">Damage</option>
+                <option value="modelWounds">Damage %</option>
+                <option value="unitKill">Chance to Kill</option>
+              </select>
+            </label>
 
             <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')">
               Combine shooting profiles
@@ -430,10 +427,30 @@
             </button>
           </div>
 
-          <div class="matchupActions">
-            <button type="button" class="secondary" @click="copyMatchupGrid()" :disabled="matchup.loading || matchupVisibleRows().length === 0">Copy grid</button>
+          <div class="matchupActions" @keydown.escape.window="matchupActionMenu = ''">
+            <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'copy' ? '' : matchupActionMenu">
+              <button type="button" class="secondary dropdownButton" @click="toggleMatchupActionMenu('copy')" :disabled="matchup.loading || matchupVisibleRows().length === 0">
+                <span class="dropdownArrow">▾</span>
+                <span>Copy</span>
+              </button>
+              <div class="actionMenu" x-show="matchupActionMenu === 'copy'" x-cloak>
+                <template x-for="option in matchupExportOptions()" :key="`copy-${option.value}`">
+                  <button type="button" @click="copyMatchupGrid(option.value); matchupActionMenu = ''" x-text="option.label"></button>
+                </template>
+              </div>
+            </div>
+            <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'export' ? '' : matchupActionMenu">
+              <button type="button" class="secondary dropdownButton" @click="toggleMatchupActionMenu('export')" :disabled="matchup.loading || matchupVisibleRows().length === 0">
+                <span class="dropdownArrow">▾</span>
+                <span>Export</span>
+              </button>
+              <div class="actionMenu" x-show="matchupActionMenu === 'export'" x-cloak>
+                <template x-for="option in matchupExportOptions()" :key="`export-${option.value}`">
+                  <button type="button" @click="exportMatchupGrid(option.value); matchupActionMenu = ''" x-text="option.label"></button>
+                </template>
+              </div>
+            </div>
             <span class="muted copyStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
-            <button type="button" @click="rebuildMatchup()" :disabled="rosters.length === 0">Recompute</button>
           </div>
         </div>
 
@@ -447,24 +464,36 @@
               <thead>
                 <tr>
                   <th class="stickyCol">
-                    <div class="gridHeaderLine">
+                    <div class="matchupCornerHeader">
                       <div>Attacker ↓<br><span class="muted">Defender →</span></div>
-                      <button type="button" class="sortIconButton" @click="sortMatchupAlphabetical()" :title="`Sort rows and columns ${matchup.sortAttackersDirection === 'desc' ? 'A-Z' : 'Z-A'}`" x-text="sortButtonSymbol('alpha')"></button>
+                      <button type="button" class="sortIconButton cornerSortButton attackerSortButton" @click="cycleMatchupSideSort('attacker')" :title="matchupSideSortTitle('attacker')" x-text="matchupSideSortLabel('attacker')"></button>
+                      <button type="button" class="sortIconButton cornerSortButton defenderSortButton" @click="cycleMatchupSideSort('defender')" :title="matchupSideSortTitle('defender')" x-text="matchupSideSortLabel('defender')"></button>
                     </div>
                   </th>
                   <template x-for="(col, di) in matchupVisibleDefenders()" :key="`m-col-${unitKey(col.unit) || di}-${col.childIndex ?? 'unit'}`">
                     <th :class="col.isChild ? 'childMatchupCol' : ''">
-                      <div class="unitNameLine">
-                        <button type="button" class="expandButton" x-show="!col.isChild && hasChildUnits(col.unit)" @click="toggleUnitExpanded(col.unit)" x-text="isUnitExpanded(col.unit) ? '▾' : '▸'"></button>
-                        <span class="childBranch" x-show="col.isChild">↳</span>
-                        <span class="expandSpacer" x-show="!col.isChild && !hasChildUnits(col.unit)"></span>
-                        <button type="button" class="profileLink" @click="openUnitProfile(col.unit, col.isChild ? 'Model' : 'Defender')">
-                          <span class="profileNameText" x-text="unitLabelText(col.unit, `Def ${di+1}`)"></span>
-                          <span class="profilePointsText" x-show="unitPointsText(col.unit)" x-text="unitPointsText(col.unit)"></span>
+                      <div class="unitHeaderCell defenderHeaderCell">
+                        <button type="button" class="profileLink matchupHeaderProfileLink" @click="openUnitProfile(col.unit, col.isChild ? 'Model' : 'Defender')">
+                          <span class="profileNameText">
+                            <template x-if="col.isChild"><span class="childBranchInline">↳</span></template><span x-text="unitLabelText(col.unit, `Def ${di+1}`)"></span>
+                          </span>
+                          <span class="profileMetaText" x-text="matchupHeaderMeta(col.unit, 'defender')"></span>
+                          <template x-for="line in matchupDefenseProfileLines(col.unit)" :key="line">
+                            <span class="muted matchupDefenseText" x-text="line"></span>
+                          </template>
                         </button>
-                        <button type="button" class="sortIconButton" @click="sortMatchupByColumn(col.unit)" title="Sort attacker rows by this column" x-text="sortButtonSymbol('column', col.unit)"></button>
+                        <button type="button" class="expandButton eyeButton" x-show="!col.isChild && hasChildUnits(col.unit)" @click="toggleUnitExpanded(col.unit)" :title="isUnitExpanded(col.unit) ? 'Hide models' : 'Show models'">
+                          <svg class="eyeIcon" x-show="!isUnitExpanded(col.unit)" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                            <circle cx="12" cy="12" r="2.5"></circle>
+                          </svg>
+                          <svg class="eyeIcon" x-show="isUnitExpanded(col.unit)" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 12s3.4-5.5 9-5.5 9 5.5 9 5.5"></path>
+                            <path d="M4.5 16.5c2 1.5 4.5 2.5 7.5 2.5s5.5-1 7.5-2.5"></path>
+                            <path d="M5 5l14 14"></path>
+                          </svg>
+                        </button>
                       </div>
-                      <div class="muted matchupDefenseText" style="font-size:11px" x-text="matchupDefenseLabel(col.unit)"></div>
                     </th>
                   </template>
                 </tr>
@@ -473,17 +502,26 @@
                 <template x-for="(row, ri) in matchupVisibleRows()" :key="`m-row-${unitKey(row.unit) || ri}-${row.childIndex ?? 'unit'}`">
                   <tr :class="row.isChild ? 'childMatchupRow' : ''">
                     <th class="stickyCol">
-                      <div class="unitNameLine">
-                        <button type="button" class="expandButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" x-text="isUnitExpanded(row.unit) ? '▾' : '▸'"></button>
-                        <span class="childBranch" x-show="row.isChild">↳</span>
-                        <span class="expandSpacer" x-show="!row.isChild && !hasChildUnits(row.unit)"></span>
-                        <button type="button" class="profileLink attackerProfileLink" @click="openUnitProfile(row.unit, row.isChild ? 'Model' : 'Attacker')">
-                          <span class="profileNameText" x-text="unitLabelText(row.unit, `Atk ${ri+1}`)"></span>
-                          <span class="profilePointsText" x-show="unitPointsText(row.unit)" x-text="unitPointsText(row.unit)"></span>
+                      <div class="unitHeaderCell attackerHeaderCell">
+                        <button type="button" class="profileLink attackerProfileLink matchupHeaderProfileLink" @click="openUnitProfile(row.unit, row.isChild ? 'Model' : 'Attacker')">
+                          <span class="profileNameText">
+                            <template x-if="row.isChild"><span class="childBranchInline">↳</span></template><span x-text="unitLabelText(row.unit, `Atk ${ri+1}`)"></span>
+                          </span>
+                          <span class="profileMetaText" x-text="matchupHeaderMeta(row.unit, 'attacker')"></span>
+                          <span class="muted matchupWeaponTypeText" x-text="matchupWeaponTypeSummary(row.unit)"></span>
                         </button>
-                        <button type="button" class="sortIconButton" @click="sortMatchupByRow(row.unit)" title="Sort defender columns by this row" x-text="sortButtonSymbol('row', row.unit)"></button>
+                        <button type="button" class="expandButton eyeButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" :title="isUnitExpanded(row.unit) ? 'Hide models' : 'Show models'">
+                          <svg class="eyeIcon" x-show="!isUnitExpanded(row.unit)" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                            <circle cx="12" cy="12" r="2.5"></circle>
+                          </svg>
+                          <svg class="eyeIcon" x-show="isUnitExpanded(row.unit)" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M3 12s3.4-5.5 9-5.5 9 5.5 9 5.5"></path>
+                            <path d="M4.5 16.5c2 1.5 4.5 2.5 7.5 2.5s5.5-1 7.5-2.5"></path>
+                            <path d="M5 5l14 14"></path>
+                          </svg>
+                        </button>
                       </div>
-                      <div class="muted" style="font-size:11px" x-text="matchupWeaponSummary(row.unit)"></div>
                     </th>
 
                     <template x-for="(cell, di) in row.cells" :key="`m-cell-${ri}-${di}`">
