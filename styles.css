@@ -4,6 +4,7 @@
 
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+html.modalOpen,body.modalOpen{overflow:hidden}
 h1{font-size:20px;margin:0 0 8px}
 h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
 
@@ -116,6 +117,7 @@ button{
   color:#001016;border:0;border-radius:10px;
   padding:8px 12px;font-weight:700;cursor:pointer
 }
+button:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.55)}
 
 button.secondary{
   background:#0f141c;color:var(--fg);
@@ -181,25 +183,143 @@ details summary{cursor:pointer}
 
 /* ---------------- Matchup Modal ---------------- */
 [x-cloak]{display:none!important}
-.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}
-.modal{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:16px;max-width:1050px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden}
+.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50;overscroll-behavior:contain}
+.modal{
+  background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:16px;
+  max-width:1050px;width:100%;max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);
+  display:flex;flex-direction:column;min-height:0;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;overscroll-behavior:contain
+}
 .modalWide{max-width:1400px}
-.modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
-.modalBody{padding:12px 14px}
+.modalWide[aria-label="Unit matchups"]{height:calc(100vh - 36px);height:calc(100dvh - 36px)}
+.modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}
+.modalBody{padding:12px 14px;overflow:auto;min-height:0;overscroll-behavior:contain}
+.modalWide[aria-label="Unit matchups"] .modalBody{display:flex;flex-direction:column;overflow:hidden;flex:1 1 auto;padding-bottom:0}
 
-.matchupControls{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:10px}
-.matchupSide{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px}
-.matchupToggles{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.matchupControls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start;margin-bottom:8px}
+.matchupSide{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:7px}
+.matchupSideHead{display:flex;align-items:center;margin-bottom:5px}
+.matchupSelectRow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.compactLabel{flex:0 1 auto}
+.matchupSide label{gap:2px;font-size:12px}
+.matchupSide select{padding:6px 8px}
+.matchupToolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.matchupToggles{display:flex;flex-direction:row;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.matchupActions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.copyStatus{font-size:12px;white-space:nowrap}
+.mergeBox{margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:6px}
+.mergeRow{display:grid;grid-template-columns:minmax(90px,1fr) auto minmax(90px,1fr) auto auto;gap:5px;align-items:center;margin-top:3px}
+.mergeRow select{min-width:0}
+.mergeRow button{padding:6px 8px;border-radius:8px}
 
-.segRow{display:flex;gap:8px;flex-wrap:wrap}
-.seg{padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.02);color:var(--fg);cursor:pointer}
+.segRow{display:flex;gap:6px;flex-wrap:wrap}
+.seg{padding:7px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.02);color:var(--fg);cursor:pointer;white-space:nowrap}
 .seg.active{border-color:rgba(110,231,255,.55);box-shadow:0 0 0 2px rgba(110,231,255,.12) inset}
 
-.matchupGridWrap{overflow:auto;max-height:70vh;border:1px solid rgba(255,255,255,.08);border-radius:14px}
-.matchupGrid{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+.matchupGridWrap{overflow:auto;max-height:70vh;border:1px solid rgba(255,255,255,.08);border-radius:14px;overscroll-behavior:contain}
+.modalWide[aria-label="Unit matchups"] .matchupGridWrap{flex:1 1 auto;min-height:0;max-height:none}
+.matchupGrid{border-collapse:separate;border-spacing:0;width:auto;min-width:0;table-layout:auto}
+.matchupAttackerCol{width:220px;min-width:220px;max-width:220px}
+.matchupDefenderCol{width:auto}
 .matchupGrid th,.matchupGrid td{border-bottom:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06);padding:8px 10px;vertical-align:top;background:rgba(255,255,255,.01)}
 .matchupGrid thead th{position:sticky;top:0;background:rgba(18,24,34,.98);z-index:2}
-.matchupGrid .stickyCol{position:sticky;left:0;background:rgba(18,24,34,.98);z-index:3;min-width:220px;max-width:220px}
-.matchupGrid td{min-width:160px}
+.matchupGrid .stickyCol{position:sticky;left:0;background:rgba(18,24,34,.98);z-index:3;width:220px!important;min-width:220px;max-width:220px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere}
+.matchupGrid .stickyCol .unitNameLine{width:200px;grid-template-columns:26px minmax(0,132px) 28px}
+.matchupGrid .stickyCol .profileLink{max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.matchupGrid .stickyCol .attackerProfileLink{display:flex;flex-direction:column;align-items:flex-start;gap:1px;white-space:normal}
+.matchupGrid .stickyCol .attackerProfileLink .profileNameText{max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.matchupGrid .stickyCol .attackerProfileLink .profilePointsText{display:block;line-height:1.1}
+.matchupGrid .stickyCol .muted{display:block;max-width:200px}
+.matchupGrid thead th:not(.stickyCol){white-space:nowrap}
+.matchupGrid thead th:not(.stickyCol) .unitNameLine{grid-template-columns:26px max-content 28px}
+.matchupGrid thead th:not(.stickyCol) .profileLink,.matchupDefenseText{white-space:nowrap}
+.matchupGrid td{white-space:normal;overflow-wrap:anywhere}
 .matchupGrid tr:last-child td,.matchupGrid tr:last-child th{border-bottom:0}
 .matchupGrid th:last-child,.matchupGrid td:last-child{border-right:0}
+.matchupCell{height:56px;text-align:center}
+.matchupCellValue{font-weight:900;font-size:18px;line-height:1.1}
+.matchupCellNote{font-size:11px;line-height:1.2;margin-top:4px;color:rgba(7,16,22,.78);white-space:normal;overflow-wrap:anywhere;word-break:normal}
+.childMatchupRow .stickyCol,.matchupGrid thead th.childMatchupCol{background:rgba(34,55,82,.98)}
+.childMatchupRow th,.childMatchupRow td{border-bottom-color:rgba(255,255,255,.04)}
+.unitNameLine{display:grid;grid-template-columns:26px minmax(0,1fr) 28px;column-gap:7px;align-items:center}
+.gridHeaderLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}
+.sortIconButton{
+  width:26px;
+  height:24px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border-radius:6px;
+  background:#0f141c;
+  color:var(--fg);
+  border:1px solid #2a3a4f;
+  font-size:11px;
+  line-height:1;
+  white-space:nowrap
+}
+.sortIconButton:hover{border-color:rgba(110,231,255,.7);color:var(--accent)}
+.expandButton{
+  width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+  padding:0;border-radius:6px;background:#0f141c;color:var(--fg);border:1px solid #2a3a4f;
+  font-size:15px;line-height:1
+}
+.expandSpacer{display:inline-block;width:24px;height:24px}
+.childBranch{
+  display:inline-flex;
+  width:24px;
+  height:24px;
+  align-items:center;
+  justify-content:center;
+  color:var(--accent);
+  font-size:22px;
+  line-height:1;
+  font-weight:900
+}
+.profileLink{
+  background:transparent;
+  border:0;
+  color:var(--fg);
+  padding:0;
+  border-radius:0;
+  font:inherit;
+  font-weight:800;
+  text-align:left;
+  line-height:1.2;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:baseline;
+  gap:4px;
+  min-width:0
+}
+.profileLink:hover{color:var(--accent);text-decoration:underline}
+.profileNameText{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.profilePointsText{font-weight:400;color:var(--muted);white-space:nowrap;flex:0 0 auto}
+.profileTitle{display:flex;align-items:baseline;gap:5px;min-width:0}
+.profileBody{display:grid;grid-template-columns:1.4fr .8fr;gap:14px;max-height:70vh;overflow:auto}
+.profileWeapon{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.025)}
+.profileModel{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.02)}
+.profileWeaponHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.modifierToggleList{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.toggleLine{
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:6px;
+  border:1px solid rgba(255,255,255,.1);
+  background:#0f141c;
+  border-radius:8px;
+  padding:6px 8px
+}
+.toggleLine input{width:auto}
+.abilityToggleLine{margin:4px 0}
+
+@media (max-width: 800px) {
+  .matchupControls{grid-template-columns:1fr}
+  .matchupSideHead,.matchupSelectRow{grid-template-columns:1fr}
+  .matchupToolbar{align-items:stretch;flex-direction:column}
+  .matchupActions{align-self:flex-end;flex-wrap:wrap}
+  .mergeRow{grid-template-columns:1fr}
+  .profileBody{grid-template-columns:1fr}
+}

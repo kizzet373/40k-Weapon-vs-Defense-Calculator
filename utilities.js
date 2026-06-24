@@ -12,20 +12,44 @@ function weaponVsDefenseApp(){
       attackerForceIdx: 0,
       defenderRosterIdx: 0,
       defenderForceIdx: 0,
-      sortAttackers: 'alpha',
-      sortDefenders: 'alpha',
+      sortAttackers: 'overallDamage',
+      sortAttackersDirection: 'desc',
+      sortAttackersColumnKey: '',
+      sortDefenders: 'leastDamage',
+      sortDefendersDirection: 'asc',
+      sortDefendersRowKey: '',
       combineShootingProfiles: true,
       showMelee: true,
       showShooting: true,
+      metric: 'modelWounds',
       opts: {
         separateModels: false,
       },
       rows: [],
+      visibleRows: [],
+      visibleDefenders: [],
+      metricRange: { min: 0, max: 0 },
+      cellCache: {},
+      cacheWarmToken: 0,
     },
     matchupAttackerForces: [],
     matchupDefenderForces: [],
+    matchupAttackerBaseUnits: [],
     matchupAttackerUnits: [],
     matchupDefenderUnits: [],
+    expandedUnitKeys: {},
+    modifierToggleState: {},
+    unitToggleState: {},
+    matchupClipboardStatus: '',
+    matchupMerge: {
+      attackerFrom: '',
+      attackerTo: '',
+      defenderFrom: '',
+      defenderTo: '',
+    },
+    profileModalOpen: false,
+    profileModalRole: '',
+    profileUnit: null,
 
     // ---------------- Roster state ----------------
     rosters: [],
@@ -239,10 +263,11 @@ function weaponVsDefenseApp(){
       }
     },
 
-    addRoster(obj){
-      const label = (obj?.roster?.name).trim() || `Roster ${this.rosters.length+1}`;
+    addRoster(obj, providedLabel){
+      const normalized = window.ArmyImportService?.normalizeRosterData(obj, providedLabel) || obj;
+      const label = (normalized?.roster?.name || providedLabel || `Roster ${this.rosters.length+1}`).trim();
 
-      this.rosters.push({ label, data: obj });
+      this.rosters.push({ label, data: normalized });
       this.selectedRosterIdx = this.rosters.length - 1;
 
       this.refreshForces();
@@ -336,11 +361,14 @@ function weaponVsDefenseApp(){
     matchupDefenseLabel(u){
       const d = u?.defense || {};
       const t = (d.T!=null) ? `T${d.T}` : '';
-      const sv = (d.Sv!=null && d.Sv!=='') ? `Sv${d.Sv}+` : '';
-      const inv = (d.Inv!=null && d.Inv!=='') ? `Inv${d.Inv}+` : '';
+      const saves = [
+        (d.Sv!=null && d.Sv!=='') ? `${d.Sv}+` : '',
+        (d.Inv!=null && d.Inv!=='') ? `${d.Inv}++` : '',
+      ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
-      const size = (u?.size!=null) ? `${u.size} models` : '';
-      return [t, sv, inv, w, size].filter(Boolean).join(' · ');
+      const models = d.models ?? u?.size ?? null;
+      const size = (models!=null) ? `${models} models` : '';
+      return [t, saves, w, size].filter(Boolean).join(' - ');
     },
 
     matchupWeaponSummary(u){
@@ -350,6 +378,9 @@ function weaponVsDefenseApp(){
 
       const shooting = filtered.filter(w => !this.isMeleeWeapon(w));
       const melee = filtered.filter(w => this.isMeleeWeapon(w));
+
+      if(u?._attackMode === 'shooting') return `${shooting.length} shooting profile${shooting.length === 1 ? '' : 's'}`;
+      if(u?._attackMode === 'melee') return `${melee.length} melee profile${melee.length === 1 ? '' : 's'}`;
 
       const parts = [];
       if(shooting.length) parts.push(`${shooting.length} shoot`);
@@ -361,10 +392,303 @@ function weaponVsDefenseApp(){
       return parts.join(' / ');
     },
 
+    unitKey(unit){
+      return String(unit?._viewKey || unit?._unitKey || unit?.label || '');
+    },
+
+    hasChildUnits(unit){
+      return Array.isArray(unit?._children) && unit._children.length > 1;
+    },
+
+    isUnitExpanded(unit){
+      return !!this.expandedUnitKeys[this.unitKey(unit)];
+    },
+
+    toggleUnitExpanded(unit){
+      const key = this.unitKey(unit);
+      if(!key) return;
+      this.expandedUnitKeys[key] = !this.expandedUnitKeys[key];
+      this.refreshVisibleMatchup();
+    },
+
+    matchupVisibleRows(){
+      return this.matchup.visibleRows || [];
+    },
+
+    matchupVisibleDefenders(){
+      return this.matchup.visibleDefenders || [];
+    },
+
+    buildVisibleDefenders(){
+      const cols = [];
+      (this.matchupDefenderUnits || []).forEach((unit, colIndex) => {
+        cols.push({ unit, colIndex, depth: 0, isChild: false });
+        if(this.isUnitExpanded(unit)){
+          this.sortedDefenderChildren(unit?._children || []).forEach((child, childIndex) => {
+            cols.push({ unit: child, colIndex, childIndex, depth: 1, isChild: true });
+          });
+        }
+      });
+      return cols;
+    },
+
+    flattenMatchupUnits(units){
+      const out = [];
+      (units || []).forEach(unit => {
+        out.push(unit);
+        (unit?._children || []).forEach(child => out.push(child));
+      });
+      return out;
+    },
+
+    weaponMatchesAttackMode(w, attackMode){
+      return window.MatchupEngine.weaponMatchesAttackMode(w, attackMode);
+    },
+
+    attackModeVariant(unit, attackMode){
+      if(!unit || !attackMode || attackMode === 'all') return unit;
+      const labelSuffix = attackMode === 'shooting' ? 'Shooting' : 'Melee';
+      const baseKey = this.unitKey(unit);
+      return {
+        ...unit,
+        label: `${unit.label || 'Unit'} (${labelSuffix})`,
+        _baseUnit: unit,
+        _attackMode: attackMode,
+        _viewKey: `${baseKey}:${attackMode}`,
+        _children: (unit._children || []).map(child => this.attackModeVariant(child, attackMode)),
+      };
+    },
+
+    attackModeVariants(unit){
+      if(unit?._attackMode) return [unit];
+      if(this.matchup.combineShootingProfiles) return [unit];
+
+      const weapons = (unit?.weapons || []).filter(w => this.isWeaponEnabledByToggles(w));
+      const hasShooting = this.matchup.showShooting && weapons.some(w => !this.isMeleeWeapon(w));
+      const hasMelee = this.matchup.showMelee && weapons.some(w => this.isMeleeWeapon(w));
+      const variants = [];
+      if(hasShooting) variants.push(this.attackModeVariant(unit, 'shooting'));
+      if(hasMelee) variants.push(this.attackModeVariant(unit, 'melee'));
+      return variants.length ? variants : [unit];
+    },
+
+    flattenMatchupAttackers(units){
+      const out = [];
+      (units || []).forEach(unit => {
+        this.attackModeVariants(unit).forEach(variant => out.push(variant));
+        (unit?._children || []).forEach(child => {
+          this.attackModeVariants(child).forEach(variant => out.push(variant));
+        });
+      });
+      return out;
+    },
+
+    cellCacheKey(attacker, defender){
+      return `${this.unitKey(attacker)}=>${this.unitKey(defender)}`;
+    },
+
+    warmMatchupCellCache(){
+      const attackers = this.flattenMatchupAttackers(this.matchupAttackerUnits);
+      const defenders = this.flattenMatchupUnits(this.matchupDefenderUnits);
+      const cache = {};
+      attackers.forEach(attacker => {
+        defenders.forEach(defender => {
+          cache[this.cellCacheKey(attacker, defender)] = this.computeMatchupCell(attacker, defender);
+        });
+      });
+      this.matchup.cellCache = cache;
+    },
+
+    seedAggregateCellCache(){
+      const cache = {};
+      (this.matchup.rows || []).forEach(row => {
+        this.attackModeVariants(row.unit).forEach(attacker => {
+          (this.matchupDefenderUnits || []).forEach((defender, index) => {
+            const cell = attacker === row.unit
+              ? (row.cells?.[index] || this.computeMatchupCell(row.unit, defender))
+              : this.computeMatchupCell(attacker, defender);
+            cache[this.cellCacheKey(attacker, defender)] = cell;
+          });
+        });
+      });
+      this.matchup.cellCache = cache;
+      this.matchup.cacheWarmToken = (this.matchup.cacheWarmToken || 0) + 1;
+    },
+
+    scheduleWarmMatchupCellCache(){
+      if(typeof document === 'undefined') return;
+      const token = this.matchup.cacheWarmToken;
+      const attackers = this.flattenMatchupAttackers(this.matchupAttackerUnits);
+      const defenders = this.flattenMatchupUnits(this.matchupDefenderUnits);
+      const pairs = [];
+
+      attackers.forEach(attacker => {
+        defenders.forEach(defender => {
+          const key = this.cellCacheKey(attacker, defender);
+          if(!this.matchup.cellCache[key]) pairs.push([key, attacker, defender]);
+        });
+      });
+
+      const processChunk = () => {
+        if(token !== this.matchup.cacheWarmToken) return;
+        const started = Date.now();
+        while(pairs.length && Date.now() - started < 12){
+          const [key, attacker, defender] = pairs.shift();
+          if(!this.matchup.cellCache[key]){
+            this.matchup.cellCache[key] = this.computeMatchupCell(attacker, defender);
+          }
+        }
+        if(pairs.length) setTimeout(processChunk, 0);
+      };
+
+      setTimeout(processChunk, 0);
+    },
+
+    cachedMatchupCell(attacker, defender){
+      const key = this.cellCacheKey(attacker, defender);
+      if(!this.matchup.cellCache) this.matchup.cellCache = {};
+      if(!this.matchup.cellCache[key]){
+        this.matchup.cellCache[key] = this.computeMatchupCell(attacker, defender);
+      }
+      return this.matchup.cellCache[key];
+    },
+
+    refreshVisibleMatchup(){
+      const defenders = this.buildVisibleDefenders();
+      const rows = [];
+      (this.matchup.rows || []).forEach((row, rowIndex) => {
+        rows.push({
+          ...row,
+          rowIndex,
+          depth: 0,
+          isChild: false,
+          cells: defenders.map(defender => this.cachedMatchupCell(row.unit, defender.unit)),
+        });
+        if(this.isUnitExpanded(row.unit)){
+          (row.unit?._children || []).filter(child => this.hasMatchupWeaponProfiles(child)).forEach((child, childIndex) => {
+            rows.push({
+              unit: child,
+              rowIndex,
+              childIndex,
+              depth: 1,
+              isChild: true,
+              cells: defenders.map(defender => this.cachedMatchupCell(child, defender.unit)),
+            });
+          });
+        }
+      });
+
+      this.matchup.visibleDefenders = defenders;
+      this.matchup.visibleRows = rows;
+      const range = this.updateMatchupMetricRange();
+      this.decorateVisibleMatchupCells(range);
+    },
+
+    decorateVisibleMatchupCells(range=this.matchupMetricRange()){
+      const metric = this.matchup.metric || 'damage';
+      (this.matchup.visibleRows || []).forEach(row => {
+        (row.cells || []).forEach(cell => {
+          if(!cell) return;
+          const value = window.MatchupEngine.metricValue(cell, metric);
+          cell._matchupMetric = metric;
+          cell._matchupMetricValue = value;
+          cell._matchupStyle = window.MatchupEngine.colorForValue(value, range);
+        });
+      });
+    },
+
+    refreshMatchupPresentation(){
+      this.applyMatchupSorting(false);
+      this.refreshVisibleMatchup();
+    },
+
+    sortedDefenderChildren(children){
+      const list = [...(children || [])];
+      if(list.length <= 1) return list;
+      const summaries = new Map(list.map(unit => [this.unitKey(unit), this.defenderSortSummaryForUnit(unit)]));
+      const sortAlpha = (a, b) => String(a?.label || '').localeCompare(String(b?.label || ''));
+      const summary = unit => summaries.get(this.unitKey(unit)) || { maxMetric:0, totalMetric:0, focusMetric:0 };
+      const direction = this.matchup.sortDefendersDirection || 'asc';
+      const metricSort = (getter, fallback=sortAlpha) => (a, b) => this.compareSortValues(getter(a), getter(b), direction) || fallback(a, b);
+      const byDmg = metricSort(unit => summary(unit).maxMetric);
+      const byOverallDmg = metricSort(unit => summary(unit).totalMetric, byDmg);
+      const byLeastDmg = metricSort(unit => summary(unit).focusMetric, (a, b) => this.compareSortValues(summary(a).totalMetric, summary(b).totalMetric, direction) || sortAlpha(a, b));
+      const byRow = metricSort(unit => {
+        const attacker = this.sortAnchorAttacker();
+        return attacker ? this.matchupCellMetric(this.cachedMatchupCell(attacker, unit)) : summary(unit).focusMetric;
+      }, byOverallDmg);
+      const mode = this.matchup.sortDefenders || 'alpha';
+      if(mode === 'leastDamage') return list.sort(byLeastDmg);
+      if(mode === 'row') return list.sort(byRow);
+      if(mode === 'overallDamage') return list.sort(byOverallDmg);
+      if(mode === 'dmg') return list.sort(byDmg);
+      return list.sort(sortAlpha);
+    },
+
+    defenderSortSummaryForUnit(unit){
+      let maxMetric = 0;
+      let totalMetric = 0;
+      let focusMetric = 0;
+      (this.matchup.rows || []).forEach(row => {
+        const c = this.cachedMatchupCell(row.unit, unit);
+        const value = this.matchupCellMetric(c);
+        if(Number.isFinite(value)){
+          maxMetric = Math.max(maxMetric, value);
+          totalMetric += value;
+        }
+      });
+      const focusCell = this.matchup.rows?.[0]?.unit ? this.cachedMatchupCell(this.matchup.rows[0].unit, unit) : null;
+      const focusValue = this.matchupCellMetric(focusCell);
+      if(Number.isFinite(focusValue)) focusMetric = focusValue;
+      return { maxMetric, totalMetric, focusMetric };
+    },
+
+    mergeOptionsForSide(side){
+      return side === 'attacker' ? (this.matchupAttackerBaseUnits || this.matchupAttackerUnits || []) : (this.matchupDefenderUnits || []);
+    },
+
+    mergeOptionLabel(unit){
+      const label = this.unitLabelText(unit);
+      const models = parseInt(unit?.defense?.models ?? unit?.size, 10);
+      return Number.isFinite(models) && models > 0 ? `${label} (${models})` : label;
+    },
+
+    forceForMatchupSide(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      return this.getForcesForRoster(rosterIdx)?.[forceIdx] || null;
+    },
+
+    applyManualMerge(side){
+      const fromKey = side === 'attacker' ? this.matchupMerge.attackerFrom : this.matchupMerge.defenderFrom;
+      const toKey = side === 'attacker' ? this.matchupMerge.attackerTo : this.matchupMerge.defenderTo;
+      const force = this.forceForMatchupSide(side);
+      const ok = window.ArmyImportService?.mergeUnits(force, fromKey, toKey);
+      if(!ok){ alert('Choose two different units to merge.'); return; }
+      if(side === 'attacker'){
+        this.matchupMerge.attackerFrom = '';
+        this.matchupMerge.attackerTo = '';
+      }else{
+        this.matchupMerge.defenderFrom = '';
+        this.matchupMerge.defenderTo = '';
+      }
+      this.rebuildMatchup();
+    },
+
+    clearManualMerges(side){
+      const force = this.forceForMatchupSide(side);
+      window.ArmyImportService?.clearMerges(force);
+      this.rebuildMatchup();
+    },
+
     isWeaponEnabledByToggles(w){
       const mode = (w?.mode || '').toLowerCase();
       if(mode === 'melee') return !!this.matchup.showMelee;
       return !!this.matchup.showShooting;
+    },
+
+    hasMatchupWeaponProfiles(unit){
+      return (unit?.weapons || []).some(w => this.isWeaponEnabledByToggles(w) && this.weaponMatchesAttackMode(w, unit?._attackMode || 'all'));
     },
 
     rebuildMatchup(){
@@ -381,230 +705,443 @@ function weaponVsDefenseApp(){
       this.matchup.loading = true;
       queueMicrotask(() => {
         try{
-          const aUnits = aForce ? this.collectUnits(aForce, { separateModels: this.matchup.opts.separateModels }) : [];
-          const dUnits = dForce ? this.collectUnits(dForce, { separateModels: this.matchup.opts.separateModels }) : [];
+          const aUnits = this.prepareMatchupUnits(aForce ? this.collectUnits(aForce) : [], 'attacker');
+          const dUnits = this.prepareMatchupUnits(dForce ? this.collectUnits(dForce) : [], 'defender');
+          const aRows = aUnits
+            .flatMap(unit => this.attackModeVariants(unit))
+            .filter(unit => this.hasMatchupWeaponProfiles(unit));
 
-          this.matchupAttackerUnits = aUnits;
+          this.matchupAttackerBaseUnits = aUnits;
+          this.matchupAttackerUnits = aRows;
           this.matchupDefenderUnits = dUnits;
 
-          this.matchup.rows = aUnits.map(au => ({
+          this.matchup.rows = aRows.map(au => ({
             unit: au,
             cells: dUnits.map(du => this.computeMatchupCell(au, du)),
           }));
 
-          this.applyMatchupSorting();
+          this.seedAggregateCellCache();
+          this.applyMatchupSorting(false);
+          this.refreshVisibleMatchup();
+          this.scheduleWarmMatchupCellCache();
+          this.syncMatchupMergeSelections();
         }finally{
           this.matchup.loading = false;
         }
       });
     },
 
-    applyMatchupSorting(){
-      const rawA = [...(this.matchupAttackerUnits || [])];
-      const rawD = [...(this.matchupDefenderUnits || [])];
-      const rawRows = this.matchup.rows || [];
-
-      const rowSummary = (ai) => {
-        const cells = rawRows?.[ai]?.cells || [];
-        let maxDmg = 0;
-        let maxPct = 0;
-        for(const c of cells){
-          if(Number.isFinite(c?.dmg)) maxDmg = Math.max(maxDmg, c.dmg);
-          if(Number.isFinite(c?.pctKilled)) maxPct = Math.max(maxPct, c.pctKilled);
-        }
-        return { maxDmg, maxPct };
+    prepareMatchupUnits(units, side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      const decorate = (unit, path='unit') => {
+        unit._viewKey = `${side}:${rosterIdx}:${forceIdx}:${unit._unitKey || unit.label}:${path}`;
+        (unit._children || []).forEach((child, index) => decorate(child, `${path}.${index}`));
+        return unit;
       };
+      return (units || []).map((unit, index) => decorate(unit, String(index)));
+    },
 
-      const colSummary = (di) => {
-        let maxDmg = 0;
-        let maxPct = 0;
-        for(let ai=0; ai<rawRows.length; ai++){
-          const c = rawRows?.[ai]?.cells?.[di];
-          if(Number.isFinite(c?.dmg)) maxDmg = Math.max(maxDmg, c.dmg);
-          if(Number.isFinite(c?.pctKilled)) maxPct = Math.max(maxPct, c.pctKilled);
-        }
-        return { maxDmg, maxPct };
+    syncMatchupMergeSelections(){
+      const pick = units => units?.[0]?._unitKey || '';
+      const attackerMergeUnits = this.matchupAttackerBaseUnits || this.matchupAttackerUnits || [];
+      if(!attackerMergeUnits.some(u => u._unitKey === this.matchupMerge.attackerFrom)) this.matchupMerge.attackerFrom = pick(attackerMergeUnits);
+      if(!attackerMergeUnits.some(u => u._unitKey === this.matchupMerge.attackerTo)) this.matchupMerge.attackerTo = pick(attackerMergeUnits);
+      if(!this.matchupDefenderUnits.some(u => u._unitKey === this.matchupMerge.defenderFrom)) this.matchupMerge.defenderFrom = pick(this.matchupDefenderUnits);
+      if(!this.matchupDefenderUnits.some(u => u._unitKey === this.matchupMerge.defenderTo)) this.matchupMerge.defenderTo = pick(this.matchupDefenderUnits);
+    },
+
+    compareSortValues(a, b, direction='desc'){
+      const av = Number.isFinite(Number(a)) ? Number(a) : 0;
+      const bv = Number.isFinite(Number(b)) ? Number(b) : 0;
+      return direction === 'asc' ? (av - bv) : (bv - av);
+    },
+
+    sortAnchorDefender(){
+      const key = this.matchup.sortAttackersColumnKey;
+      return key ? this.flattenMatchupUnits(this.matchupDefenderUnits || []).find(unit => this.unitKey(unit) === key) : null;
+    },
+
+    sortAnchorAttacker(){
+      const key = this.matchup.sortDefendersRowKey;
+      return key ? this.flattenMatchupAttackers(this.matchupAttackerUnits || []).find(unit => this.unitKey(unit) === key) : null;
+    },
+
+    applyMatchupSorting(refresh=true){
+      const attackers = [...(this.matchupAttackerUnits || [])].filter(unit => this.hasMatchupWeaponProfiles(unit));
+      const defenders = [...(this.matchupDefenderUnits || [])];
+      const alphaDirection = this.matchup.sortAttackers === 'alpha' ? (this.matchup.sortAttackersDirection || 'asc') : 'asc';
+      const alpha = (direction=alphaDirection) => (a, b) => {
+        const diff = String(a?.label || '').localeCompare(String(b?.label || ''));
+        return direction === 'desc' ? -diff : diff;
       };
+      const metricFor = (attacker, defender) => this.matchupCellMetric(this.cachedMatchupCell(attacker, defender));
+      const rowTotal = attacker => defenders.reduce((sum, defender) => {
+        const value = metricFor(attacker, defender);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      const colTotal = defender => attackers.reduce((sum, attacker) => {
+        const value = metricFor(attacker, defender);
+        return sum + (Number.isFinite(value) ? value : 0);
+      }, 0);
+      const maxRow = attacker => Math.max(0, ...defenders.map(defender => metricFor(attacker, defender)).filter(Number.isFinite));
+      const maxCol = defender => Math.max(0, ...attackers.map(attacker => metricFor(attacker, defender)).filter(Number.isFinite));
 
-      const aOrder = rawA.map((u, i) => ({ u, i, ...rowSummary(i) }));
-      const dOrder = rawD.map((u, i) => ({ u, i, ...colSummary(i) }));
+      const rowDirection = this.matchup.sortAttackersDirection || 'desc';
+      const colDirection = this.matchup.sortDefendersDirection || 'asc';
+      const rowMode = this.matchup.sortAttackers || 'overallDamage';
+      const colMode = this.matchup.sortDefenders || 'leastDamage';
+      const rowAnchor = this.sortAnchorDefender();
+      const colAnchor = this.sortAnchorAttacker();
 
-      const sortAlpha = (a,b) => String(a.u?.label||'').localeCompare(String(b.u?.label||''));
-      const sortDmg = (a,b) => (b.maxDmg - a.maxDmg) || sortAlpha(a,b);
-      const sortPct = (a,b) => (b.maxPct - a.maxPct) || sortDmg(a,b);
+      attackers.sort((a, b) => {
+        if(rowMode === 'alpha') return alpha(rowDirection)(a, b);
+        if(rowMode === 'column' && rowAnchor){
+          return this.compareSortValues(metricFor(a, rowAnchor), metricFor(b, rowAnchor), rowDirection) || alpha('asc')(a, b);
+        }
+        if(rowMode === 'dmg' || rowMode === 'pkill'){
+          return this.compareSortValues(maxRow(a), maxRow(b), rowDirection) || alpha('asc')(a, b);
+        }
+        return this.compareSortValues(rowTotal(a), rowTotal(b), rowDirection) || alpha('asc')(a, b);
+      });
 
-      const aSort = (this.matchup.sortAttackers || 'alpha');
-      const dSort = (this.matchup.sortDefenders || 'alpha');
+      const focusAttacker = attackers[0] || null;
+      defenders.sort((a, b) => {
+        if(colMode === 'alpha') return alpha(colDirection)(a, b);
+        if(colMode === 'row' && colAnchor){
+          return this.compareSortValues(metricFor(colAnchor, a), metricFor(colAnchor, b), colDirection) || alpha('asc')(a, b);
+        }
+        if(colMode === 'overallDamage'){
+          return this.compareSortValues(colTotal(a), colTotal(b), colDirection) || alpha('asc')(a, b);
+        }
+        if(colMode === 'dmg' || colMode === 'pkill'){
+          return this.compareSortValues(maxCol(a), maxCol(b), colDirection) || alpha('asc')(a, b);
+        }
+        if(focusAttacker){
+          return this.compareSortValues(metricFor(focusAttacker, a), metricFor(focusAttacker, b), colDirection)
+            || this.compareSortValues(colTotal(a), colTotal(b), colDirection)
+            || alpha('asc')(a, b);
+        }
+        return alpha('asc')(a, b);
+      });
 
-      const pick = (mode) => mode === 'pkill' ? sortPct : (mode === 'dmg' ? sortDmg : sortAlpha);
-      aOrder.sort(pick(aSort));
-      dOrder.sort(pick(dSort));
-
-      // Apply sorted units
-      this.matchupAttackerUnits = aOrder.map(x => x.u);
-      this.matchupDefenderUnits = dOrder.map(x => x.u);
-
-      // Rebuild rows+cells in sorted order from raw
-      const newRows = aOrder.map(a => ({
-        unit: a.u,
-        cells: dOrder.map(d => rawRows?.[a.i]?.cells?.[d.i] || { dmg:0, kills:0, pctKilled:null, weaponName:'' }),
+      this.matchupAttackerUnits = attackers;
+      this.matchupDefenderUnits = defenders;
+      this.matchup.rows = attackers.map(attacker => ({
+        unit: attacker,
+        cells: defenders.map(defender => this.cachedMatchupCell(attacker, defender)),
       }));
+      if(refresh) this.refreshVisibleMatchup();
+    },
 
-      this.matchup.rows = newRows;
+    setMatchupSort(side){
+      if(side === 'attacker'){
+        this.matchup.sortAttackers = this.matchup.sortAttackers || 'overallDamage';
+        this.matchup.sortAttackersDirection = this.matchup.sortAttackersDirection || 'desc';
+      }else if(side === 'defender'){
+        this.matchup.sortDefenders = this.matchup.sortDefenders || 'leastDamage';
+        this.matchup.sortDefendersDirection = this.matchup.sortDefendersDirection || 'asc';
+      }
+      this.refreshMatchupPresentation();
+    },
+
+    toggleDirection(current, defaultDirection='desc'){
+      return current ? (current === 'asc' ? 'desc' : 'asc') : defaultDirection;
+    },
+
+    sortMatchupAlphabetical(){
+      const next = this.toggleDirection(this.matchup.sortAttackers === 'alpha' ? this.matchup.sortAttackersDirection : '', 'asc');
+      this.matchup.sortAttackers = 'alpha';
+      this.matchup.sortDefenders = 'alpha';
+      this.matchup.sortAttackersDirection = next;
+      this.matchup.sortDefendersDirection = next;
+      this.matchup.sortAttackersColumnKey = '';
+      this.matchup.sortDefendersRowKey = '';
+      this.refreshMatchupPresentation();
+    },
+
+    sortMatchupByColumn(defender){
+      const key = this.unitKey(defender);
+      const active = this.matchup.sortAttackers === 'column' && this.matchup.sortAttackersColumnKey === key;
+      this.matchup.sortAttackers = 'column';
+      this.matchup.sortAttackersColumnKey = key;
+      this.matchup.sortAttackersDirection = active ? this.toggleDirection(this.matchup.sortAttackersDirection, 'desc') : 'desc';
+      this.refreshMatchupPresentation();
+    },
+
+    sortMatchupByRow(attacker){
+      const key = this.unitKey(attacker);
+      const active = this.matchup.sortDefenders === 'row' && this.matchup.sortDefendersRowKey === key;
+      this.matchup.sortDefenders = 'row';
+      this.matchup.sortDefendersRowKey = key;
+      this.matchup.sortDefendersDirection = active ? this.toggleDirection(this.matchup.sortDefendersDirection, 'asc') : 'desc';
+      this.refreshMatchupPresentation();
+    },
+
+    sortButtonSymbol(axis, unit=null){
+      if(axis === 'alpha'){
+        if(this.matchup.sortAttackers === 'alpha' && this.matchup.sortDefenders === 'alpha'){
+          return this.matchup.sortAttackersDirection === 'desc' ? 'Z-A' : 'A-Z';
+        }
+        return 'A-Z';
+      }
+      if(axis === 'column'){
+        const active = this.matchup.sortAttackers === 'column' && this.matchup.sortAttackersColumnKey === this.unitKey(unit);
+        if(!active) return '↕';
+        return this.matchup.sortAttackersDirection === 'asc' ? '↑' : '↓';
+      }
+      if(axis === 'row'){
+        const active = this.matchup.sortDefenders === 'row' && this.matchup.sortDefendersRowKey === this.unitKey(unit);
+        if(!active) return '↕';
+        return this.matchup.sortDefendersDirection === 'asc' ? '↑' : '↓';
+      }
+      return '↕';
+    },
+
+    toggleMatchupRecomputeOption(key){
+      if(!(key in this.matchup)) return;
+      this.matchup[key] = !this.matchup[key];
+      this.rebuildMatchup();
     },
 
     computeMatchupCell(attackerUnit, defenderUnit){
-      const def = defenderUnit?.defense || {};
-      const T = parseFloat(def.T) || 0;
-      const sv = parseFloat(def.Sv) || 0;
-      const inv = parseFloat(def.Inv) || 0;
-      const W = parseFloat(def.W) || 0;
+      return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
+        combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+        isWeaponEnabled: w => this.isWeaponEnabledByToggles(w),
+        isMeleeEnabled: () => !!this.matchup.showMelee,
+        effectiveWeaponModifiers: w => this.effectiveWeaponModifiers(w),
+        isAbilityEnabled: (unit, ability) => this.isUnitAbilityEnabled(unit, ability),
+        isEnhancementEnabled: (unit, enhancement) => this.isUnitEnhancementEnabled(unit, enhancement),
+      });
+    },
 
-      // Prefer model count from defense.models; fallback to defenderUnit.size if you already set it.
-      const size =
-        (def?.models != null) ? parseFloat(def.models) :
-        (defenderUnit?.size != null) ? parseFloat(defenderUnit.size) :
-        null;
+    matchupCellMetric(cell){
+      return window.MatchupEngine.metricValue(cell, this.matchup.metric || 'damage');
+    },
 
-      const enabled = (attackerUnit?.weapons || []).filter(w => this.isWeaponEnabledByToggles(w));
-      if(enabled.length === 0) return { dmg:0, kills:0, pctKilled:null, weaponName:'' };
+    setMatchupMetric(metric){
+      this.matchup.metric = metric;
+      this.refreshMatchupPresentation();
+    },
 
-      // Split modes so we can combine only shooting
-      const shooting = enabled.filter(w => !this.isMeleeWeapon(w));
-      const melee = enabled.filter(w => this.isMeleeWeapon(w));
+    matchupMetricRange(){
+      return this.matchup.metricRange || { min: 0, max: 0 };
+    },
 
-      const evalOne = (w) => {
-        const r = this.matchupCalcOneWeapon(w, {T, sv, inv, W});
-        return { ...r, weaponName: w.name || '' };
-      };
+    updateMatchupMetricRange(){
+      this.matchup.metricRange = window.MatchupEngine.metricRange(this.matchup.visibleRows || [], this.matchup.metric || 'damage');
+      return this.matchup.metricRange;
+    },
 
-      const perShooting = shooting.map(evalOne);
-      const perMelee = melee.map(evalOne);
+    matchupCellStyle(cell){
+      if(cell?._matchupMetric === (this.matchup.metric || 'damage') && typeof cell?._matchupStyle === 'string'){
+        return cell._matchupStyle;
+      }
+      return window.MatchupEngine.colorForValue(this.matchupCellMetric(cell), this.matchupMetricRange());
+    },
 
-      const sum = (arr, k) => arr.reduce((s,x)=>s+((x?.[k])||0),0);
-      const best = (arr) => arr.reduce((b,c)=> (c.dmg > (b?.dmg ?? -1)) ? c : b, null);
+    formatMatchupMetric(cell){
+      const value = this.matchupCellMetric(cell);
+      if(!Number.isFinite(value)) return '—';
+      const mode = this.matchup.metric || 'damage';
+      if(mode === 'unitKill') return `${(Math.min(value, 0.999) * 100).toFixed(1)}%`;
+      if(mode === 'modelWounds') return `${(value * 100).toFixed(0)}%`;
+      return value.toFixed(2);
+    },
 
-      // SHOOTING: combine or best-single depending on toggle
-      let shootDmg = 0, shootKills = 0, shootName = '';
-      if(perShooting.length){
-        if(this.matchup.combineShootingProfiles){
-          shootDmg = sum(perShooting,'dmg');
-          shootKills = sum(perShooting,'kills');
+    tsvCell(value){
+      return String(value ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
+    },
+
+    matchupCopyHeader(unit){
+      return this.tsvCell([
+        this.unitLabelText(unit),
+        this.unitPointsText(unit),
+        this.matchupDefenseLabel(unit),
+      ].filter(Boolean).join(' '));
+    },
+
+    matchupCopyRowHeader(unit){
+      return this.tsvCell([
+        this.unitLabelText(unit),
+        this.unitPointsText(unit),
+        this.matchupWeaponSummary(unit),
+      ].filter(Boolean).join(' '));
+    },
+
+    matchupCellCopyText(cell){
+      const weapons = cell?.weaponName ? ` ${cell.weaponName}` : '';
+      return this.tsvCell(`${this.formatMatchupMetric(cell)}${weapons}`);
+    },
+
+    matchupGridTsv(){
+      const defenders = this.matchupVisibleDefenders();
+      const rows = this.matchupVisibleRows();
+      const header = ['Attacker \\ Defender', ...defenders.map(col => this.matchupCopyHeader(col.unit))];
+      const body = rows.map(row => [
+        this.matchupCopyRowHeader(row.unit),
+        ...(row.cells || []).map(cell => this.matchupCellCopyText(cell)),
+      ]);
+      return [header, ...body].map(line => line.map(value => this.tsvCell(value)).join('\t')).join('\n');
+    },
+
+    async copyMatchupGrid(){
+      const text = this.matchupGridTsv();
+      try{
+        if(typeof navigator !== 'undefined' && navigator.clipboard?.writeText){
+          await navigator.clipboard.writeText(text);
         }else{
-          const b = best(perShooting);
-          shootDmg = b?.dmg || 0;
-          shootKills = b?.kills || 0;
-          shootName = b?.weaponName || '';
+          const el = document.createElement('textarea');
+          el.value = text;
+          el.setAttribute('readonly', '');
+          el.style.position = 'fixed';
+          el.style.left = '-9999px';
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand('copy');
+          document.body.removeChild(el);
         }
+        this.matchupClipboardStatus = 'Copied';
+      }catch(err){
+        this.matchupClipboardStatus = 'Copy failed';
+        throw err;
+      }finally{
+        setTimeout(() => {
+          if(this.matchupClipboardStatus) this.matchupClipboardStatus = '';
+        }, 1600);
       }
+    },
 
-      // MELEE: always best-single (never combined)
-      let meleeDmg = 0, meleeKills = 0, meleeName = '';
-      if(perMelee.length){
-        const b = best(perMelee);
-        meleeDmg = b?.dmg || 0;
-        meleeKills = b?.kills || 0;
-        meleeName = b?.weaponName || '';
-      }
+    unitLabelText(unit, fallback='Unit'){
+      return unit?.label || fallback;
+    },
 
-      // Total depends on your existing melee/shoot toggles handled by isWeaponEnabledByToggles(),
-      // so enabled already respects them. We just add the two channels we evaluated.
-      const dmg = shootDmg + meleeDmg;
-      const kills = shootKills + meleeKills;
+    unitPointsText(unit){
+      const points = parseFloat(unit?._points);
+      if(!Number.isFinite(points)) return '';
+      const formatted = Math.abs(points - Math.round(points)) < 1e-9
+        ? String(Math.round(points))
+        : points.toFixed(1).replace(/\.?0+$/, '');
+      return `(${formatted} pts)`;
+    },
 
-      // weaponName: show which profile “drove” the result when not combining shooting; keep empty when combining
-      let weaponName = '';
-      if(this.matchup.combineShootingProfiles){
-        // If only melee is enabled, still show melee best weapon
-        if(!shooting.length && meleeName) weaponName = meleeName;
+    openUnitProfile(unit, role=''){
+      this.profileUnit = unit || null;
+      this.profileModalRole = role;
+      this.profileModalOpen = true;
+    },
+
+    closeUnitProfile(){
+      this.profileModalOpen = false;
+      this.profileModalRole = '';
+      this.profileUnit = null;
+    },
+
+    weaponStateKey(w){
+      return String(w?._weaponKey || [w?.name, w?.range, w?.A, w?.skill, w?.S, w?.AP, w?.D, w?.mode].join('|'));
+    },
+
+    ensureModifierState(w){
+      const key = this.weaponStateKey(w);
+      if(!key) return {};
+      const names = window.ArmyImportService?.splitModifiers(w?.modifiers) || [];
+      const defaults = { ...(w?._modifierToggles || {}) };
+      names.forEach(name => {
+        if(!(name in defaults)) defaults[name] = true;
+      });
+      if(!this.modifierToggleState[key]){
+        this.modifierToggleState[key] = defaults;
       }else{
-        // pick whichever channel contributes more damage
-        if(meleeDmg > shootDmg) weaponName = meleeName;
-        else weaponName = shootName || meleeName || '';
+        Object.entries(defaults).forEach(([name, enabled]) => {
+          if(!(name in this.modifierToggleState[key])) this.modifierToggleState[key][name] = enabled;
+        });
       }
+      return this.modifierToggleState[key];
+    },
 
-      let pctKilled = null;
-      if(Number.isFinite(size) && size > 0){
-        pctKilled = this.clamp(kills / size, 0, 1);
-      }
+    weaponModifierNames(w){
+      const names = window.ArmyImportService?.splitModifiers(w?.modifiers) || [];
+      const toggled = Object.keys(this.ensureModifierState(w));
+      return [...new Set([...names, ...toggled])];
+    },
 
-      return { dmg, kills, pctKilled, weaponName };
+    isWeaponModifierEnabled(w, mod){
+      if(!w) return false;
+      const state = this.ensureModifierState(w);
+      if(!(mod in state)) state[mod] = true;
+      return !!state[mod];
+    },
+
+    toggleWeaponModifier(w, mod){
+      if(!w) return;
+      const state = this.ensureModifierState(w);
+      state[mod] = !this.isWeaponModifierEnabled(w, mod);
+    },
+
+    effectiveWeaponModifiers(w){
+      const names = this.weaponModifierNames(w).filter(mod => this.isWeaponModifierEnabled(w, mod));
+      return window.ArmyImportService?.serializeModifiers(names) || names.join(', ');
+    },
+
+    unitStateKey(unit){
+      return String(unit?._unitKey || unit?._baseUnit?._unitKey || unit?._viewKey || unit?.label || 'unit');
+    },
+
+    unitAbilityNames(unit){
+      return [...new Set((unit?.abilities || []).map(name => String(name || '').trim()).filter(Boolean))];
+    },
+
+    unitEnhancementNames(unit){
+      return [...new Set((unit?._enhancements || []).map(enh => String(enh?.name || '').trim()).filter(Boolean))];
+    },
+
+    ensureUnitToggleState(unit){
+      const key = this.unitStateKey(unit);
+      if(!this.unitToggleState[key]) this.unitToggleState[key] = { abilities: {}, enhancements: {} };
+      const state = this.unitToggleState[key];
+      if(!state.abilities) state.abilities = {};
+      if(!state.enhancements) state.enhancements = {};
+      this.unitAbilityNames(unit).forEach(name => {
+        if(!(name in state.abilities)) state.abilities[name] = true;
+      });
+      this.unitEnhancementNames(unit).forEach(name => {
+        if(!(name in state.enhancements)) state.enhancements[name] = true;
+      });
+      return state;
+    },
+
+    isUnitAbilityEnabled(unit, ability){
+      if(!unit || !ability) return true;
+      const state = this.ensureUnitToggleState(unit);
+      if(!(ability in state.abilities)) state.abilities[ability] = true;
+      return !!state.abilities[ability];
+    },
+
+    toggleUnitAbility(unit, ability){
+      if(!unit || !ability) return;
+      const state = this.ensureUnitToggleState(unit);
+      state.abilities[ability] = !this.isUnitAbilityEnabled(unit, ability);
+    },
+
+    isUnitEnhancementEnabled(unit, enhancement){
+      if(!unit || !enhancement) return true;
+      const state = this.ensureUnitToggleState(unit);
+      if(!(enhancement in state.enhancements)) state.enhancements[enhancement] = true;
+      return !!state.enhancements[enhancement];
+    },
+
+    toggleUnitEnhancement(unit, enhancement){
+      if(!unit || !enhancement) return;
+      const state = this.ensureUnitToggleState(unit);
+      state.enhancements[enhancement] = !this.isUnitEnhancementEnabled(unit, enhancement);
     },
 
     parseWeaponKeywords(txt){
-      const s = String(txt || '');
-      const has = (re) => re.test(s);
-      const getNum = (re, d=0) => {
-        const m = s.match(re);
-        if(!m) return d;
-        const n = parseFloat(m[1]);
-        return Number.isFinite(n) ? n : d;
-      };
-
-      return {
-        torrent: has(/\bTorrent\b/i) || has(/\bAuto[-\s]?hits\b/i),
-        lethal: has(/\bLethal\s+Hits\b/i),
-        devw: has(/\bDevastating\s+Wounds\b/i) || has(/\bDev\s*Wounds\b/i),
-        sustained: getNum(/\bSustained\s+Hits\s*(\d+)\b/i, 0),
-        anti: getNum(/\bAnti[-\s]?(?:\w+\s*)?(\d)\+\b/i, 0),
-      };
+      return window.WeaponCalc.parseWeaponKeywords(txt);
     },
 
     matchupCalcOneWeapon(w, def){
-      const A = this.parseNdX(w?.A).mean;
-      const skill = parseFloat(String(w?.skill||'').replace('+','')) || 0;
-      const S = parseFloat(w?.S) || 0;
-      const apRaw = parseFloat(w?.AP) || 0;
-      const AP = Math.abs(apRaw);
-      const D = this.parseNdX(w?.D).mean;
-
-      const kw = this.parseWeaponKeywords(w?.modifiers);
-      const torrent = kw.torrent;
-      const sustained = kw.sustained || 0;
-      const lethal = !!kw.lethal;
-      const devw = !!kw.devw;
-      const anti = kw.anti || 0;
-
-      // Hits (simplified: no rerolls/mods)
-      let pHit = 0;
-      let pCrit = 0;
-      const critMin = 6;
-
-      if(skill == 0 || skill == 1 || String(w?.skill||'').trim().toLowerCase() === 'auto' || torrent){
-        pHit = 1;
-        pCrit = 0;
-      }else{
-        pHit = this.probAtLeast(skill, 0, null);
-        pCrit = (7 - critMin) / 6;
-      }
-
-      const expectedHits = A * (pHit + (sustained * pCrit));
-
-      // Wounds
-      const need = this.woundNeeded(S, def.T);
-      const needed = this.clamp(need, 2, 6);
-      const pWound = this.probAtLeast(needed, 0, null);
-
-      const critPortionOfHits = (pHit > 0) ? (pCrit / pHit) : 0;
-      const autoWoundFromLethal = lethal ? critPortionOfHits : 0;
-      const autoWoundFromAnti = (anti > 0) ? ((7 - anti) / 6) : 0;
-
-      const pAuto = Math.min(1, autoWoundFromLethal + autoWoundFromAnti);
-      const effectiveWoundSuccess = pAuto + (1 - pAuto) * pWound;
-      const expectedWounds = expectedHits * effectiveWoundSuccess;
-
-      // Saves
-      const neededSave = this.pickSave(def.sv, def.inv, AP, 0);
-      const pSave = (neededSave >= 7) ? 0 : (7 - this.clamp(neededSave, 2, 6)) / 6;
-
-      const portionDevastating = devw ? ((7 - critMin) / 6) : 0;
-      const unsavedNormal = expectedWounds * (1 - portionDevastating) * (1 - pSave);
-      const mortals = expectedWounds * portionDevastating;
-
-      const totalDamage = (unsavedNormal + mortals) * D;
-      const kills = (def.W > 0) ? (totalDamage / def.W) : 0;
-
-      return { dmg: totalDamage, kills };
+      return window.WeaponCalc.calcOneWeapon(w, def, this.effectiveWeaponModifiers(w));
     },
 
     onUnitChanged(){
@@ -678,245 +1215,98 @@ function weaponVsDefenseApp(){
     },
 
     // ---------------- Math utils ----------------
-    clamp(x,min,max){ return Math.max(min, Math.min(max, x)); },
+    clamp(x,min,max){ return window.WeaponCalc.clamp(x, min, max); },
 
-    parseNdX(expr){
-      if(!expr) return { mean:0, text:'0' };
-      const s = String(expr).replace(/\s+/g,'');
-      if(/^\d+$/.test(s)) return { mean: parseFloat(s), text:s };
-      const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
-      if(!m) return { mean: parseFloat(s) || 0, text:s };
-      const n = parseInt(m[1] || '1', 10);
-      const faces = parseInt(m[2], 10);
-      const k = m[3] ? parseInt(m[3], 10) : 0;
-      const dieMean = (1 + faces) / 2;
-      return { mean: (n * dieMean) + k, text:s };
-    },
+    parseNdX(expr){ return window.WeaponCalc.parseNdX(expr); },
 
-    probAtLeast(target, mod=0, cap=null){
-      if(target === 1) return 1;
-      if(target === null) return 0;
-      let t = this.clamp(target - mod, 2, 6);
-      if(cap){
-        const c = parseInt(cap, 10);
-        if(Number.isFinite(c)) t = Math.max(t, c);
-      }
-      return (7 - t) / 6;
-    },
+    probAtLeast(target, mod=0, cap=null){ return window.WeaponCalc.probAtLeast(target, mod, cap); },
 
-    applyRerolls(p, mode){
-      if(mode === 'none') return p;
-      if(mode === 'all') return p + (1-p)*p;
-      if(mode === 'ones'){
-        // Approx: reroll only 1s (1/6 of rolls)
-        return p + (1/6)*p - (1/6)*p*p;
-      }
-      return p;
-    },
+    applyRerolls(p, mode){ return window.WeaponCalc.applyRerolls(p, mode); },
 
-    woundNeeded(S,T){
-      if(S >= 2*T) return 2;
-      if(S > T) return 3;
-      if(S === T) return 4;
-      if(S*2 <= T) return 6;
-      return 5;
-    },
+    woundNeeded(S,T){ return window.WeaponCalc.woundNeeded(S, T); },
 
-    pickSave(sv, inv, ap, saveMod){
-      const worsened = sv ? this.clamp(sv + ap, 2, 7) : 7;
-      const final = saveMod ? this.clamp(worsened + saveMod, 2, 7) : worsened;
-      if(inv > 0) return Math.min(final, inv);
-      return final;
-    },
+    pickSave(sv, inv, ap, saveMod){ return window.WeaponCalc.pickSave(sv, inv, ap, saveMod); },
 
     // ---------------- Core calculation ----------------
     calculate(){
-      // Inputs
-      const A = this.parseNdX(this.weapon.A).mean;
-
-      const skill = this.weapon.skill;
-      const S = parseFloat(this.weapon.S) || 0;
-
-      const AP = parseFloat(this.weapon.AP) || 0;
-
-      const D = this.parseNdX(this.weapon.D).mean;
-
-      const critMin  = this.modNumber('mod_critmin', 6);
-      const rrHit = this.modSelect('mod_rrhit', 'none');
-
       const hasTwinlinked = this.hasMod('twinlinked');
-      const rrWound = hasTwinlinked ? 'all' : this.modSelect('mod_rrwound', 'none');
+      const mods = {
+        critMin: this.modNumber('mod_critmin', 6),
+        rrHit: this.modSelect('mod_rrhit', 'none'),
+        rrWound: hasTwinlinked ? 'all' : this.modSelect('mod_rrwound', 'none'),
+        forceHit: (this.defenseMods.forceHit || '').trim(),
+        forceWound: (this.defenseMods.forceWound || '').trim(),
+        withinHalf: this.hasMod('mod_within'),
+        stationary: this.hasMod('mod_station'),
+        charged: this.hasMod('mod_charged'),
+        torrent: this.hasMod('torrent'),
+        ignoresCover: this.hasMod('ignorescover'),
+        blast: this.hasMod('blast'),
+        heavy: this.hasMod('heavy'),
+        sustained: this.modNumber('sustained', 0),
+        rapidFire: this.modNumber('rapidfire', 0),
+        melta: this.modNumber('melta', 0),
+        anti: this.modNumber('anti', 0),
+        lethal: this.hasMod('lethal'),
+        devw: this.hasMod('devw'),
+      };
+      const result = window.WeaponCalc.calculateProfile({ weapon: this.weapon, defense: this.defense, mods });
+      const { inputs, probabilities, output, damageFlow } = result;
 
-      const T = parseFloat(this.defense.T) || 0;
-      const sv = parseFloat(this.defense.Sv) || 7;
-      const inv = parseFloat(this.defense.Inv) || 0;
-      const cover = this.defense.cover;
-      const W = parseFloat(this.defense.W) || 0;
-      const fnp = parseFloat(this.defense.Fnp) || 0;
-      const dmgRed = parseFloat(this.defense.DR) || 0;
-      const targetModels = Math.max(1, parseInt(this.defense.models || '5', 10) || 5);
+      this.output.hits = output.hits;
+      this.output.wounds = output.wounds;
+      this.output.fails = output.fails;
+      this.output.dmg = output.dmg;
 
-      const forceHit = (this.defenseMods.forceHit || '').trim();
-      const forceWound = (this.defenseMods.forceWound || '').trim();
-
-      const withinHalf = this.hasMod('mod_within');
-      const stationary = this.hasMod('mod_station');
-      const charged    = this.hasMod('mod_charged');
-
-      // Keyword effects
-      const torrent      = this.hasMod('torrent');
-      const ignoresCover = this.hasMod('ignorescover');
-      const hasBlast     = this.hasMod('blast');
-      const hasHeavy     = this.hasMod('heavy');
-
-      const kwSustained  = this.modNumber('sustained', 0);
-      const kwRapidFire  = this.modNumber('rapidfire', 0);
-      const kwMelta      = this.modNumber('melta', 0);
-      const kwAnti       = this.modNumber('anti', 0);
-
-      // Merge “controls” with “tags” for these
-      const effSustained = kwSustained;
-      const effLethal = this.hasMod('lethal');
-      const effDevw   = this.hasMod('devw');
-      const antiOverride = this.modNumber('mod_antiover', 0);
-      const effAnti = Math.max(antiOverride, kwAnti);
-
-      // Effective attacks
-      const blastBonusA = hasBlast ? Math.floor(targetModels / 5) : 0;
-      const rapidFireBonusA = (kwRapidFire > 0 && withinHalf) ? kwRapidFire : 0;
-      const Aeff = A + blastBonusA + rapidFireBonusA;
-
-      // Hits
-      let pHit = 0;
-      let pCrit = 0;
-
-      if(skill === 1 || String(this.weapon.skill).trim().toLowerCase() === 'auto' || torrent){
-        pHit = 1;
-        pCrit = 0; // auto-hits => no crit-hit modeling here
-      }else{
-        const heavyBonus = (hasHeavy && stationary) ? 1 : 0;
-        const basePHit = this.probAtLeast(skill, heavyBonus, forceHit || null);
-        pHit = this.applyRerolls(basePHit, rrHit);
-
-        const baseCrit = (7 - critMin) / 6;
-        pCrit = this.applyRerolls(baseCrit, rrHit);
-      }
-
-      const extraHitsPerAttack = effSustained * pCrit;
-      const expectedHits = Aeff * (pHit + extraHitsPerAttack);
-
-      // Wounds
-      const need = this.woundNeeded(S, T);
-      const lanceBonus = charged ? 1 : 0;
-      const neededAfterMod = this.clamp(need + lanceBonus, 2, 6);
-
-      const pWoundBase = this.probAtLeast(neededAfterMod, 0, forceWound || null);
-      const pWound = this.applyRerolls(pWoundBase, rrWound);
-
-      const critPortionOfHits = (pHit > 0) ? (pCrit / pHit) : 0;
-      const autoWoundFromLethal = effLethal ? critPortionOfHits : 0;
-
-      const anti = effAnti;
-      const autoWoundFromAnti = anti > 0 ? ((7 - anti) / 6) : 0;
-
-      const pLethalAmongHits = effLethal ? critPortionOfHits : 0;  
-      const effectiveWoundSuccess = pLethalAmongHits + (1 - pLethalAmongHits) * pWound;
-      const expectedWounds = expectedHits * effectiveWoundSuccess;
-
-      // Saves
-      const coverMod = (cover && !ignoresCover) ? -1 : 0;
-      const neededSave = this.pickSave(sv, inv, AP, coverMod);
-      const pSave = (neededSave >= 7) ? 0 : (7 - this.clamp(neededSave, 2, 6)) / 6;
-
-      // Dev Wounds portion (approx)
-      const pWoundCrit = this.applyRerolls((7 - critMin) / 6, rrWound);
-      const portionDevastating = effDevw ? Math.min(1, pWoundCrit) : 0;
-
-      const unsavedNormal = expectedWounds * (1 - portionDevastating) * (1 - pSave);
-      const mortals = expectedWounds * portionDevastating;
-
-      // Damage
-      const meltaBonusD = kwMelta > 0 ? kwMelta : 0;
-      const DwithMelta = Math.max(0, D + meltaBonusD);
-
-      const effD = Math.max(0, DwithMelta - dmgRed);
-      const dmgNormal = unsavedNormal * effD;
-      const dmgMortal = mortals * effD;
-
-      // FNP
-      const pFnp = fnp > 0 ? ((7 - this.clamp(fnp, 2, 6)) / 6) : 0;
-      const totalDamage = (dmgNormal + dmgMortal) * (1 - pFnp);
-
-      // Models killed (expected)
-      const modelsKilled = (W > 0) ? (totalDamage / W) : 0;
-
-      // Output numbers
-      this.output.hits = expectedHits;
-      this.output.wounds = expectedWounds;
-      this.output.fails = unsavedNormal;
-      this.output.dmg = totalDamage;
-
-      // Breakdown pills
       const lines = [];
-      if(Aeff != A)
-        lines.push(`<span class="pill">ATKs: Base(${A.toFixed(1)}) + Extra(${Aeff-A}) → Total=${Aeff.toFixed(1)}</span>`);
-      else
-        lines.push(`<span class="pill">ATKs: ${Aeff.toFixed(1)}</span>`)
-      lines.push(`<span class="pill">Hit%=${pHit.toFixed(3)*100}%</span>`);
-      lines.push(`<span class="pill">Crit%=${(pCrit*100).toFixed(1)}%</span>`);
-      if(effSustained>0) lines.push(`<span class="pill">extra hits/ATK=${extraHitsPerAttack.toFixed(3)}</span>`);
-      lines.push(`<span class="pill">Need ${neededAfterMod}+ to Wound → ${(pWound*100).toFixed(1)}%</span>`);
-      if(anti>0) lines.push(`<span class="pill">Anti=${anti}+</span>`);
-      lines.push(`<span class="pill">save need ${neededSave===7?'—':neededSave+'+'} → pSave=${(pSave*100).toFixed(1)}%</span>`);
-      if(effDevw) lines.push(`<span class="pill">DevW portion≈${(portionDevastating*100).toFixed(1)}%</span>`);
-      if(dmgRed>0) lines.push(`<span class="pill">Damage Reduction ${dmgRed}</span>`);
-      if(fnp) lines.push(`<span class="pill">FNP ${fnp}+</span>`);
-      if(kwMelta>0 && withinHalf) lines.push(`<span class="pill">Melta +${kwMelta}</span>`);
-      lines.push(`<span class="pill">Expected Models Killed≈${modelsKilled.toFixed(2)}</span>`);
-
+      if(inputs.Aeff !== inputs.A) lines.push(`<span class="pill">ATKs: Base(${inputs.A.toFixed(1)}) + Extra(${inputs.Aeff-inputs.A}) -> Total=${inputs.Aeff.toFixed(1)}</span>`);
+      else lines.push(`<span class="pill">ATKs: ${inputs.Aeff.toFixed(1)}</span>`);
+      lines.push(`<span class="pill">Hit%=${probabilities.pHit.toFixed(3)*100}%</span>`);
+      lines.push(`<span class="pill">Crit%=${(probabilities.pCrit*100).toFixed(1)}%</span>`);
+      if(mods.sustained > 0) lines.push(`<span class="pill">extra hits/ATK=${probabilities.extraHitsPerAttack.toFixed(3)}</span>`);
+      lines.push(`<span class="pill">Need ${inputs.neededAfterMod}+ to Wound -> ${(probabilities.pWound*100).toFixed(1)}%</span>`);
+      if(mods.anti > 0) lines.push(`<span class="pill">Anti=${mods.anti}+</span>`);
+      lines.push(`<span class="pill">save need ${inputs.neededSave===7?'--':inputs.neededSave+'+'} -> pSave=${(probabilities.pSave*100).toFixed(1)}%</span>`);
+      if(mods.devw) lines.push(`<span class="pill">DevW portion~${(probabilities.portionDevastating*100).toFixed(1)}%</span>`);
+      if(parseFloat(this.defense.DR) > 0) lines.push(`<span class="pill">Damage Reduction ${this.defense.DR}</span>`);
+      if(parseFloat(this.defense.Fnp)) lines.push(`<span class="pill">FNP ${this.defense.Fnp}+</span>`);
+      if(mods.melta > 0 && mods.withinHalf) lines.push(`<span class="pill">Melta +${mods.melta}</span>`);
+      lines.push(`<span class="pill">Expected Models Killed~${output.modelsKilled.toFixed(2)}</span>`);
       this.output.breakdownHtml = lines.join(' ');
 
-      // Chart steps
       const hitExtras = [];
-      if(torrent || String(this.weapon.skill).trim().toLowerCase()==='auto') hitExtras.push('auto-hit');
-      if(forceHit) hitExtras.push(`cap ${forceHit}`);
-      if(rrHit!=='none') hitExtras.push(`rr ${rrHit}`);
-      if(effSustained>0) hitExtras.push(`Sust ${effSustained}`);
-      if(hasHeavy && stationary) hitExtras.push('Heavy');
+      if(mods.torrent || String(this.weapon.skill).trim().toLowerCase()==='auto') hitExtras.push('auto-hit');
+      if(mods.forceHit) hitExtras.push(`cap ${mods.forceHit}`);
+      if(mods.rrHit !== 'none') hitExtras.push(`rr ${mods.rrHit}`);
+      if(mods.sustained > 0) hitExtras.push(`Sust ${mods.sustained}`);
+      if(mods.heavy && mods.stationary) hitExtras.push('Heavy');
 
       const woundExtras = [];
-      if(forceWound) woundExtras.push(`cap ${forceWound}`);
-      if(rrWound!=='none') woundExtras.push(`rr ${rrWound}`);
-      if(charged) woundExtras.push('Lance');
-      if(effLethal) woundExtras.push('Lethal');
-      if(anti>0) woundExtras.push(`Anti ${anti}+`);
-      if(effDevw) woundExtras.push('DevW');
+      if(mods.forceWound) woundExtras.push(`cap ${mods.forceWound}`);
+      if(mods.rrWound !== 'none') woundExtras.push(`rr ${mods.rrWound}`);
+      if(mods.charged) woundExtras.push('Lance');
+      if(mods.lethal) woundExtras.push('Lethal');
+      if(mods.anti > 0) woundExtras.push(`Anti ${mods.anti}+`);
+      if(mods.devw) woundExtras.push('DevW');
 
       const saveExtras = [];
-      if(cover && !ignoresCover) saveExtras.push('cover');
-      if(inv && String(inv).trim()) saveExtras.push(`inv ${String(inv).trim()}+`);
+      if(this.defense.cover && !mods.ignoresCover) saveExtras.push('cover');
+      if(this.defense.Inv && String(this.defense.Inv).trim()) saveExtras.push(`inv ${String(this.defense.Inv).trim()}+`);
 
       const dmgExtras = [];
-      if(kwMelta>0 && withinHalf) dmgExtras.push(`Melta +${kwMelta}`);
-      if(dmgRed>0) dmgExtras.push(`-DR ${dmgRed}`);
+      if(mods.melta > 0 && mods.withinHalf) dmgExtras.push(`Melta +${mods.melta}`);
+      if(parseFloat(this.defense.DR) > 0) dmgExtras.push(`-DR ${this.defense.DR}`);
 
       const fnpExtras = [];
-      if(fnp > 1) fnpExtras.push(`${fnp}`);
-
-      const baseTotalDamage = Aeff * effD;
-      const dmgAfterHits = expectedHits * effD;
-      const dmgAfterWounds = expectedWounds * effD;
-      const expectedUnsavedIncludingMortals = (unsavedNormal + mortals);
-      const dmgAfterSaves = expectedUnsavedIncludingMortals * effD;
-      const dmgAfterDamageMods = dmgNormal + dmgMortal;
+      if(parseFloat(this.defense.Fnp) > 1) fnpExtras.push(String(this.defense.Fnp));
 
       const steps = [
-        { label: this.buildStepLabel('Attacks', [`+${Aeff-A}`]), value: baseTotalDamage },
-        { label: this.buildStepLabel('Hits', hitExtras), value: dmgAfterHits, percent: (dmgAfterHits - baseTotalDamage)/baseTotalDamage },
-        { label: this.buildStepLabel('Wounds', woundExtras), value: dmgAfterWounds, percent: (dmgAfterWounds - dmgAfterHits)/dmgAfterHits },
-        { label: this.buildStepLabel('After Saves', saveExtras), value: dmgAfterSaves, percent: (dmgAfterSaves - dmgAfterWounds)/dmgAfterWounds },
-        { label: this.buildStepLabel('Damage Reduction', dmgExtras), value: dmgAfterDamageMods, percent: (dmgAfterDamageMods - dmgAfterSaves)/dmgAfterSaves },
-        { label: this.buildStepLabel('After FNP', fnpExtras), value: totalDamage, percent: (totalDamage - dmgAfterDamageMods)/dmgAfterDamageMods },
+        { label: this.buildStepLabel('Attacks', [`+${inputs.Aeff-inputs.A}`]), value: damageFlow.baseTotalDamage },
+        { label: this.buildStepLabel('Hits', hitExtras), value: damageFlow.dmgAfterHits, percent: (damageFlow.dmgAfterHits - damageFlow.baseTotalDamage)/damageFlow.baseTotalDamage },
+        { label: this.buildStepLabel('Wounds', woundExtras), value: damageFlow.dmgAfterWounds, percent: (damageFlow.dmgAfterWounds - damageFlow.dmgAfterHits)/damageFlow.dmgAfterHits },
+        { label: this.buildStepLabel('After Saves', saveExtras), value: damageFlow.dmgAfterSaves, percent: (damageFlow.dmgAfterSaves - damageFlow.dmgAfterWounds)/damageFlow.dmgAfterWounds },
+        { label: this.buildStepLabel('Damage Reduction', dmgExtras), value: damageFlow.dmgAfterDamageMods, percent: (damageFlow.dmgAfterDamageMods - damageFlow.dmgAfterSaves)/damageFlow.dmgAfterSaves },
+        { label: this.buildStepLabel('After FNP', fnpExtras), value: output.dmg, percent: (output.dmg - damageFlow.dmgAfterDamageMods)/damageFlow.dmgAfterDamageMods },
       ];
 
       this.output.steps = steps;
@@ -1041,269 +1431,25 @@ function weaponVsDefenseApp(){
 
     // ---------------- Army JSON parsing / unit collection ----------------
     getAllSelections(node){
-      const out = [];
-      (node?.selections || []).forEach(s => { out.push(s); out.push(...this.getAllSelections(s)); });
-      return out;
+      return window.ArmyImportService?.getAllSelections?.(node) || [];
     },
 
     extractWeaponsFromNode(node){
-      const profiles = node?.profiles || [];
-      const countRaw = node?.number;
-      const count = Math.max(1, parseInt(countRaw ?? 1, 10) || 1);
-
-      const list = [];
-      profiles.forEach(p => {
-        const tn = (p.typeName || '').toLowerCase();
-        if(!(tn.includes('ranged weapons') || tn.includes('melee weapons'))) return;
-
-        const c = p.characteristics || [];
-        const get = (name) => (c.find(x => x.name === name) || {}).$text || '';
-
-        const Araw = get('A') || get('Attacks') || '';
-        const Amean = this.parseNdX(Araw).mean;
-        const Atotal = Amean * count;
-
-        list.push({
-          name: p.name,
-          range: get('Range'),
-          // IMPORTANT: weapon.A becomes TOTAL attacks for the *whole unit* based on node.number
-          A: String(Atotal),
-          skill: (get('BS') || get('WS') || '').replace("+","") || '',
-          S: get('S'),
-          AP: (get('AP') || '').replace("-",""),
-          D: get('D'),
-          modifiers: get('modifiers'),
-
-          // optional debug/meta if you want it later
-          _count: count,
-          _Araw: Araw,
-        });
-      });
-
-      return list;
+      return window.ArmyImportService?.extractWeaponsFromNode?.(node) || [];
     },
 
     extractWeaponsFromProfiles(profiles){
-      // keep this as a thin wrapper in case anything else still calls it
-      // (treat as 1 copy)
       return this.extractWeaponsFromNode({ profiles, number: 1 });
     },
 
     collectUnits(force, opts = { separateModels:false }){
-      const separateModels = !!opts.separateModels;
-      const unitMap = new Map();
-
-      const parseInvFromText = (txt) => {
-        const s = String(txt || '');
-        const m =
-          s.match(/(\d)\+\s*invulnerable\s*save/i) ||
-          s.match(/invulnerable\s*save\s*(?:of|is|:)?\s*(\d)\+/i) ||
-          s.match(/\b(\d)\+\b(?=.*\binvulnerable\b)/i);
-        return m ? `${m[1]}` : '';
-      };
-
-      const walk = (node) => {
-        const out = [node];
-        (node?.selections || []).forEach(ch => out.push(...walk(ch)));
-        return out;
-      };
-
-      const modelEntriesUnder = (unitNode) => {
-        const all = walk(unitNode);
-        return all
-          .filter(n => (n?.type === 'model') && Number.isFinite(parseInt(n?.number, 10)))
-          .map(n => ({ node: n, name: n?.name || 'Model', count: Math.max(1, parseInt(n.number, 10) || 1) }));
-      };
-
-      const unitModelCount = (unitNode) => {
-        const models = modelEntriesUnder(unitNode);
-        if(models.length) return models.reduce((s,m)=>s+m.count, 0);
-
-        // fallback if a dataset only provides unitNode.number
-        const n = parseInt(unitNode?.number, 10);
-        return Number.isFinite(n) && n > 0 ? n : null;
-      };
-
-
-      const mergeUnit = (key, patch) => {
-        if(!unitMap.has(key)){
-          unitMap.set(key, patch);
-          return;
-        }
-        const cur = unitMap.get(key);
-
-        // merge weapons (keep all; your matchup logic can choose “best” later)
-        cur.weapons = [...(cur.weapons || []), ...(patch.weapons || [])];
-
-        // merge defense (fill missing)
-        cur.defense = cur.defense || { T:null, Sv:null, Inv:null, W:null, models:0 };
-        const d = cur.defense;
-        const p = patch.defense || {};
-
-        if(d.T == null && p.T != null) d.T = p.T;
-        if(!d.Sv && p.Sv) d.Sv = p.Sv;
-        if(!d.Inv && p.Inv) d.Inv = p.Inv;
-        if(d.W == null && p.W != null) d.W = p.W;
-
-        // sum model counts when grouping
-        d.models = (parseInt(d.models || 0, 10) || 0) + (parseInt(p.models || 0, 10) || 0);
-
-        // keep a stable label
-        cur.label = cur.label || patch.label;
-
-        unitMap.set(key, cur);
-      };
-
-      (force?.selections || []).forEach(root => {
-        const all = [root, ...this.getAllSelections(root)];
-
-        all.forEach(s => {
-          const isUnitish = (s.type === 'unit' || s.type === 'model');
-          const hasUnitProfile = (s.profiles || []).some(p => /\bunit\b/i.test(p.typeName || ''));
-          if(!(isUnitish || hasUnitProfile)) return;
-
-
-          // ---- grouping key + label ----
-          // If we're NOT separating models, we want a whole unit key that merges sergeants/champions.
-          // Battlescribe typically gives all models in a unit the same entryGroupId and/or group name.
-
-          // For unit nodes, compute size by summing all model entries under it (includes sergeants/champions).
-          // For model nodes, keep using s.number because mergeUnit sums across grouped model entries.
-          const modelCount = (s.type === 'unit')
-            ? (unitModelCount(s) ?? 1)
-            : Math.max(1, parseInt(s.number || 1, 10) || 1);
-
-
-          let key;
-          let label;
-
-          if(s.type === 'model' && !separateModels){
-            key = s.entryGroupId || s.group || s.name || s.entryId || Math.random();
-            label = s.group || s.name || 'Unit';
-          }else{
-            // separateModels OR unit-level selection
-            key = s.id || s.entryId || s.name || Math.random();
-            label = s.name || s.group || 'Unit';
-          }
-
-          // ---- Collect weapons (from this node + its immediate children; fallback to deep) ----
-          const weapons = [];
-          const under = [s, ...(s.selections || [])];
-          under.forEach(n => weapons.push(...this.extractWeaponsFromNode(n)));
-
-          if(weapons.length === 0){
-            this.getAllSelections(s).forEach(n => weapons.push(...this.extractWeaponsFromNode(n)));
-          }
-
-          // ---- Collect defense (T, Sv, Inv, W) + models ----
-          let defense = { T:null, Sv:null, Inv:null, W:null, models: modelCount };
-
-          const extractDef = (profiles) => {
-            (profiles || []).forEach(p => {
-              const tn = (p.typeName || '').toLowerCase();
-              const c = p.characteristics || [];
-              const get = (name) => {
-                const f = c.find(x => (x.name || '').toLowerCase() === String(name).toLowerCase());
-                return f ? (f.$text || '') : '';
-              };
-
-              // Primary: Unit/Model statline profile
-              if(/\b(unit|model)\b/.test(tn)){
-                if(defense.T == null){
-                  const t = parseFloat(get('T')) || parseFloat(get('Toughness'));
-                  if(!Number.isNaN(t)) defense.T = t;
-                }
-
-                if(!defense.Sv) defense.Sv = parseFloat((get('SV') || get('Sv') || get('Save') || 0).replace("+",""));
-
-                // Sometimes present directly
-                if(!defense.Inv) defense.Inv = parseFloat(get('Invulnerable Save') || get('Invuln') || 0);
-
-                if(defense.W == null){
-                  const w = parseFloat(get('W')) || parseFloat(get('Wounds'));
-                  if(!Number.isNaN(w)) defense.W = w;
-                }
-                return;
-              }
-
-              // Secondary: Abilities text contains invuln
-              if(!defense.Inv && tn === 'abilities'){
-                const name = String(p.name || '');
-                const desc = get('Description');
-
-                if(/invulnerable/i.test(name) || /invulnerable/i.test(desc)){
-                  const inv = parseInvFromText(desc) || parseInvFromText(name);
-                  if(inv) defense.Inv = inv;
-                }
-              }
-            });
-          };
-
-          [s, ...(s.selections || [])].forEach(n => extractDef(n.profiles));
-          if(defense.T == null || !defense.Sv || defense.W == null || !defense.Inv){
-            this.getAllSelections(s).forEach(n => extractDef(n.profiles));
-          }
-
-          // If splitting models is enabled, emit one row/col per model entry under this unit.
-          if(separateModels){
-            const models = modelEntriesUnder(s);
-            if(models.length){
-              models.forEach((m, mi) => {
-                const mk = `${label}::${m.name}::${mi}`;
-
-                // weapons only from that model node subtree (keeps correct per-model counts)
-                const wList = [];
-                const underM = [m.node, ...(m.node.selections || [])];
-                underM.forEach(n => wList.push(...this.extractWeaponsFromNode(n)));
-                if(wList.length === 0){
-                  underM.push(...this.getAllSelections(m.node));
-                  underM.forEach(n => wList.push(...this.extractWeaponsFromNode(n)));
-                }
-
-                // reuse the unit’s defensive statline but set the model count to that model entry’s count
-                const def2 = { ...(defense || {}) };
-                def2.models = m.count;
-
-                unitMap.set(mk, {
-                  label: `${label} — ${m.name}`,
-                  weapons: wList,
-                  defense: def2
-                });
-              });
-
-              return; // don’t also add the combined unit entry
-            }
-          }
-
-          // Only keep things that look like real units/models
-          if(weapons.length > 0 || defense.T != null || defense.Sv || defense.W != null || defense.Inv){
-            mergeUnit(key, { label, weapons, defense  });
-          }
-        });
-      });
-
-      return [...unitMap.values()].map(u => {
-        // Ensure models always exists
-        u.defense = u.defense || { T:null, Sv:null, Inv:null, W:null, models:1 };
-        if(!Number.isFinite(parseInt(u.defense.models, 10))) u.defense.models = 1;
-        return u;
-      });
+      return window.ArmyImportService?.collectUnits(force, opts) || [];
     },
-    
+
     isMeleeWeapon(w){
-      // Prefer explicit range field when available
-      const r = (w?.range ?? w?.R ?? w?.Range ?? '').toString().trim().toLowerCase();
-      if(r === 'melee' || r === '-') return true;
-
-      // Fallback: if range parses to a number, it’s shooting
-      const n = parseFloat(r);
-      if(Number.isFinite(n)) return false;
-
-      // Fallback on type flag if you store it
-      const t = (w?.type || w?.mode || '').toString().toLowerCase();
-      if(t.includes('melee')) return true;
-
-      return false;
+      return window.MatchupEngine.isMeleeWeapon(w);
     },
   }
 }
+
+window.weaponVsDefenseApp = weaponVsDefenseApp;

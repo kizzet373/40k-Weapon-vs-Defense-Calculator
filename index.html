@@ -4,12 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=matchup-three-field-row">
+  <script defer src="calculator-core.js"></script>
+  <script defer src="matchup-engine.js"></script>
+  <script defer src="army-import.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
 <body>
-<div class="app" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''" x-data="weaponVsDefenseApp()" x-init="init()">
+<div class="app" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''" x-data="weaponVsDefenseApp()" x-init="init()"
+     x-effect="document.documentElement.classList.toggle('modalOpen', matchupModalOpen || profileModalOpen); document.body.classList.toggle('modalOpen', matchupModalOpen || profileModalOpen)">
   <aside id="sidebar">
     <div class="asideHead">
       <h1>Army Loader</h1>
@@ -76,7 +80,7 @@
 
     <div class="card">
       <div class="row">
-        <button type="button" class="primary" @click="openMatchupModal()" :disabled="rosters.length === 0">Unit Matchups</button>
+        <button type="button" class="primary" @click="openMatchupModal()">Unit Matchups</button>
       </div>
     </div>
 
@@ -303,20 +307,17 @@
        @keydown.escape.window="closeMatchupModal()" @click.self="closeMatchupModal()">
     <div class="modal modalWide" role="dialog" aria-modal="true" aria-label="Unit matchups">
       <div class="modalHead">
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <div style="font-weight:800">Unit Matchups</div>
-          <div class="muted" style="font-size:12px">
-            Each cell adds up the total damage of the best selectable weapon profiles on each attacker unit.
-          </div>
-        </div>
+        <div style="font-weight:800">Unit Matchups</div>
         <button class="secondary" type="button" @click="closeMatchupModal()">Close</button>
       </div>
 
       <div class="modalBody">
         <div class="matchupControls">
           <div class="matchupSide">
-            <div class="muted" style="margin-bottom:6px">Attacker</div>
-            <div class="row">
+            <div class="matchupSideHead">
+              <div class="muted">Attacker</div>
+            </div>
+            <div class="matchupSelectRow">
               <label>
                 Roster
                 <select x-model.number="matchup.attackerRosterIdx" @change="onMatchupRosterChanged('attacker')">
@@ -335,21 +336,31 @@
               </label>
             </div>
 
-            <div class="row">
-              <label>
-                Sort attackers
-                <select x-model="matchup.sortAttackers" @change="applyMatchupSorting()">
-                  <option value="alpha">Alphabetical</option>
-                  <option value="pkill">Highest % unit killed</option>
-                  <option value="dmg">Highest damage</option>
+            <div class="mergeBox">
+              <div class="muted" style="font-size:12px">Merge attacker units</div>
+              <div class="mergeRow">
+                <select x-model="matchupMerge.attackerFrom">
+                  <template x-for="u in mergeOptionsForSide('attacker')" :key="`merge-a-from-${u._unitKey}`">
+                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
+                  </template>
                 </select>
-              </label>
+                <span class="muted">into</span>
+                <select x-model="matchupMerge.attackerTo">
+                  <template x-for="u in mergeOptionsForSide('attacker')" :key="`merge-a-to-${u._unitKey}`">
+                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
+                  </template>
+                </select>
+                <button type="button" class="secondary" @click="applyManualMerge('attacker')">Merge</button>
+                <button type="button" class="secondary" @click="clearManualMerges('attacker')">Clear</button>
+              </div>
             </div>
           </div>
 
           <div class="matchupSide">
-            <div class="muted" style="margin-bottom:6px">Defender</div>
-            <div class="row">
+            <div class="matchupSideHead">
+              <div class="muted">Defender</div>
+            </div>
+            <div class="matchupSelectRow">
               <label>
                 Roster
                 <select x-model.number="matchup.defenderRosterIdx" @change="onMatchupRosterChanged('defender')">
@@ -368,43 +379,60 @@
               </label>
             </div>
 
-            <div class="row">
-              <label>
-                Sort defenders
-                <select x-model="matchup.sortDefenders" @change="applyMatchupSorting()">
-                  <option value="alpha">Alphabetical</option>
-                  <option value="pkill">Highest % unit killed</option>
-                  <option value="dmg">Highest damage</option>
+            <div class="mergeBox">
+              <div class="muted" style="font-size:12px">Merge defender units</div>
+              <div class="mergeRow">
+                <select x-model="matchupMerge.defenderFrom">
+                  <template x-for="u in mergeOptionsForSide('defender')" :key="`merge-d-from-${u._unitKey}`">
+                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
+                  </template>
                 </select>
-              </label>
+                <span class="muted">into</span>
+                <select x-model="matchupMerge.defenderTo">
+                  <template x-for="u in mergeOptionsForSide('defender')" :key="`merge-d-to-${u._unitKey}`">
+                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
+                  </template>
+                </select>
+                <button type="button" class="secondary" @click="applyManualMerge('defender')">Merge</button>
+                <button type="button" class="secondary" @click="clearManualMerges('defender')">Clear</button>
+              </div>
             </div>
           </div>
+        </div>
 
+        <div class="matchupToolbar">
           <div class="matchupToggles">
             <button type="button" class="seg" @click="swapMatchupSides()">
               Swap sides
             </button>
 
             <div class="segRow">
-              <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="matchup.combineShootingProfiles=!matchup.combineShootingProfiles; rebuildMatchup()">
-                Combine shooting profiles
+              <button type="button" class="seg" :class="matchup.metric === 'damage' ? 'active' : ''" @click="setMatchupMetric('damage')">
+                Damage
+              </button>
+              <button type="button" class="seg" :class="matchup.metric === 'modelWounds' ? 'active' : ''" @click="setMatchupMetric('modelWounds')">
+                Damage %
+              </button>
+              <button type="button" class="seg" :class="matchup.metric === 'unitKill' ? 'active' : ''" @click="setMatchupMetric('unitKill')">
+                Chance to Kill
               </button>
             </div>
 
-            <div class="segRow">
-              <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="matchup.showShooting=!matchup.showShooting; rebuildMatchup()">
-                Shooting
-              </button>
-              <button type="button" class="seg" :class="matchup.showMelee ? 'active' : ''" @click="matchup.showMelee=!matchup.showMelee; rebuildMatchup()">
-                Melee
-              </button>
-              <button type="button" class="secondary" :class="matchup.opts.separateModels ? 'active' : ''" @click="matchup.opts.separateModels = !matchup.opts.separateModels; rebuildMatchup()" title="If ON: each model entry becomes its own row/column. If OFF: models are grouped into their parent unit.">
-                Split models
-              </button>
-            </div>
+            <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')">
+              Combine shooting profiles
+            </button>
+
+            <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">
+              Shooting
+            </button>
+            <button type="button" class="seg" :class="matchup.showMelee ? 'active' : ''" @click="toggleMatchupRecomputeOption('showMelee')">
+              Melee
+            </button>
           </div>
 
-          <div class="row" style="align-items:flex-end;justify-content:flex-end">
+          <div class="matchupActions">
+            <button type="button" class="secondary" @click="copyMatchupGrid()" :disabled="matchup.loading || matchupVisibleRows().length === 0">Copy grid</button>
+            <span class="muted copyStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
             <button type="button" @click="rebuildMatchup()" :disabled="rosters.length === 0">Recompute</button>
           </div>
         </div>
@@ -418,32 +446,51 @@
             <table class="matchupGrid">
               <thead>
                 <tr>
-                  <th class="stickyCol">Attacker ↓<br><span class="muted">Defender →</span></th>
-                  <template x-for="(du, di) in matchupDefenderUnits" :key="`m-col-${di}`">
-                    <th>
-                      <div x-text="du.label || `Def ${di+1}`"></div>
-                      <div class="muted" style="font-size:11px" x-text="matchupDefenseLabel(du)"></div>
+                  <th class="stickyCol">
+                    <div class="gridHeaderLine">
+                      <div>Attacker ↓<br><span class="muted">Defender →</span></div>
+                      <button type="button" class="sortIconButton" @click="sortMatchupAlphabetical()" :title="`Sort rows and columns ${matchup.sortAttackersDirection === 'desc' ? 'A-Z' : 'Z-A'}`" x-text="sortButtonSymbol('alpha')"></button>
+                    </div>
+                  </th>
+                  <template x-for="(col, di) in matchupVisibleDefenders()" :key="`m-col-${unitKey(col.unit) || di}-${col.childIndex ?? 'unit'}`">
+                    <th :class="col.isChild ? 'childMatchupCol' : ''">
+                      <div class="unitNameLine">
+                        <button type="button" class="expandButton" x-show="!col.isChild && hasChildUnits(col.unit)" @click="toggleUnitExpanded(col.unit)" x-text="isUnitExpanded(col.unit) ? '▾' : '▸'"></button>
+                        <span class="childBranch" x-show="col.isChild">↳</span>
+                        <span class="expandSpacer" x-show="!col.isChild && !hasChildUnits(col.unit)"></span>
+                        <button type="button" class="profileLink" @click="openUnitProfile(col.unit, col.isChild ? 'Model' : 'Defender')">
+                          <span class="profileNameText" x-text="unitLabelText(col.unit, `Def ${di+1}`)"></span>
+                          <span class="profilePointsText" x-show="unitPointsText(col.unit)" x-text="unitPointsText(col.unit)"></span>
+                        </button>
+                        <button type="button" class="sortIconButton" @click="sortMatchupByColumn(col.unit)" title="Sort attacker rows by this column" x-text="sortButtonSymbol('column', col.unit)"></button>
+                      </div>
+                      <div class="muted matchupDefenseText" style="font-size:11px" x-text="matchupDefenseLabel(col.unit)"></div>
                     </th>
                   </template>
                 </tr>
               </thead>
               <tbody>
-                <template x-for="(au, ai) in matchupAttackerUnits" :key="`m-row-${ai}`">
-                  <tr>
+                <template x-for="(row, ri) in matchupVisibleRows()" :key="`m-row-${unitKey(row.unit) || ri}-${row.childIndex ?? 'unit'}`">
+                  <tr :class="row.isChild ? 'childMatchupRow' : ''">
                     <th class="stickyCol">
-                      <div x-text="au.label || `Atk ${ai+1}`"></div>
-                      <div class="muted" style="font-size:11px" x-text="matchupWeaponSummary(au)"></div>
+                      <div class="unitNameLine">
+                        <button type="button" class="expandButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" x-text="isUnitExpanded(row.unit) ? '▾' : '▸'"></button>
+                        <span class="childBranch" x-show="row.isChild">↳</span>
+                        <span class="expandSpacer" x-show="!row.isChild && !hasChildUnits(row.unit)"></span>
+                        <button type="button" class="profileLink attackerProfileLink" @click="openUnitProfile(row.unit, row.isChild ? 'Model' : 'Attacker')">
+                          <span class="profileNameText" x-text="unitLabelText(row.unit, `Atk ${ri+1}`)"></span>
+                          <span class="profilePointsText" x-show="unitPointsText(row.unit)" x-text="unitPointsText(row.unit)"></span>
+                        </button>
+                        <button type="button" class="sortIconButton" @click="sortMatchupByRow(row.unit)" title="Sort defender columns by this row" x-text="sortButtonSymbol('row', row.unit)"></button>
+                      </div>
+                      <div class="muted" style="font-size:11px" x-text="matchupWeaponSummary(row.unit)"></div>
                     </th>
 
-                    <template x-for="(cell, di) in matchup.rows?.[ai]?.cells" :key="`m-cell-${ai}-${di}`">
-                      <td>
-                        <div style="font-weight:800" x-text="fmtOut(cell.dmg)"></div>
-                        <div class="muted" style="font-size:11px" x-text="`kills: ${fmtOut(cell.kills)}`"></div>
-                        <template x-if="cell.pctKilled != null">
-                          <div class="muted" style="font-size:11px" x-text="`% unit: ${fmtPct(cell.pctKilled)}`"></div>
-                        </template>
+                    <template x-for="(cell, di) in row.cells" :key="`m-cell-${ri}-${di}`">
+                      <td class="matchupCell" :style="matchupCellStyle(cell)">
+                        <div class="matchupCellValue" x-text="formatMatchupMetric(cell)"></div>
                         <template x-if="cell.weaponName">
-                          <div class="muted" style="font-size:11px" x-text="cell.weaponName"></div>
+                          <div class="matchupCellNote" x-text="cell.weaponName"></div>
                         </template>
                       </td>
                     </template>
@@ -453,6 +500,97 @@
             </table>
           </div>
         </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit profile modal -->
+  <div class="modalOverlay" x-show="profileModalOpen" x-cloak
+       @keydown.escape.window="closeUnitProfile()" @click.self="closeUnitProfile()">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Unit profile">
+      <div class="modalHead">
+        <div>
+          <div class="profileTitle">
+            <span style="font-weight:800" x-text="profileModalRole ? `${profileModalRole}: ${unitLabelText(profileUnit)}` : unitLabelText(profileUnit)"></span>
+            <span class="profilePointsText" x-show="unitPointsText(profileUnit)" x-text="unitPointsText(profileUnit)"></span>
+          </div>
+          <div class="muted" style="font-size:12px" x-text="matchupDefenseLabel(profileUnit)"></div>
+        </div>
+        <button class="secondary" type="button" @click="closeUnitProfile()">Close</button>
+      </div>
+
+      <div class="modalBody profileBody">
+        <div>
+          <h2>Weapons</h2>
+          <template x-if="!(profileUnit?.weapons || []).length">
+            <div class="muted">No weapons found.</div>
+          </template>
+          <template x-for="(w, wi) in (profileUnit?.weapons || [])" :key="`profile-w-${wi}`">
+            <div class="profileWeapon">
+              <div class="profileWeaponHead">
+                <div>
+                  <strong x-text="w.name || `Weapon ${wi+1}`"></strong>
+                  <div class="muted" style="font-size:12px" x-text="`${w.range || ''} A:${w.A || ''} Skill:${w.skill || ''} S:${w.S || ''} AP:${w.AP || ''} D:${w.D || ''}`"></div>
+                </div>
+              </div>
+              <div class="modifierToggleList">
+                <template x-if="weaponModifierNames(w).length === 0">
+                  <span class="muted">No imported modifiers.</span>
+                </template>
+                <template x-for="mod in weaponModifierNames(w)" :key="`profile-w-${wi}-${mod}`">
+                  <label class="toggleLine">
+                    <input type="checkbox" :checked="isWeaponModifierEnabled(w, mod)" @change="toggleWeaponModifier(w, mod); rebuildMatchup()" />
+                    <span x-text="mod"></span>
+                  </label>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div>
+          <h2>Models</h2>
+          <template x-if="!(profileUnit?._children || []).length">
+            <div class="muted">Single model profile.</div>
+          </template>
+          <template x-for="(child, ci) in (profileUnit?._children || [])" :key="`profile-child-${ci}`">
+            <div class="profileModel">
+              <button type="button" class="profileLink" @click="profileUnit = child">
+                <span class="profileNameText" x-text="unitLabelText(child, `Model ${ci+1}`)"></span>
+                <span class="profilePointsText" x-show="unitPointsText(child)" x-text="unitPointsText(child)"></span>
+              </button>
+              <div class="muted" style="font-size:12px" x-text="`${matchupDefenseLabel(child)} · ${matchupWeaponSummary(child)}`"></div>
+            </div>
+          </template>
+
+          <h2>Enhancements</h2>
+          <template x-if="!(profileUnit?._enhancements || []).length">
+            <div class="muted">No enhancements found.</div>
+          </template>
+          <template x-for="(enh, ei) in (profileUnit?._enhancements || [])" :key="`profile-enh-${ei}`">
+            <div class="profileModel">
+              <label class="toggleLine">
+                <input type="checkbox" :checked="isUnitEnhancementEnabled(profileUnit, enh.name)" @change="toggleUnitEnhancement(profileUnit, enh.name); rebuildMatchup()" />
+                <span>
+                  <strong x-text="enh.name || `Enhancement ${ei+1}`"></strong>
+                  <span class="profilePointsText" x-show="enh.points" x-text="`(${enh.points} pts)`"></span>
+                </span>
+              </label>
+              <div class="muted" style="font-size:12px" x-show="enh.description" x-text="enh.description"></div>
+            </div>
+          </template>
+
+          <h2>Abilities</h2>
+          <template x-if="!(profileUnit?.abilities || []).length">
+            <div class="muted">No abilities found.</div>
+          </template>
+          <template x-for="(ability, ai) in (profileUnit?.abilities || [])" :key="`profile-a-${ai}`">
+            <label class="toggleLine abilityToggleLine">
+              <input type="checkbox" :checked="isUnitAbilityEnabled(profileUnit, ability)" @change="toggleUnitAbility(profileUnit, ability); rebuildMatchup()" />
+              <span x-text="ability"></span>
+            </label>
+          </template>
+        </div>
       </div>
     </div>
   </div>
