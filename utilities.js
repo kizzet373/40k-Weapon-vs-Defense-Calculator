@@ -1856,11 +1856,18 @@ function weaponVsDefenseApp(){
       }, 1);
     },
 
+    formulaItemTitle(item, index=0){
+      return `${index + 1}. ${item?.weaponName || `Profile ${index + 1}`}`;
+    },
+
+    formulaItemDamage(item){
+      const value = Number(item?.totalDamage);
+      if(Number.isFinite(value)) return value;
+      return (item?.lines || []).reduce((sum, line) => sum + (Number(line?.appliedDamage) || 0), 0);
+    },
+
     formulaItemLines(item, index=0){
       const lines = [];
-      const label = item?.weaponName || `Profile ${index + 1}`;
-      lines.push(`${index + 1}. ${label}`);
-      if(item?.modifierText) lines.push(`Modifiers: ${item.modifierText}`);
       (item?.lines || []).forEach((line, lineIndex) => {
         const f = line?.formula || {};
         const probs = f.probabilities || {};
@@ -1895,7 +1902,7 @@ function weaponVsDefenseApp(){
       return lines;
     },
 
-    matchupFormulaLines(){
+    formulaSummaryLines(){
       const cell = this.formulaCell || {};
       const lines = [
         `${this.matchupMetricLabel()}: ${this.formatMatchupMetric(cell)}`,
@@ -1904,8 +1911,36 @@ function weaponVsDefenseApp(){
         `Chance to Kill: ${cell.pctUnitKilled == null ? '—' : this.formulaPercent(Math.min(cell.pctUnitKilled, 0.999))}`,
       ];
       if(cell.weaponName) lines.push(`Profiles used: ${cell.weaponName}`);
-      const detailLines = (cell.formulaItems || []).flatMap((item, index) => this.formulaItemLines(item, index));
-      return [...lines, ...detailLines];
+      return lines;
+    },
+
+    matchupFormulaSections(){
+      return (this.formulaCell?.formulaItems || []).map((item, index) => ({
+        title: this.formulaItemTitle(item, index),
+        modifiers: item?.modifierText ? `Modifiers: ${item.modifierText}` : '',
+        lines: this.formulaItemLines(item, index),
+        damage: this.formulaItemDamage(item),
+      }));
+    },
+
+    formulaTotalEquation(){
+      const sections = this.matchupFormulaSections();
+      const values = sections
+        .map(section => Number(section.damage))
+        .filter(value => Number.isFinite(value));
+      const sum = values.reduce((total, value) => total + value, 0);
+      const shownTotal = Number.isFinite(Number(this.formulaCell?.dmg)) ? Number(this.formulaCell.dmg) : sum;
+      const left = values.length ? values.map(value => this.formulaNumber(value, 2)).join(' + ') : '0';
+      return `${left} = ${this.formulaNumber(shownTotal, 2)} total average damage`;
+    },
+
+    matchupFormulaLines(){
+      const sectionLines = this.matchupFormulaSections().flatMap(section => [
+        section.title,
+        ...(section.modifiers ? [section.modifiers] : []),
+        ...section.lines,
+      ]);
+      return [...this.formulaSummaryLines(), ...sectionLines, `Total result: ${this.formulaTotalEquation()}`];
     },
 
     weaponStateKey(w){

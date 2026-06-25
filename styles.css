@@ -194,8 +194,13 @@ details summary{cursor:pointer}
 .modalSmall{max-width:720px}
 .formulaOverlay{z-index:80}
 .formulaBody{max-height:70vh}
+.formulaSummary{margin-bottom:10px}
+.formulaSection{border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 12px;margin:10px 0;background:rgba(255,255,255,.035)}
+.formulaSectionTitle{font-size:13px;font-weight:900;margin-bottom:6px;color:var(--text)}
+.formulaSectionModifiers{font-size:12px;line-height:1.35;color:var(--muted);padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.formulaTotalSection{background:rgba(62,229,143,.08);border-color:rgba(62,229,143,.32)}
 .formulaLine{font-size:12px;line-height:1.35;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-.formulaLine:last-child{border-bottom:0}
+.formulaSection .formulaLine:last-child,.formulaSummary .formulaLine:last-child{border-bottom:0}
 .formulaPrimary{font-size:15px;font-weight:900;color:var(--accent)}
 .modalWide[aria-label="Unit matchups"]{width:calc(100vw - 12px);max-width:1600px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:12px}
 .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}

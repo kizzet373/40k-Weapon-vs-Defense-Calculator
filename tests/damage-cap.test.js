@@ -257,8 +257,22 @@ app.openMatchupFormula(darkPactHard, darkPactAttacker, hardTarget);
 assert.ok(app.formulaModalOpen, 'clicking a matchup value can open the formula modal state');
 assert.ok((app.formulaCell?.formulaItems || []).length > 0, 'formula modal recomputes detailed formula data on demand');
 assert.ok(app.matchupFormulaLines().some(line => /Total average damage/i.test(line)), 'formula modal includes the total damage calculation summary');
+assert.strictEqual(app.matchupFormulaSections().length, app.formulaCell.formulaItems.length, 'formula modal groups each weapon profile into its own section');
 assert.ok(!app.matchupFormulaLines().some(line => /NaN|undefined/i.test(line)), 'formula modal lines do not expose invalid numeric text');
 app.closeMatchupFormula();
+
+app.formulaCell = {
+  dmg: 3.75,
+  pctModelWounds: null,
+  pctUnitKilled: null,
+  weaponName: '1x weapon a, 1x weapon b',
+  formulaItems: [
+    { weaponName: 'weapon a', modifierText: '', totalDamage: 1.25, lines: [{ appliedDamage: 1.25 }] },
+    { weaponName: 'weapon b', modifierText: '', totalDamage: 2.5, lines: [{ appliedDamage: 2.5 }] },
+  ],
+};
+assert.strictEqual(app.matchupFormulaSections().length, 2, 'formula modal keeps multiple weapon profiles separated');
+assert.strictEqual(app.formulaTotalEquation(), '1.25 + 2.5 = 3.75 total average damage', 'formula modal shows a bottom summation equation');
 
 const sharedAbilitySource = {
   label: 'Icon bearer',
