@@ -1,0 +1,170 @@
+(function(){
+  const ABILITY_MODIFIERS = {
+    'Dark Pacts': ['Choose Best: Lethal Hits; Sustained Hits 1'],
+    'Oath of Moment': ['Reroll Hits'],
+    'Heroes All': ['Conditional | Reroll Hits 1', 'Conditional | Reroll Wounds 1'],
+    'Saga of The Bold': ['Conditional | Reroll Hits 1', 'Conditional | Reroll Wounds 1'],
+
+    'Shadow Lord': ['Conditional | Unit-wide | Reroll Hits 1'],
+    'The Shadow Lord': ['Conditional | Unit-wide | Reroll Hits 1'],
+    'Damaged: 1-5 wounds remaining': ['Conditional | Hit Rolls -1'],
+    'Damaged: 1-6 wounds remaining': ['Conditional | Hit Rolls -1'],
+    'Damaged: 1-7 wounds remaining': ['Conditional | Hit Rolls -1'],
+
+    'Daemon Lord of Khorne': ['Conditional | Unit-wide | Melee: Hit Rolls +1'],
+    'Changecaster': ['Unit-wide | Ranged: Sustained Hits 1'],
+    'Penumbral Puppetry': ['Defense Attack: Hit Rolls -1'],
+    'Fateskimmer': ['Unit-wide | Melee: Lethal Hits'],
+    'Daemon Lord of Nurgle': ['Conditional | Unit-wide | Defense: Toughness +1'],
+    "Nurgle's Rot": ['Conditional | Target Defense: Toughness -1'],
+    'Gloam Rot': ['Defense Attack: Wound Rolls -1 | If Strength > Toughness'],
+    'Daemon Lord of Slaanesh': ['Conditional | Unit-wide | Melee: AP +1'],
+    'Mesmerising Form': ['Defense Attack: Hit Rolls -1'],
+    'Daemon Lord of Tzeentch': ['Conditional | Unit-wide | Ranged: Strength +1'],
+    'Master of Magicks': ['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
+    'Poxbringer': ['Unit-wide | Critical Hits 5+'],
+    'Blood Throne': ['Conditional | Unit-wide | Strength +1 | AP +1 | Damage +1'],
+    'Champion Slayer': ['Melee: Reroll Wounds | Target: Character | Target: Monster'],
+    "Skullmaster's Fury": ['Conditional | Unit-wide | Weapon: Juggernaut bladed horns | Melee: Devastating Wounds'],
+    'Keep Counting!': ['Unit-wide | Melee: Sustained Hits 1'],
+    'Mischief Makers': ['Conditional | Defense Attack: Melee: Hit Rolls -1'],
+    'Brass Stampede': ['Conditional | Unit-wide | Mortal Wounds On Charge'],
+    'Cutting Down the Foe': ['Conditional | Unit-wide | Melee: Strength +1 | Melee: Damage +1'],
+    "Death's Heads": ['Conditional | Unit-wide | Reroll Wounds'],
+    'Chance for Glory': ['Conditional | Melee: Strength +1 | Melee: Attacks +1 | Melee: AP +1 | Melee: Damage +1'],
+    'Sacrificial Dagger': ['Conditional | Weapon Keyword: Psychic | Hit Rolls +1 | Wound Rolls +1'],
+    'Prescience': ['Unit-wide | Defense Attack: Hit Rolls -1'],
+    'Veterans of the Long War': ['Melee: Reroll Wounds 1', 'Conditional | Target On Objective | Melee: Reroll Wounds'],
+    'Despoilers': ['Conditional | Reroll Hits'],
+    'Stabilisation Talons': ['Ranged: Ignore Hit Penalties'],
+
+    'Fierce Example': ['Defense: Toughness +1'],
+    'Enhancement: Fierce Example': ['Defense: Toughness +1'],
+    'Fangs of the Pack': ['Conditional | Melee: Precision'],
+    'Stratagem: Fangs of the Pack (1CP)': ['Conditional | Melee: Precision'],
+    'Inspiring Presence': ['Conditional | Melee: Lethal Hits'],
+    'Stratagem: Inspiring Presence (1CP)': ['Conditional | Melee: Lethal Hits'],
+    "Champion's Guidance": ['Conditional | Reroll Hits'],
+    'Champion’s Guidance': ['Conditional | Reroll Hits'],
+    "Stratagem: Champion's Guidance (1CP)": ['Conditional | Reroll Hits'],
+    'Stratagem: Champion’s Guidance (1CP)': ['Conditional | Reroll Hits'],
+    'Heroic Resolve': ['Conditional | Defense Attack: Damage -1'],
+    'Stratagem: Heroic Resolve (2CP)': ['Conditional | Defense Attack: Damage -1'],
+    'Champion of The Kingsguard': ['Melee: Reroll Hits | Melee: Reroll Wounds | Target: Character'],
+    'Legendary Tenacity': ['Defense Attack: Wound Rolls -1 | If Strength > Toughness'],
+    'Rugged Resilience': ['Defense Attack: Wound Rolls -1 | If Strength > Toughness'],
+    'Priority Objective Identified': ['Conditional | Unit-wide | Reroll Wounds 1'],
+    'Tempered Ferocity': ['Unit-wide | Sustained Hits 1', 'Conditional | Unit-wide | Reroll Hits 1'],
+    'Headhunters': ['Conditional | Devastating Wounds | Precision'],
+    'Deadly Stalkers': ['Conditional | Wound Rolls +1'],
+    'Storm Shield': ['Defense: Invulnerable Save 4+'],
+
+    'Devastating Charge': ['Conditional | Melee: Lance'],
+    "Braggart's Steel": ['Melee: Strength +2', 'Conditional | Melee: Damage +1'],
+    'Braggart’s Steel': ['Melee: Strength +2', 'Conditional | Melee: Damage +1'],
+    'Hordeslayer': ['Conditional | Melee: Attacks +3'],
+  };
+
+  function normalizeRuleName(value){
+    return String(value || '')
+      .replace(/^Enhancement:\s*/i, '')
+      .replace(/\s*\(\s*\d+(?:\.\d+)?\s*pts?\s*\)\s*$/i, '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  const normalized = Object.fromEntries(
+    Object.entries(ABILITY_MODIFIERS).map(([name, modifiers]) => [normalizeRuleName(name), modifiers])
+  );
+  const parsedSpecCache = new Map();
+
+  function splitModifierText(value){
+    return String(value || '')
+      .split(',')
+      .map(part => part.trim())
+      .filter(Boolean);
+  }
+
+  function splitSpecParts(value){
+    return String(value || '')
+      .split('|')
+      .map(part => part.trim())
+      .filter(Boolean);
+  }
+
+  function parseModifierSpec(value){
+    const cacheKey = String(value || '');
+    if(parsedSpecCache.has(cacheKey)) return parsedSpecCache.get(cacheKey);
+    const meta = {
+      conditional: false,
+      unitWide: false,
+      weapons: [],
+      weaponKeywords: [],
+      targets: [],
+      targetOnObjective: false,
+      strengthGreaterThanToughness: false,
+      kind: 'weapon',
+    };
+    const modifiers = [];
+
+    splitSpecParts(value).forEach(part => {
+      let match = null;
+      if(/^Conditional$/i.test(part)){ meta.conditional = true; return; }
+      if(/^Unit[-\s]?wide$/i.test(part)){ meta.unitWide = true; return; }
+      if((match = part.match(/^Weapon:\s*(.+)$/i))){ meta.weapons.push(match[1]); return; }
+      if((match = part.match(/^Weapon Keyword:\s*(.+)$/i))){ meta.weaponKeywords.push(match[1]); return; }
+      if((match = part.match(/^Target:\s*(.+)$/i))){ meta.targets.push(...match[1].split(/[\/,]/).map(x => x.trim()).filter(Boolean)); return; }
+      if(/^Target On Objective$/i.test(part)){ meta.targetOnObjective = true; return; }
+      if(/^If Strength > Toughness$/i.test(part)){ meta.strengthGreaterThanToughness = true; return; }
+      if((match = part.match(/^Defense Attack:\s*(.+)$/i))){ meta.kind = 'defenseAttack'; modifiers.push(match[1]); return; }
+      if((match = part.match(/^Target Defense:\s*(.+)$/i))){ meta.kind = 'targetDefense'; modifiers.push(match[1]); return; }
+      if((match = part.match(/^Defense:\s*(.+)$/i))){ meta.kind = 'defenseProfile'; modifiers.push(match[1]); return; }
+      if(/^Mortal Wounds On Charge$/i.test(part)){ meta.kind = 'special'; modifiers.push(part); return; }
+      modifiers.push(part);
+    });
+
+    const parsed = { raw: value, meta, modifiers };
+    parsedSpecCache.set(cacheKey, parsed);
+    return parsed;
+  }
+
+  function modifiersForRule(name){
+    return [...(normalized[normalizeRuleName(name)] || [])];
+  }
+
+  function modifierTextVariants(value){
+    const tokens = splitModifierText(value);
+    const base = [];
+    const choiceGroups = [];
+    tokens.forEach(token => {
+      const match = token.match(/^Choose Best:\s*(.+)$/i);
+      if(match){
+        choiceGroups.push(match[1].split(/[|;]/).map(option => option.trim()).filter(Boolean));
+      }else{
+        base.push(token);
+      }
+    });
+    if(!choiceGroups.length) return [base.join(', ')];
+
+    let variants = [base];
+    choiceGroups.forEach(group => {
+      variants = variants.flatMap(prefix => group.map(option => [...prefix, option]));
+    });
+    return variants.map(variant => variant.join(', '));
+  }
+
+  function ruleHasUnitWideModifier(name){
+    return modifiersForRule(name).some(spec => parseModifierSpec(spec).meta.unitWide);
+  }
+
+  window.AbilityModifierMap = ABILITY_MODIFIERS;
+  window.AbilityModifierService = {
+    normalizeRuleName,
+    modifiersForRule,
+    modifierTextVariants,
+    parseModifierSpec,
+    ruleHasUnitWideModifier,
+  };
+})();

@@ -143,6 +143,7 @@
       dmg: list.reduce((total, item) => total + (item?.dmg || 0), 0),
       kills: list.reduce((total, item) => total + (item?.kills || 0), 0),
       profilesUsed: aggregateProfiles(list.flatMap(item => item?.profilesUsed || [])),
+      formulaItems: list.flatMap(item => item?.formulaItems || (item?.formula ? [item.formula] : [])),
     };
   }
 
@@ -171,6 +172,7 @@
 
   function chargeMortalDamage(unit, attackMode, options){
     if(attackMode === 'shooting') return { dmg: 0, profile: null };
+    if(!options?.conditionsMet) return { dmg: 0, profile: null };
     if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return { dmg: 0, profile: null };
     const inheritedFrom = parentUnit(unit);
     const ownAbility = unitHasAbility(unit, /brass stampede/i);
@@ -192,6 +194,13 @@
     return 1 - ((7 - Math.max(2, Math.min(6, fnp))) / 6);
   }
 
+  function isCharacterTarget(unit){
+    if(unit?._isCharacterModel || unit?._isCharacterUnit || unit?.isCharacter || unit?.isCharacterModel || unit?.isCharacterUnit) return true;
+    const tags = (unit?._tags || []).map(tag => String(tag || '').toLowerCase());
+    if(tags.some(tag => tag === 'character' || tag === 'epic hero')) return true;
+    return false;
+  }
+
   function defenderWoundPool(def, defenderUnit){
     const W = parseFloat(def?.W) || 0;
     const size = def?.models != null
@@ -201,6 +210,138 @@
     if(Number.isFinite(totalWounds) && totalWounds > 0) return totalWounds;
     if(W > 0 && Number.isFinite(size) && size > 0) return W * size;
     return W > 0 ? W : null;
+  }
+
+  function effectiveDefense(unit, options, opposingUnit=null){
+    if(typeof options?.effectiveDefense === 'function') return options.effectiveDefense(unit, opposingUnit);
+    return unit?.defense || {};
+  }
+
+  function defenderTargetLines(defenderUnit, precision=false, options={}, attackerUnit=null){
+    const children = Array.isArray(defenderUnit?._children) ? defenderUnit._children : [];
+    const units = children.length ? children : [defenderUnit];
+    const lines = units
+      .map((unit, index) => {
+        const def = effectiveDefense(unit, options, attackerUnit);
+        const pool = defenderWoundPool(def, unit);
+        return {
+          unit,
+          index,
+          def,
+          pool: Number.isFinite(pool) && pool > 0 ? pool : null,
+          isCharacter: isCharacterTarget(unit),
+        };
+      })
+      .filter(line => line.def && line.pool != null);
+
+    if(!lines.length) return [{
+      unit: defenderUnit,
+      index: 0,
+      def: effectiveDefense(defenderUnit, options, attackerUnit),
+      pool: defenderWoundPool(effectiveDefense(defenderUnit, options, attackerUnit), defenderUnit),
+      isCharacter: isCharacterTarget(defenderUnit),
+    }];
+
+    return lines.sort((a, b) => {
+      if(a.isCharacter !== b.isCharacter){
+        return precision ? (a.isCharacter ? -1 : 1) : (a.isCharacter ? 1 : -1);
+      }
+      return a.index - b.index;
+    });
+  }
+
+  function defensePayloadForLine(line, fallbackUnit=null){
+    const def = line?.def || fallbackUnit?.defense || {};
+    const unit = line?.unit || fallbackUnit || {};
+    return {
+      T: parseFloat(def.T) || 0,
+      sv: parseFloat(def.Sv) || 0,
+      inv: parseFloat(def.Inv) || 0,
+      W: parseFloat(def.W) || 0,
+      Fnp: parseFloat(def.Fnp) || 0,
+      keywords: [...(unit._keywords || []), ...(def.keywords || []), ...(def._keywords || [])],
+    };
+  }
+
+  function calcOneWeaponIntoDefender(weapon, defenderUnit, modifierText, options={}, attackerUnit=null){
+    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
+    const lines = defenderTargetLines(defenderUnit, !!kw.precision, options, attackerUnit);
+    if(lines.length <= 1){
+      const result = window.WeaponCalc.calcOneWeapon(weapon, defensePayloadForLine(lines[0], defenderUnit), modifierText, { includeFormula: !!options.includeFormula });
+      if(!options.includeFormula) return result;
+      return {
+        ...result,
+        formula: {
+          weaponName: weapon?.name || 'Weapon',
+          modifierText,
+          totalDamage: result.dmg || 0,
+          totalKills: result.kills || 0,
+          lines: [{
+            targetName: lines[0]?.unit?.label || defenderUnit?.label || 'Defender',
+            damageFraction: 1,
+            appliedDamage: result.dmg || 0,
+            formula: result.formula,
+          }],
+        },
+      };
+    }
+
+    let remainingFraction = 1;
+    let dmg = 0;
+    let kills = 0;
+    const formulaLines = [];
+    for(const line of lines){
+      if(remainingFraction <= 1e-9) break;
+      const def = line.def || {};
+      const W = parseFloat(def.W) || 0;
+      const result = window.WeaponCalc.calcOneWeapon(weapon, defensePayloadForLine(line, defenderUnit), modifierText, { includeFormula: !!options.includeFormula });
+      const lineDamage = (result.dmg || 0) * remainingFraction;
+      if(lineDamage <= 0) break;
+      const capacity = Number.isFinite(line.pool) && line.pool > 0 ? line.pool : lineDamage;
+      const applied = Math.min(lineDamage, capacity);
+      dmg += applied;
+      kills += W > 0 ? (applied / W) : 0;
+      if(options.includeFormula){
+        formulaLines.push({
+          targetName: line.unit?.label || 'Defender',
+          damageFraction: remainingFraction,
+          availableDamage: lineDamage,
+          woundPool: capacity,
+          appliedDamage: applied,
+          formula: result.formula,
+        });
+      }
+      remainingFraction *= Math.max(0, lineDamage - capacity) / lineDamage;
+    }
+    return {
+      dmg,
+      kills,
+      ...(options.includeFormula ? { formula: {
+        weaponName: weapon?.name || 'Weapon',
+        modifierText,
+        totalDamage: dmg,
+        totalKills: kills,
+        lines: formulaLines,
+      } } : {}),
+    };
+  }
+
+  function allocateFlatDamageIntoDefender(rawDamage, defenderUnit, precision=false, options={}, attackerUnit=null){
+    let remainingRaw = Math.max(0, parseFloat(rawDamage) || 0);
+    let dmg = 0;
+    let kills = 0;
+    for(const line of defenderTargetLines(defenderUnit, precision, options, attackerUnit)){
+      if(remainingRaw <= 1e-9) break;
+      const mult = fnpDamageMultiplier(line.def);
+      const effectiveAvailable = remainingRaw * mult;
+      const capacity = Number.isFinite(line.pool) && line.pool > 0 ? line.pool : effectiveAvailable;
+      const applied = Math.min(effectiveAvailable, capacity);
+      const W = parseFloat(line.def?.W) || 0;
+      dmg += applied;
+      kills += W > 0 ? (applied / W) : 0;
+      remainingRaw = mult > 0 ? Math.max(0, remainingRaw - (applied / mult)) : 0;
+    }
+    return { dmg, kills };
   }
 
   function killChanceFromExpectedDamage(expectedDamage, woundPool){
@@ -222,7 +363,7 @@
   }
 
   function computeCell(attackerUnit, defenderUnit, options){
-    const def = defenderUnit?.defense || {};
+    const def = effectiveDefense(defenderUnit, options, attackerUnit);
     const T = parseFloat(def.T) || 0;
     const sv = parseFloat(def.Sv) || 0;
     const inv = parseFloat(def.Inv) || 0;
@@ -234,13 +375,23 @@
     if(childUnits.length){
       const childCells = childUnits.map(child => computeCell(child, defenderUnit, { ...options, suppressInheritedUnitAbilities: true }));
       const chargeMortals = chargeMortalDamage(attackerUnit, attackMode, options);
-      const chargeDamage = chargeMortals.dmg * fnpDamageMultiplier(def);
-      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + chargeDamage;
-      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + (W > 0 ? chargeDamage / W : 0);
+      const chargeAllocated = allocateFlatDamageIntoDefender(chargeMortals.dmg, defenderUnit, false, options, attackerUnit);
+      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + chargeAllocated.dmg;
+      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + chargeAllocated.kills;
       const profilesUsed = aggregateProfiles([
         ...childCells.flatMap(cell => cell?.profilesUsed || []),
         ...(chargeMortals.profile ? [chargeMortals.profile] : []),
       ]);
+      const formulaItems = options.includeFormula ? [
+        ...childCells.flatMap(cell => cell?.formulaItems || []),
+        ...(chargeMortals.profile ? [{
+          weaponName: chargeMortals.profile.name,
+          modifierText: 'Mortal wounds on charge',
+          totalDamage: chargeAllocated.dmg,
+          totalKills: chargeAllocated.kills,
+          lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: chargeAllocated.dmg }],
+        }] : []),
+      ] : [];
       return {
         dmg,
         kills,
@@ -248,6 +399,7 @@
         pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
         weaponName: formatProfiles(profilesUsed),
         profilesUsed,
+        ...(options.includeFormula ? { formulaItems } : {}),
       };
     }
 
@@ -257,15 +409,26 @@
     if(enabled.length === 0) return emptyCell();
 
     const evalOne = (w) => {
-      const modifierText = options.effectiveWeaponModifiers(w);
-      const result = window.WeaponCalc.calcOneWeapon(w, { T, sv, inv, W, Fnp }, modifierText);
-      const kw = window.WeaponCalc.parseWeaponKeywords(modifierText);
+      const modifierText = options.effectiveWeaponModifiers(w, attackerUnit, defenderUnit);
+      const variants = window.AbilityModifierService?.modifierTextVariants
+        ? window.AbilityModifierService.modifierTextVariants(modifierText)
+        : [modifierText];
+      const bestVariant = variants
+        .map(text => ({
+          text,
+          result: calcOneWeaponIntoDefender(w, defenderUnit, text, options, attackerUnit),
+          kw: window.WeaponCalc.parseWeaponKeywords(text, w),
+        }))
+        .reduce((winner, candidate) => candidate.result.dmg > (winner?.result?.dmg ?? -1) ? candidate : winner, null);
+      const result = bestVariant?.result || { dmg: 0, kills: 0 };
+      const kw = bestVariant?.kw || window.WeaponCalc.parseWeaponKeywords(modifierText, w);
       return {
         ...result,
         weapon: w,
         weaponName: w.name || '',
         profileLabel: weaponProfileLabel(w),
         profilesUsed: [weaponProfileEntry(w)],
+        ...(options.includeFormula ? { formulaItems: [result.formula].filter(Boolean) } : {}),
         extraAttacks: !!kw.extraAttacks,
       };
     };
@@ -274,44 +437,58 @@
     const melee = enabled.filter(w => isMeleeWeapon(w)).map(evalOne);
     const best = (arr) => arr.reduce((winner, candidate) => candidate.dmg > (winner?.dmg ?? -1) ? candidate : winner, null);
 
-    let shootingSelection = { dmg: 0, kills: 0, profilesUsed: [] };
+    let shootingSelection = { dmg: 0, kills: 0, profilesUsed: [], formulaItems: [] };
     if(shooting.length){
       const chosenShooting = chooseShootingProfiles(shooting);
       shootingSelection = selectedTotals(chosenShooting);
     }
 
-    let meleeSelection = { dmg: 0, kills: 0, profilesUsed: [] };
+    let meleeSelection = { dmg: 0, kills: 0, profilesUsed: [], formulaItems: [] };
     if(melee.length){
       const extra = melee.filter(x => x.extraAttacks);
       const normal = melee.filter(x => !x.extraAttacks);
       const extraTotals = selectedTotals(extra);
       const chargeMortals = chargeMortalDamage(attackerUnit, attackMode, options);
-      const chargeDamage = chargeMortals.dmg * fnpDamageMultiplier(def);
-      const choices = normal.length ? normal : (extra.length ? [{ dmg:0, kills:0, profilesUsed:[] }] : []);
+      const chargeAllocated = allocateFlatDamageIntoDefender(chargeMortals.dmg, defenderUnit, false, options, attackerUnit);
+      const choices = normal.length ? normal : (extra.length ? [{ dmg:0, kills:0, profilesUsed:[], formulaItems:[] }] : []);
       const winner = best(choices.map(choice => ({
-        dmg: (choice?.dmg || 0) + extraTotals.dmg + chargeDamage,
-        kills: (choice?.kills || 0) + extraTotals.kills + (W > 0 ? chargeDamage / W : 0),
+        dmg: (choice?.dmg || 0) + extraTotals.dmg + chargeAllocated.dmg,
+        kills: (choice?.kills || 0) + extraTotals.kills + chargeAllocated.kills,
         profilesUsed: aggregateProfiles([
           ...(choice?.profilesUsed || []),
           ...extraTotals.profilesUsed,
           ...(chargeMortals.profile ? [chargeMortals.profile] : []),
         ]),
+        ...(options.includeFormula ? { formulaItems: [
+          ...(choice?.formulaItems || []),
+          ...extraTotals.formulaItems,
+          ...(chargeMortals.profile ? [{
+            weaponName: chargeMortals.profile.name,
+            modifierText: 'Mortal wounds on charge',
+            totalDamage: chargeAllocated.dmg,
+            totalKills: chargeAllocated.kills,
+            lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: chargeAllocated.dmg }],
+          }] : []),
+        ] } : {}),
       })));
       meleeSelection = winner || meleeSelection;
     }
 
     let selectedProfiles = [];
+    let selectedFormulaItems = [];
     let dmg = 0;
     let kills = 0;
     if(options.combineShootingProfiles){
       dmg = shootingSelection.dmg + meleeSelection.dmg;
       kills = shootingSelection.kills + meleeSelection.kills;
       selectedProfiles = aggregateProfiles([...shootingSelection.profilesUsed, ...meleeSelection.profilesUsed]);
+      selectedFormulaItems = [...(shootingSelection.formulaItems || []), ...(meleeSelection.formulaItems || [])];
     }else{
       const selected = meleeSelection.dmg > shootingSelection.dmg ? meleeSelection : shootingSelection;
       dmg = selected.dmg || 0;
       kills = selected.kills || 0;
       selectedProfiles = selected.profilesUsed || [];
+      selectedFormulaItems = selected.formulaItems || [];
     }
 
     return {
@@ -321,6 +498,7 @@
       pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
       weaponName: formatProfiles(selectedProfiles),
       profilesUsed: aggregateProfiles(selectedProfiles),
+      ...(options.includeFormula ? { formulaItems: selectedFormulaItems } : {}),
     };
   }
 

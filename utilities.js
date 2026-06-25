@@ -20,6 +20,7 @@ function weaponVsDefenseApp(){
       sortDefendersDirection: 'desc',
       sortDefendersRowKey: '',
       combineShootingProfiles: true,
+      conditionsMet: false,
       showMelee: true,
       showShooting: true,
       metric: 'modelWounds',
@@ -45,6 +46,7 @@ function weaponVsDefenseApp(){
     matchupClipboardStatus: '',
     matchupExportFormat: 'visible',
     matchupActionMenu: '',
+    matchupComputationCache: { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {} },
     matchupMerge: {
       attackerFrom: '',
       attackerTo: '',
@@ -54,6 +56,10 @@ function weaponVsDefenseApp(){
     profileModalOpen: false,
     profileModalRole: '',
     profileUnit: null,
+    formulaModalOpen: false,
+    formulaCell: null,
+    formulaAttacker: null,
+    formulaDefender: null,
 
     // ---------------- Roster state ----------------
     rosters: [],
@@ -368,6 +374,7 @@ function weaponVsDefenseApp(){
 
     closeMatchupModal(){
       this.matchupModalOpen = false;
+      this.closeMatchupFormula();
     },
 
     swapMatchupSides(){
@@ -400,16 +407,17 @@ function weaponVsDefenseApp(){
     },
 
     matchupDefenseLabel(u){
-      const d = u?.defense || {};
+      const d = this.effectiveDefense(u);
       const t = (d.T!=null) ? `T${d.T}` : '';
       const saves = [
         (d.Sv!=null && d.Sv!=='') ? `${d.Sv}+` : '',
         (d.Inv!=null && d.Inv!=='') ? `${d.Inv}++` : '',
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
+      const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
       const models = d.models ?? u?.size ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, size].filter(Boolean).join(' - ');
+      return [t, saves, w, fnp, size].filter(Boolean).join(' - ');
     },
 
     matchupDefenseHeaderLabel(u){
@@ -421,7 +429,7 @@ function weaponVsDefenseApp(){
       const order = [];
       const profiles = new Map();
       profileUnits.forEach(profileUnit => {
-        const d = profileUnit?.defense || {};
+        const d = this.effectiveDefense(profileUnit);
         const key = [
           d.T ?? '',
           d.Sv ?? '',
@@ -439,7 +447,7 @@ function weaponVsDefenseApp(){
 
       return order.map(key => {
         const entry = profiles.get(key);
-        const d = entry.unit?.defense || {};
+        const d = this.effectiveDefense(entry.unit);
         return this.matchupDefenseProfileLine(d, entry.models);
       }).filter(Boolean);
     },
@@ -451,9 +459,10 @@ function weaponVsDefenseApp(){
         (d.Inv!=null && d.Inv!=='') ? `${d.Inv}++` : '',
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
+      const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, size].filter(Boolean).join(' - ');
+      return [t, saves, w, fnp, size].filter(Boolean).join(' - ');
     },
 
     matchupWeaponSummary(u){
@@ -899,6 +908,7 @@ function weaponVsDefenseApp(){
 
     rebuildMatchup(){
       if(!this.matchupModalOpen) return;
+      this.clearMatchupComputationCache();
 
       const atkForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
       const defForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
@@ -929,7 +939,6 @@ function weaponVsDefenseApp(){
           this.seedAggregateCellCache();
           this.applyMatchupSorting(false);
           this.refreshVisibleMatchup();
-          this.scheduleWarmMatchupCellCache();
           this.syncMatchupMergeSelections();
         }finally{
           this.matchup.loading = false;
@@ -1156,12 +1165,21 @@ function weaponVsDefenseApp(){
       this.rebuildMatchup();
     },
 
-    computeMatchupCell(attackerUnit, defenderUnit){
+    setMatchupRecomputeOption(key, value){
+      if(!(key in this.matchup)) return;
+      this.matchup[key] = !!value;
+      this.rebuildMatchup();
+    },
+
+    computeMatchupCell(attackerUnit, defenderUnit, options={}){
       return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
+        includeFormula: !!options.includeFormula,
         combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+        conditionsMet: !!this.matchup.conditionsMet,
         isWeaponEnabled: w => this.isWeaponEnabledByToggles(w),
         isMeleeEnabled: () => !!this.matchup.showMelee,
-        effectiveWeaponModifiers: w => this.effectiveWeaponModifiers(w),
+        effectiveWeaponModifiers: (w, unit, defender) => this.effectiveWeaponModifiers(w, unit, defender),
+        effectiveDefense: (unit, opposingUnit) => this.effectiveDefense(unit, opposingUnit),
         isAbilityEnabled: (unit, ability) => this.isUnitAbilityEnabled(unit, ability),
         isEnhancementEnabled: (unit, enhancement) => this.isUnitEnhancementEnabled(unit, enhancement),
       });
@@ -1576,6 +1594,10 @@ function weaponVsDefenseApp(){
         weapons: cleanWeapons,
         abilities: [...(unit?.abilities || [])],
         enhancements: [...(unit?._enhancements || [])],
+        keywords: [...(unit?._keywords || [])],
+        isCharacterUnit: !!unit?._isCharacterUnit,
+        isCharacterModel: !!unit?._isCharacterModel,
+        isLeaderModel: !!unit?._isLeaderModel,
         children: (unit?._children || []).map(child => this.matchupExportUnit(child)),
       };
     },
@@ -1615,6 +1637,7 @@ function weaponVsDefenseApp(){
         gridUnits: payload.gridUnits,
         options: {
           combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+          conditionsMet: !!this.matchup.conditionsMet,
           showShooting: !!this.matchup.showShooting,
           showMelee: !!this.matchup.showMelee,
         },
@@ -1635,6 +1658,7 @@ function weaponVsDefenseApp(){
         metricLabel: this.matchupMetricLabel(),
         options: {
           combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+          conditionsMet: !!this.matchup.conditionsMet,
           showShooting: !!this.matchup.showShooting,
           showMelee: !!this.matchup.showMelee,
         },
@@ -1762,6 +1786,14 @@ function weaponVsDefenseApp(){
       return unit?.label || fallback;
     },
 
+    clearMatchupComputationCache(){
+      this.matchupComputationCache = { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {} };
+      if(this.matchup){
+        this.matchup.cellCache = {};
+        this.matchup.cacheWarmToken = (this.matchup.cacheWarmToken || 0) + 1;
+      }
+    },
+
     unitPointsText(unit){
       const points = parseFloat(unit?._points);
       if(!Number.isFinite(points)) return '';
@@ -1781,6 +1813,99 @@ function weaponVsDefenseApp(){
       this.profileModalOpen = false;
       this.profileModalRole = '';
       this.profileUnit = null;
+    },
+
+    openMatchupFormula(cell, attacker, defender){
+      this.formulaCell = attacker && defender ? this.computeMatchupCell(attacker, defender, { includeFormula: true }) : (cell || null);
+      this.formulaAttacker = attacker || null;
+      this.formulaDefender = defender || null;
+      this.formulaModalOpen = true;
+    },
+
+    closeMatchupFormula(){
+      this.formulaModalOpen = false;
+      this.formulaCell = null;
+      this.formulaAttacker = null;
+      this.formulaDefender = null;
+    },
+
+    formulaTitle(){
+      return `${this.unitLabelText(this.formulaAttacker, 'Attacker')} into ${this.unitLabelText(this.formulaDefender, 'Defender')}`;
+    },
+
+    formulaNumber(value, digits=3){
+      const n = Number(value);
+      if(!Number.isFinite(n)) return '0';
+      return n.toFixed(digits).replace(/\.?0+$/, '');
+    },
+
+    formulaPercent(value){
+      const n = Number(value);
+      if(!Number.isFinite(n)) return '0%';
+      return `${(n * 100).toFixed(1)}%`;
+    },
+
+    formulaDefenseText(defense={}){
+      return this.matchupDefenseProfileLine({
+        T: defense.T,
+        Sv: defense.sv,
+        Inv: defense.inv,
+        W: defense.W,
+        Fnp: defense.Fnp,
+        models: 1,
+      }, 1);
+    },
+
+    formulaItemLines(item, index=0){
+      const lines = [];
+      const label = item?.weaponName || `Profile ${index + 1}`;
+      lines.push(`${index + 1}. ${label}`);
+      if(item?.modifierText) lines.push(`Modifiers: ${item.modifierText}`);
+      (item?.lines || []).forEach((line, lineIndex) => {
+        const f = line?.formula || {};
+        const probs = f.probabilities || {};
+        const totals = f.totals || {};
+        const prefix = (item.lines || []).length > 1 ? `Target ${lineIndex + 1}: ${line.targetName || 'Defender'} - ` : '';
+        if(f.defense) lines.push(`${prefix}${this.formulaDefenseText(f.defense)}`);
+        if(line.damageFraction != null && Math.abs(line.damageFraction - 1) > 1e-9){
+          lines.push(`${prefix}Remaining allocation: ${this.formulaPercent(line.damageFraction)}`);
+        }
+        if(f.attacks != null){
+          lines.push(`${prefix}Hits: ${this.formulaNumber(f.attacks)} attacks x (${this.formulaPercent(probs.pHit)} hit + ${this.formulaNumber(f?.totals?.expectedHits / Math.max(f.attacks, 1) - (probs.pHit || 0), 3)} sustained extra) = ${this.formulaNumber(totals.expectedHits)} expected hits`);
+        }
+        if(totals.expectedWounds != null){
+          lines.push(`${prefix}Wounds: lethal ${this.formulaNumber(totals.lethalWounds)} + wound rolls ${this.formulaNumber(totals.expectedWoundsFromRolls)} = ${this.formulaNumber(totals.expectedWounds)} expected wounds`);
+        }
+        if(totals.unsavedNormal != null){
+          lines.push(`${prefix}Saves: ${this.formulaNumber(totals.normalWounds)} normal wounds x ${this.formulaPercent(1 - (probs.pSave || 0))} failed saves = ${this.formulaNumber(totals.unsavedNormal)} unsaved wounds`);
+        }
+        if(totals.criticalWounds > 0){
+          lines.push(`${prefix}Critical wound damage: ${this.formulaNumber(totals.criticalWounds)} mortal/devastating wounds x ${this.formulaNumber(f.damage)} damage`);
+        }
+        if(f.cappedDamage != null){
+          lines.push(`${prefix}Damage: (${this.formulaNumber(totals.unsavedNormal)} x ${this.formulaNumber(f.cappedDamage)} capped damage + ${this.formulaNumber(totals.mortals)} x ${this.formulaNumber(f.damage)} spill damage) x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP = ${this.formulaNumber(totals.totalDamage)} damage`);
+        }else if(line.appliedDamage != null){
+          lines.push(`${prefix}Applied damage: ${this.formulaNumber(line.appliedDamage)}`);
+        }
+        if(line.woundPool != null && line.availableDamage != null){
+          lines.push(`${prefix}Allocated: min(${this.formulaNumber(line.availableDamage)}, ${this.formulaNumber(line.woundPool)} wound pool) = ${this.formulaNumber(line.appliedDamage)}`);
+        }
+      });
+      if(item?.totalDamage != null) lines.push(`Profile total: ${this.formulaNumber(item.totalDamage)} damage`);
+      return lines;
+    },
+
+    matchupFormulaLines(){
+      const cell = this.formulaCell || {};
+      const lines = [
+        `${this.matchupMetricLabel()}: ${this.formatMatchupMetric(cell)}`,
+        `Total average damage: ${this.formulaNumber(cell.dmg, 2)}`,
+        `Damage %: ${cell.pctModelWounds == null ? '—' : this.formulaPercent(cell.pctModelWounds)}`,
+        `Chance to Kill: ${cell.pctUnitKilled == null ? '—' : this.formulaPercent(Math.min(cell.pctUnitKilled, 0.999))}`,
+      ];
+      if(cell.weaponName) lines.push(`Profiles used: ${cell.weaponName}`);
+      const detailLines = (cell.formulaItems || []).flatMap((item, index) => this.formulaItemLines(item, index));
+      return [...lines, ...detailLines];
     },
 
     weaponStateKey(w){
@@ -1822,11 +1947,301 @@ function weaponVsDefenseApp(){
       if(!w) return;
       const state = this.ensureModifierState(w);
       state[mod] = !this.isWeaponModifierEnabled(w, mod);
+      this.clearMatchupComputationCache();
     },
 
-    effectiveWeaponModifiers(w){
-      const names = this.weaponModifierNames(w).filter(mod => this.isWeaponModifierEnabled(w, mod));
-      return window.ArmyImportService?.serializeModifiers(names) || names.join(', ');
+    unitModifierRuleNames(unit){
+      const cacheKey = this.unitKey(unit);
+      if(cacheKey && this.matchupComputationCache.ruleNames?.[cacheKey]){
+        return this.matchupComputationCache.ruleNames[cacheKey];
+      }
+      const units = [];
+      let cursor = unit || null;
+      while(cursor){
+        units.push(cursor);
+        cursor = cursor._parentUnit || cursor._baseUnit?._parentUnit || null;
+      }
+      const names = [];
+      units.forEach(current => {
+        this.unitAbilityNames(current).forEach(name => {
+          if(this.isUnitAbilityEnabled(current, name)) names.push(name);
+        });
+        this.unitEnhancementNames(current).forEach(name => {
+          if(this.isUnitEnhancementEnabled(current, name)) names.push(name);
+        });
+      });
+      this.sharedUnitAbilityRuleNames(unit).forEach(name => names.push(name));
+      const result = [...new Set(names)];
+      if(cacheKey) this.matchupComputationCache.ruleNames[cacheKey] = result;
+      return result;
+    },
+
+    normalizeMatchupName(value){
+      return String(value || '')
+        .replace(/[\u2018\u2019]/g, "'")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .split(/\s+/)
+        .filter(word => word && word !== 's')
+        .map(word => word.length > 3 ? word.replace(/s$/, '') : word)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    },
+
+    normalizeKeyword(value){
+      return this.normalizeMatchupName(value).replace(/\s+/g, '').replace(/s$/, '');
+    },
+
+    unitHasKeyword(unit, keyword){
+      const wanted = this.normalizeKeyword(keyword);
+      if(!wanted) return true;
+      const values = [
+        ...(unit?._keywords || []),
+        ...(unit?.keywords || []),
+        ...(unit?.defense?.keywords || []),
+        ...(unit?.defense?._keywords || []),
+      ].map(value => this.normalizeKeyword(value));
+      return values.includes(wanted);
+    },
+
+    weaponHasKeyword(weapon, keyword){
+      const wanted = this.normalizeKeyword(keyword);
+      if(!wanted) return true;
+      const text = [
+        weapon?.name,
+        weapon?.modifiers,
+        weapon?.keywords,
+        ...(Array.isArray(weapon?._keywords) ? weapon._keywords : []),
+      ].join(' ');
+      return this.normalizeKeyword(text).includes(wanted);
+    },
+
+    weaponNameMatchesScope(weapon, scope){
+      const weaponName = this.normalizeMatchupName(weapon?.name);
+      const wanted = this.normalizeMatchupName(scope);
+      if(!wanted) return true;
+      return weaponName.includes(wanted) || wanted.includes(weaponName);
+    },
+
+    ruleModifierSpecs(name){
+      const service = window.AbilityModifierService;
+      if(!service?.modifiersForRule) return [];
+      return service.modifiersForRule(name);
+    },
+
+    parsedModifierSpec(spec){
+      const service = window.AbilityModifierService;
+      if(service?.parseModifierSpec) return service.parseModifierSpec(spec);
+      return { raw: spec, meta: { kind: 'weapon' }, modifiers: [spec] };
+    },
+
+    modifierSpecApplies(parsed, context={}){
+      const meta = parsed?.meta || {};
+      if(meta.conditional && !this.matchup.conditionsMet) return false;
+      if(meta.weapons?.length && !meta.weapons.some(scope => this.weaponNameMatchesScope(context.weapon, scope))) return false;
+      if(meta.weaponKeywords?.length && !meta.weaponKeywords.some(keyword => this.weaponHasKeyword(context.weapon, keyword))) return false;
+      if(meta.targets?.length && !meta.targets.some(keyword => this.unitHasKeyword(context.defender, keyword))) return false;
+      if(meta.targetOnObjective && !this.matchup.conditionsMet) return false;
+      if(meta.strengthGreaterThanToughness){
+        const strength = parseFloat(context.weapon?.S);
+        const toughness = parseFloat(this.effectiveDefense(context.defender, null, { includeTargetDebuffs: false })?.T);
+        if(!Number.isFinite(strength) || !Number.isFinite(toughness) || strength <= toughness) return false;
+      }
+      return true;
+    },
+
+    modifiersFromRuleNames(ruleNames, context={}){
+      const kind = context.kind || 'weapon';
+      const cacheKey = [
+        this.matchup.conditionsMet ? 1 : 0,
+        kind,
+        (ruleNames || []).join('~'),
+        context.weapon ? this.weaponStateKey(context.weapon) : '',
+        context.defender ? this.unitKey(context.defender) : '',
+        context.attacker ? this.unitKey(context.attacker) : '',
+      ].join('|');
+      if(this.matchupComputationCache.modifierNames?.[cacheKey]){
+        return this.matchupComputationCache.modifierNames[cacheKey];
+      }
+      const out = [];
+      (ruleNames || []).forEach(name => {
+        this.ruleModifierSpecs(name).forEach(spec => {
+          const parsed = this.parsedModifierSpec(spec);
+          if((parsed.meta?.kind || 'weapon') !== kind) return;
+          if(!this.modifierSpecApplies(parsed, context)) return;
+          out.push(...(parsed.modifiers || []));
+        });
+      });
+      const seen = new Set();
+      const result = out.filter(mod => {
+        const key = String(mod || '').trim().toLowerCase();
+        if(!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      this.matchupComputationCache.modifierNames[cacheKey] = result;
+      return result;
+    },
+
+    unitFamilyRoot(unit){
+      if(!unit) return null;
+      return unit._parentUnit || unit._baseUnit?._parentUnit || (Array.isArray(unit._children) && unit._children.length ? unit : null);
+    },
+
+    unitFamilyMembers(unit){
+      const root = this.unitFamilyRoot(unit);
+      if(!root) return [];
+      return [root, ...(root._children || [])];
+    },
+
+    sharedUnitAbilityRuleNames(unit){
+      const cacheKey = this.unitKey(unit);
+      if(cacheKey && this.matchupComputationCache.sharedRuleNames?.[cacheKey]){
+        return this.matchupComputationCache.sharedRuleNames[cacheKey];
+      }
+      const members = this.unitFamilyMembers(unit);
+      if(!members.length) return [];
+      const service = window.AbilityModifierService;
+      const result = [...new Set(members.flatMap(member => this.unitAbilityNames(member)
+        .filter(name => this.isUnitAbilityEnabled(member, name))
+        .filter(name => service?.ruleHasUnitWideModifier ? service.ruleHasUnitWideModifier(name) : service?.modifiersForRule?.(name).length)
+      ))];
+      if(cacheKey) this.matchupComputationCache.sharedRuleNames[cacheKey] = result;
+      return result;
+    },
+
+    abilityModifierNamesForUnit(unit, context={}){
+      return this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), { ...context, kind: context.kind || 'weapon' });
+    },
+
+    ruleModifierNames(name){
+      return this.ruleModifierSpecs(name);
+    },
+
+    unitAbilityModifierNames(ability){
+      return this.ruleModifierNames(ability);
+    },
+
+    unitEnhancementModifierNames(enhancement){
+      const name = typeof enhancement === 'string' ? enhancement : enhancement?.name;
+      return this.ruleModifierNames(name);
+    },
+
+    isDefenseModifier(modifier){
+      return /^(?:Defense|Defensive):/i.test(String(modifier || '').trim());
+    },
+
+    defenseModifierNamesForUnit(unit){
+      return this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), { kind: 'defenseProfile', defender: unit });
+    },
+
+    defenseAttackModifierNamesForUnit(unit, context={}){
+      return this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), { ...context, kind: 'defenseAttack', defender: unit });
+    },
+
+    targetDefenseModifierNamesForUnit(attacker, defender){
+      return this.modifiersFromRuleNames(this.unitModifierRuleNames(attacker), { kind: 'targetDefense', attacker, defender });
+    },
+
+    applyDefenseModifiers(defense, modifiers=[]){
+      const next = { ...(defense || {}) };
+      const numeric = key => {
+        const value = parseFloat(next[key]);
+        return Number.isFinite(value) ? value : null;
+      };
+      const setIfFinite = (key, value) => {
+        if(Number.isFinite(value)) next[key] = value;
+      };
+      const bestSave = (current, candidate) => {
+        const c = parseFloat(current);
+        const n = parseFloat(candidate);
+        if(!Number.isFinite(n)) return current;
+        if(!Number.isFinite(c) || c <= 0) return n;
+        return Math.min(c, n);
+      };
+
+      (modifiers || []).forEach(modifier => {
+        const text = String(modifier || '').replace(/^(?:Defense|Defensive):\s*/i, '').trim();
+        if(!text) return;
+
+        let match = text.match(/\b(?:T|Toughness)\s*([+-]\d+(?:\.\d+)?)\b/i);
+        if(match){
+          setIfFinite('T', Math.max(0, (numeric('T') || 0) + parseFloat(match[1])));
+          return;
+        }
+        match = text.match(/\b(?:T|Toughness)\s*(\d+(?:\.\d+)?)\b/i);
+        if(match){
+          setIfFinite('T', parseFloat(match[1]));
+          return;
+        }
+
+        match = text.match(/\b(?:W|Wounds?)\s*([+-]\d+(?:\.\d+)?)\b/i);
+        if(match){
+          setIfFinite('W', Math.max(0, (numeric('W') || 0) + parseFloat(match[1])));
+          return;
+        }
+        match = text.match(/\b(?:W|Wounds?)\s*(\d+(?:\.\d+)?)\b/i);
+        if(match){
+          setIfFinite('W', parseFloat(match[1]));
+          return;
+        }
+
+        match = text.match(/\b(?:Sv|Save|Armou?r Save)\s*([+-]\d+(?:\.\d+)?)\b/i);
+        if(match){
+          const current = numeric('Sv');
+          if(current != null) setIfFinite('Sv', this.clamp(current - parseFloat(match[1]), 2, 7));
+          return;
+        }
+        match = text.match(/\b(?:Sv|Save|Armou?r Save)\s*(\d)\+/i);
+        if(match){
+          next.Sv = bestSave(next.Sv, parseFloat(match[1]));
+          return;
+        }
+
+        match = text.match(/\b(?:Invulnerable Save|Invuln|Inv)\s*(\d)\+/i);
+        if(match){
+          next.Inv = bestSave(next.Inv, parseFloat(match[1]));
+          return;
+        }
+
+        match = text.match(/\b(?:Feel No Pain|FNP)\s*(\d)\+/i);
+        if(match){
+          next.Fnp = bestSave(next.Fnp, parseFloat(match[1]));
+        }
+      });
+      return next;
+    },
+
+    effectiveDefense(unit, opposingUnit=null, options={}){
+      const cacheAllowed = options.includeOwnModifiers !== false && options.includeTargetDebuffs !== false;
+      const cacheKey = cacheAllowed
+        ? `${this.matchup.conditionsMet ? 1 : 0}|${this.unitKey(unit)}|${opposingUnit ? this.unitKey(opposingUnit) : ''}`
+        : '';
+      if(cacheKey && this.matchupComputationCache.defenses?.[cacheKey]){
+        return this.matchupComputationCache.defenses[cacheKey];
+      }
+      const defense = { ...(unit?.defense || {}) };
+      const ownModifiers = options.includeOwnModifiers === false ? [] : this.defenseModifierNamesForUnit(unit);
+      const targetDebuffs = options.includeTargetDebuffs === false || !opposingUnit ? [] : this.targetDefenseModifierNamesForUnit(opposingUnit, unit);
+      const result = this.applyDefenseModifiers(defense, [...ownModifiers, ...targetDebuffs]);
+      if(cacheKey) this.matchupComputationCache.defenses[cacheKey] = result;
+      return result;
+    },
+
+    effectiveWeaponModifiers(w, unit=null, defender=null){
+      const cacheKey = `${this.matchup.conditionsMet ? 1 : 0}|${this.unitKey(unit)}|${this.weaponStateKey(w)}|${this.unitKey(defender)}|${w?.modifiers || ''}`;
+      if(this.matchupComputationCache.weaponModifiers?.[cacheKey] != null){
+        return this.matchupComputationCache.weaponModifiers[cacheKey];
+      }
+      const names = [
+        ...this.weaponModifierNames(w).filter(mod => this.isWeaponModifierEnabled(w, mod)),
+        ...this.abilityModifierNamesForUnit(unit, { weapon: w, attacker: unit, defender }),
+        ...this.defenseAttackModifierNamesForUnit(defender, { weapon: w, attacker: unit, defender }),
+      ];
+      const result = window.ArmyImportService?.serializeModifiers(names) || names.join(', ');
+      this.matchupComputationCache.weaponModifiers[cacheKey] = result;
+      return result;
     },
 
     unitStateKey(unit){
@@ -1867,6 +2282,7 @@ function weaponVsDefenseApp(){
       if(!unit || !ability) return;
       const state = this.ensureUnitToggleState(unit);
       state.abilities[ability] = !this.isUnitAbilityEnabled(unit, ability);
+      this.clearMatchupComputationCache();
     },
 
     isUnitEnhancementEnabled(unit, enhancement){
@@ -1880,6 +2296,7 @@ function weaponVsDefenseApp(){
       if(!unit || !enhancement) return;
       const state = this.ensureUnitToggleState(unit);
       state.enhancements[enhancement] = !this.isUnitEnhancementEnabled(unit, enhancement);
+      this.clearMatchupComputationCache();
     },
 
     parseWeaponKeywords(txt){
@@ -1887,7 +2304,7 @@ function weaponVsDefenseApp(){
     },
 
     matchupCalcOneWeapon(w, def){
-      return window.WeaponCalc.calcOneWeapon(w, def, this.effectiveWeaponModifiers(w));
+      return window.WeaponCalc.calcOneWeapon(w, def, this.effectiveWeaponModifiers(w, this.units?.[this.selectedUnitIdx] || null));
     },
 
     onUnitChanged(){

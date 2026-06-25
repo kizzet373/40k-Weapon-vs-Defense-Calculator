@@ -6,6 +6,7 @@
   <title>40k Weapon vs Defense Calculator</title>
   <link rel="stylesheet" href="styles.css?v=matchup-three-field-row">
   <script defer src="calculator-core.js"></script>
+  <script defer src="ability-modifiers.js"></script>
   <script defer src="matchup-engine.js"></script>
   <script defer src="army-import.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -13,7 +14,7 @@
 
 <body>
 <div class="app" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''" x-data="weaponVsDefenseApp()" x-init="init()"
-     x-effect="document.documentElement.classList.toggle('modalOpen', matchupModalOpen || profileModalOpen); document.body.classList.toggle('modalOpen', matchupModalOpen || profileModalOpen)">
+     x-effect="document.documentElement.classList.toggle('modalOpen', matchupModalOpen || profileModalOpen || formulaModalOpen); document.body.classList.toggle('modalOpen', matchupModalOpen || profileModalOpen || formulaModalOpen)">
   <aside id="sidebar">
     <div class="asideHead">
       <h1>Army Loader</h1>
@@ -305,7 +306,7 @@
 
   <!-- Unit Matchups modal -->
   <div class="modalOverlay" x-show="matchupModalOpen" x-cloak
-       @keydown.escape.window="closeMatchupModal()" @click.self="closeMatchupModal()">
+       @keydown.escape.window="formulaModalOpen ? closeMatchupFormula() : closeMatchupModal()" @click.self="closeMatchupModal()">
     <div class="modal modalWide" role="dialog" aria-modal="true" aria-label="Unit matchups">
       <div class="modalHead">
         <div style="font-weight:800">Unit Matchups</div>
@@ -419,6 +420,11 @@
               Combine shooting profiles
             </button>
 
+            <label class="toggleLine compactToggleLine">
+              <input type="checkbox" :checked="matchup.conditionsMet" @change="setMatchupRecomputeOption('conditionsMet', $event.target.checked)" />
+              <span>Conditions Met</span>
+            </label>
+
             <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">
               Shooting
             </button>
@@ -526,7 +532,9 @@
 
                     <template x-for="(cell, di) in row.cells" :key="`m-cell-${ri}-${di}`">
                       <td class="matchupCell" :style="matchupCellStyle(cell)">
-                        <div class="matchupCellValue" x-text="formatMatchupMetric(cell)"></div>
+                        <button type="button" class="matchupCellValueButton" @click.stop="openMatchupFormula(cell, row.unit, matchupVisibleDefenders()[di]?.unit)">
+                          <span class="matchupCellValue" x-text="formatMatchupMetric(cell)"></span>
+                        </button>
                         <template x-if="cell.weaponName">
                           <div class="matchupCellNote" x-text="cell.weaponName"></div>
                         </template>
@@ -537,6 +545,25 @@
               </tbody>
             </table>
           </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calculation formula modal -->
+  <div class="modalOverlay formulaOverlay" x-show="formulaModalOpen" x-cloak
+       @click.self="closeMatchupFormula()">
+    <div class="modal modalSmall" role="dialog" aria-modal="true" aria-label="Calculation formula">
+      <div class="modalHead">
+        <div>
+          <div style="font-weight:800">Calculation</div>
+          <div class="muted" style="font-size:12px" x-text="formulaTitle()"></div>
+        </div>
+        <button class="secondary" type="button" @click="closeMatchupFormula()">Close</button>
+      </div>
+      <div class="modalBody formulaBody">
+        <template x-for="(line, i) in matchupFormulaLines()" :key="`formula-line-${i}`">
+          <div :class="i === 0 ? 'formulaLine formulaPrimary' : 'formulaLine'" x-text="line"></div>
         </template>
       </div>
     </div>
@@ -615,6 +642,13 @@
                 </span>
               </label>
               <div class="muted" style="font-size:12px" x-show="enh.description" x-text="enh.description"></div>
+              <template x-if="unitEnhancementModifierNames(enh).length">
+                <div class="profileRuleModifiers">
+                  <template x-for="mod in unitEnhancementModifierNames(enh)" :key="`profile-enh-${ei}-${mod}`">
+                    <span class="modifier" x-text="mod"></span>
+                  </template>
+                </div>
+              </template>
             </div>
           </template>
 
@@ -623,10 +657,19 @@
             <div class="muted">No abilities found.</div>
           </template>
           <template x-for="(ability, ai) in (profileUnit?.abilities || [])" :key="`profile-a-${ai}`">
-            <label class="toggleLine abilityToggleLine">
-              <input type="checkbox" :checked="isUnitAbilityEnabled(profileUnit, ability)" @change="toggleUnitAbility(profileUnit, ability); rebuildMatchup()" />
-              <span x-text="ability"></span>
-            </label>
+            <div class="profileRuleBlock">
+              <label class="toggleLine abilityToggleLine">
+                <input type="checkbox" :checked="isUnitAbilityEnabled(profileUnit, ability)" @change="toggleUnitAbility(profileUnit, ability); rebuildMatchup()" />
+                <span x-text="ability"></span>
+              </label>
+              <template x-if="unitAbilityModifierNames(ability).length">
+                <div class="profileRuleModifiers">
+                  <template x-for="mod in unitAbilityModifierNames(ability)" :key="`profile-a-${ai}-${mod}`">
+                    <span class="modifier" x-text="mod"></span>
+                  </template>
+                </div>
+              </template>
+            </div>
           </template>
         </div>
       </div>

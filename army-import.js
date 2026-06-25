@@ -188,6 +188,7 @@
     if(!description) return null;
     const label = cleanName(objectState.Nickname) || 'Imported unit';
     const tags = tagsFor(objectState);
+    const keywords = tags.map(tag => cleanName(tag).replace(/^Faction:\s*/i, '').trim()).filter(Boolean);
     const lines = description.split('\n').map(x => x.trim()).filter(Boolean);
     const statline = parseStatline(lines) || {};
     const invMatch = description.match(/Invulnerable Save:\s*(\d)\+/i) || description.match(/(\d)\+\s*Invulnerable Save/i);
@@ -232,7 +233,9 @@
       _unitKey: unitKey,
       _groupId: uuidFromTags(tags) || `ungrouped-${index}`,
       _isLeaderModel: tags.some(t => /^leaderModel$/i.test(t)),
+      _isCharacterModel: tags.some(t => /^character$/i.test(t)),
       _tags: tags,
+      _keywords: keywords,
       _objectGuid: objectState?.GUID || '',
       _modelFingerprint: modelFingerprint(objectState),
       _points: null,
@@ -433,7 +436,9 @@
       _groupId: key,
       _children: ordered,
       _isAggregate: ordered.length > 1,
+      _isCharacterUnit: ordered.every(ch => !!(ch._isCharacterModel || ch._isCharacterUnit)),
       _tags: [...new Set([...sourceUnits, ...ordered].flatMap(ch => ch._tags || []))],
+      _keywords: [...new Set([...sourceUnits, ...ordered].flatMap(ch => ch._keywords || []))],
       _points: sumPointCosts(sourceUnits) ?? sumPointCosts(ordered),
       _enhancements: mergeMetadataEntries(
         sourceUnits.flatMap(unit => unit._enhancements || []),
@@ -758,6 +763,16 @@
     return (node?.categories || []).map(cat => String(cat?.name || '')).filter(Boolean);
   }
 
+  function keywordNamesFromCategories(node){
+    return categoryNames(node)
+      .map(name => cleanName(name).replace(/^Faction:\s*/i, '').trim())
+      .filter(Boolean);
+  }
+
+  function hasCharacterCategory(node){
+    return categoryNames(node).some(name => /\b(character|epic hero)\b/i.test(name));
+  }
+
   function costValue(node, namePattern){
     return (node?.costs || [])
       .filter(cost => namePattern.test(String(cost?.name || cost?.typeId || '')))
@@ -826,8 +841,17 @@
       .filter(Boolean);
   }
 
+  function ruleNamesFromNode(node){
+    return (node?.rules || [])
+      .map(rule => cleanProfileName(rule?.name))
+      .filter(name => name && (window.AbilityModifierService?.modifiersForRule(name).length));
+  }
+
   function abilityNamesFromTree(node){
-    return [...new Set([node, ...getAllSelections(node)].flatMap(item => abilityNamesFromProfiles(item?.profiles || [])))];
+    return [...new Set([node, ...getAllSelections(node)].flatMap(item => [
+      ...ruleNamesFromNode(item),
+      ...abilityNamesFromProfiles(item?.profiles || []),
+    ]))];
   }
 
   function modifiersFromWeaponNode(node, profile){
@@ -903,6 +927,8 @@
     const categories = categoryNames(selection);
     if(categories.some(name => /^configuration$/i.test(name))) return null;
     if(!['unit', 'model'].includes(selection?.type)) return null;
+    const selectionIsCharacter = hasCharacterCategory(selection);
+    const selectionKeywords = keywordNamesFromCategories(selection);
 
     const parentModelCount = modelCountForSelection(selection);
     const parentDefense = defenseFromProfile(unitProfileFromNode(selection), parentModelCount);
@@ -911,6 +937,8 @@
     const children = modelSelections.flatMap((model, modelIndex) => {
       const count = Math.max(1, parseInt(model?.number ?? 1, 10) || 1);
       const baseLabel = cleanName(model?.name) || `Model ${modelIndex + 1}`;
+      const modelIsCharacter = selectionIsCharacter || hasCharacterCategory(model);
+      const modelKeywords = [...new Set([...selectionKeywords, ...keywordNamesFromCategories(model)])];
       return Array.from({ length: count }, (_, instanceIndex) => ({
         label: count > 1 ? `${baseLabel} ${instanceIndex + 1}` : baseLabel,
         weapons: weaponProfilesFromTree(
@@ -926,6 +954,8 @@
         _modelGroupKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}`,
         _modelGroupCount: count,
         _isLeaderModel: (count === 1 || instanceIndex === 0) && (modelIndex === 0 || /champion|bloodhunter|plagueridden|gore hound/i.test(model?.name || '')),
+        _isCharacterModel: modelIsCharacter,
+        _keywords: modelKeywords,
         _points: null,
       }));
     });
@@ -968,6 +998,8 @@
       _groupId: key,
       _children: children,
       _isAggregate: children.length > 0,
+      _isCharacterUnit: selectionIsCharacter,
+      _keywords: selectionKeywords,
       _points: points || null,
       _enhancements: enhancementList,
     });
@@ -1055,12 +1087,16 @@
       abilities: [...(unit?.abilities || [])],
       _children: (unit?.children || unit?._children || []).map(parseMatchupImportUnit),
       _tags: [...(unit?._tags || [])],
+      _keywords: [...(unit?.keywords || unit?._keywords || [])],
       _points: unit?.points ?? unit?._points ?? null,
       _enhancements: (unit?.enhancements || unit?._enhancements || []).map(enh => ({ ...enh })),
       _upgrades: (unit?.upgrades || unit?._upgrades || []).map(upgrade => ({ ...upgrade })),
       _unitKey: String(unit?.key || unit?._unitKey || unit?.viewKey || unit?.label || Math.random()),
       _groupId: String(unit?._groupId || unit?.key || unit?._unitKey || unit?.label || Math.random()),
       _isAggregate: (unit?.children || unit?._children || []).length > 0,
+      _isCharacterUnit: !!(unit?._isCharacterUnit || unit?.isCharacterUnit || unit?.isCharacter),
+      _isCharacterModel: !!(unit?._isCharacterModel || unit?.isCharacterModel || unit?.isCharacter),
+      _isLeaderModel: !!unit?._isLeaderModel,
       source: unit?.source || 'Matchup roster import',
     });
   }
@@ -1103,9 +1139,13 @@
       abilities: [...(unit.abilities || [])],
       _children: (unit._children || []).map(cloneUnit),
       _tags: [...(unit._tags || [])],
+      _keywords: [...(unit._keywords || [])],
       _points: unit._points ?? null,
       _enhancements: (unit._enhancements || []).map(enh => ({ ...enh })),
       _upgrades: (unit._upgrades || []).map(upgrade => ({ ...upgrade })),
+      _isCharacterUnit: !!unit._isCharacterUnit,
+      _isCharacterModel: !!unit._isCharacterModel,
+      _isLeaderModel: !!unit._isLeaderModel,
     };
   }
 

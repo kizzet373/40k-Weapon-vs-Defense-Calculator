@@ -191,6 +191,12 @@ details summary{cursor:pointer}
   box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;overscroll-behavior:contain
 }
 .modalWide{max-width:1400px}
+.modalSmall{max-width:720px}
+.formulaOverlay{z-index:80}
+.formulaBody{max-height:70vh}
+.formulaLine{font-size:12px;line-height:1.35;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.formulaLine:last-child{border-bottom:0}
+.formulaPrimary{font-size:15px;font-weight:900;color:var(--accent)}
 .modalWide[aria-label="Unit matchups"]{width:calc(100vw - 12px);max-width:1600px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:12px}
 .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}
 .modalBody{padding:12px 14px;overflow:auto;min-height:0;overscroll-behavior:contain}
@@ -255,6 +261,8 @@ details summary{cursor:pointer}
 .matchupGrid tr:last-child td,.matchupGrid tr:last-child th{border-bottom:0}
 .matchupGrid th:last-child,.matchupGrid td:last-child{border-right:0}
 .matchupCell{height:56px;text-align:center}
+.matchupCellValueButton{display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:inherit;padding:0;margin:0;cursor:pointer;border-radius:6px}
+.matchupCellValueButton:hover{outline:2px solid rgba(7,16,22,.28);outline-offset:2px}
 .matchupCellValue{font-weight:900;font-size:18px;line-height:1.1}
 .matchupCellNote{font-size:11px;line-height:1.2;margin-top:4px;color:rgba(7,16,22,.78);white-space:normal;overflow-wrap:anywhere;word-break:normal}
 .childMatchupRow .stickyCol,.matchupGrid thead th.childMatchupCol{background:rgba(34,55,82,.98)}
@@ -343,6 +351,10 @@ details summary{cursor:pointer}
 }
 .toggleLine input{width:auto}
 .abilityToggleLine{margin:4px 0}
+.compactToggleLine{padding:6px 8px;font-size:12px;white-space:nowrap}
+.profileRuleBlock{margin-bottom:8px}
+.profileRuleModifiers{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0 26px}
+.profileRuleModifiers .modifier{font-size:11px}
 
 @media (max-width: 800px) {
   .matchupControls{grid-template-columns:1fr}
