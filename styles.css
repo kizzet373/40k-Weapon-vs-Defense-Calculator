@@ -173,11 +173,17 @@ details summary{cursor:pointer}
 .footer{opacity:.7;margin-top:12px}
 
 /* --- Keyword tag row tweaks --- */
+.modifierAddRow{gap:8px;align-items:flex-end;flex-wrap:nowrap}
+.modifierSelectLabel{flex:1 1 auto;min-width:0}
+.modifierSelectLabel select{width:100%;min-width:0}
+.modifierValueLabel{flex:0 0 180px;min-width:180px}
+.modifierValueLabel input,.modifierValueLabel select{flex:1 1 74px;width:74px;min-width:0;box-sizing:border-box}
 .kwValueRow{
   display:flex;
   align-items:center;
   gap:8px;
 }
+.kwValueRow button{flex:0 0 auto}
 .tagPill{
   margin:0 6px 6px 0;
   display:inline-flex;
