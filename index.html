@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=matchup-three-field-row">
+  <link rel="stylesheet" href="styles.css?v=sidebar-arrow-high-contrast">
   <script defer src="calculator-core.js"></script>
   <script defer src="ability-modifiers.js"></script>
   <script defer src="matchup-engine.js"></script>
@@ -18,21 +18,24 @@
   <aside id="sidebar">
     <div class="asideHead">
       <h1>Army Loader</h1>
-      <button type="button" class="secondary iconBtn" aria-controls="sidebar" :aria-expanded="(!sidebarCollapsed).toString()" x-text="sidebarCollapsed ? '⟩' : '⟨'" @click="sidebarCollapsed = !sidebarCollapsed"
+      <button type="button" class="secondary iconBtn" aria-controls="sidebar" :aria-expanded="(!sidebarCollapsed).toString()" x-text="sidebarCollapsed ? '❯' : '❮'" @click="sidebarCollapsed = !sidebarCollapsed"
       ></button>
     </div>
 
     <div class="card">
       <div class="row importArmyRow">
         <input class="hiddenFileInput" type="file" accept=".json" x-ref="rosterFileInput" @change="onRosterFile($event)" />
-        <button class="primary" type="button" @click="importRoster()">Import Army</button>
+        <button class="primary" type="button" @click="$refs?.rosterFileInput?.click?.()">Import Army File</button>
         <span class="importStatus" :class="importStatus.type" x-show="importStatus.text" x-text="importStatus.text"></span>
       </div>
 
-      <label>
-        Paste JSON (optional)
-        <textarea x-model="jsonPaste" rows="6" placeholder="Paste roster JSON here, or leave blank to import a file"></textarea>
-      </label>
+      <div class="pasteJsonRow">
+        <label class="pasteJsonLabel">
+          Paste JSON (optional)
+          <textarea x-model="jsonPaste" rows="6" placeholder="Paste roster JSON here"></textarea>
+        </label>
+        <button class="secondary pasteJsonSubmit" type="button" @click="loadPastedRoster()">Submit</button>
+      </div>
 
       <div class="row">
         <label>
@@ -188,10 +191,10 @@
   </aside>
 
   <button type="button" class="secondary sidebarHandle" aria-controls="sidebar" :aria-expanded="(!sidebarCollapsed).toString()" @click="sidebarCollapsed = false"
-  > ⟩ </button>
+  > ❯ </button>
 
   <main>
-    <h1 style="padding-left:15px">Weapon vs Defense Calculator</h1>
+    <h1 style="padding-left:35px">Weapon vs Defense Calculator</h1>
 
     <div class="grid">
       <!-- Weapon -->
