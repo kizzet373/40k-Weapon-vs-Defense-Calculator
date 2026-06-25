@@ -210,6 +210,25 @@ assert.strictEqual(
   JSON.stringify(['Choose Best: Lethal Hits; Sustained Hits 1']),
   'profile modal can list mapped modifiers under abilities'
 );
+assert.strictEqual(JSON.stringify(app.weaponKeywordList({ modifiers: 'Torrent, Ignores Cover' })), JSON.stringify(['Torrent', 'Ignores Cover']), 'main page weapon keyword rows split imported modifiers');
+const mixedMainPageDefense = {
+  label: 'Mixed defense unit',
+  defense: { T: 5, Sv: 2, Inv: 4, W: 4, models: 4, totalWounds: 15 },
+  _children: [
+    { label: 'Shield models', defense: { T: 5, Sv: 2, Inv: 4, W: 4, models: 3 } },
+    { label: 'Pack leader', defense: { T: 5, Sv: 2, Inv: 4, W: 3, models: 1 } },
+  ],
+};
+const mixedMainPageDefenseHtml = app.renderUnitDefenseProfiles(mixedMainPageDefense);
+assert.ok(/T5 - 2\+ 4\+\+ - W4 - 3 models/.test(mixedMainPageDefenseHtml), 'main page defense panel renders the first unique child defensive profile');
+assert.ok(/T5 - 2\+ 4\+\+ - W3 - 1 models/.test(mixedMainPageDefenseHtml), 'main page defense panel renders additional unique child defensive profiles');
+app.defense.Inv = 4;
+app.defense.Fnp = 5;
+app.units = [{ label: 'No invulnerable', defense: { T: 4, Sv: 3, Inv: null, W: 2, models: 1 } }];
+app.selectedUnitIdx = 0;
+app.loadSelectedDefenseIntoForm();
+assert.strictEqual(app.defense.Inv, '', 'loading a selected defense clears a stale invulnerable save when the new unit lacks one');
+assert.strictEqual(app.defense.Fnp, '', 'loading a selected defense clears stale FNP when the new unit lacks one');
 const modifiedDefenseLine = app.matchupDefenseProfileLine(
   app.applyDefenseModifiers(
     { T: 4, Sv: 3, Inv: 5, W: 2, models: 1 },

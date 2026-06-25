@@ -244,6 +244,10 @@ function weaponVsDefenseApp(){
       return this.activeUnit?.weapons || [];
     },
 
+    weaponKeywordList(w){
+      return window.ArmyImportService?.splitModifiers(w?.modifiers) || [];
+    },
+
     get activeForce(){
       return this.forces?.[this.selectedForceIdx] || null;
     },
@@ -2385,18 +2389,29 @@ function weaponVsDefenseApp(){
       const u = this.activeUnit;
       if(!u){ alert('No unit selected.'); return; }
       const def = u.defense || {};
-      if(def.T != null) this.defense.T = def.T;
-      if(def.Sv) this.defense.Sv = def.Sv;
-      if(def.Inv) this.defense.Inv = def.Inv;
-      if(def.W != null) this.defense.W = def.W;
-      if(def.models != null) this.defense.models = def.models;
+      this.defense.T = def.T ?? '';
+      this.defense.Sv = def.Sv ?? '';
+      this.defense.Inv = def.Inv ?? '';
+      this.defense.W = def.W ?? '';
+      this.defense.Fnp = def.Fnp ?? '';
+      this.defense.DR = def.DR ?? 0;
+      this.defense.models = def.models ?? 1;
     },
 
     renderDefensePills(def){
       if(!def) return '<div class="muted">No defensive data.</div>';
       const p = (label, v, suffix='') => (v!=null && v!=='') ? `<span class="pill">${label}: ${v}${suffix}</span>` : '';
-      const html = [p('T', def.T), p('Save', def.Sv), p('Inv', def.Inv), p('W', def.W)].filter(Boolean).join(' ');
+      const html = [p('T', def.T), p('Save', def.Sv), p('Inv', def.Inv), p('W', def.W), p('FNP', def.Fnp, '+'), p('Models', def.models)].filter(Boolean).join(' ');
       return html || '<div class="muted">No defensive data.</div>';
+    },
+
+    renderUnitDefenseProfiles(unit){
+      if(!unit) return '<div class="muted">No defensive data.</div>';
+      const lines = this.matchupDefenseProfileLines(unit);
+      if(!lines.length) return this.renderDefensePills(unit.defense);
+      return `<div class="defenseProfileList">${
+        lines.map(line => `<div class="defenseProfileLine">${this.htmlCell(line)}</div>`).join('')
+      }</div>`;
     },
 
     // ---------------- Output helpers ----------------
