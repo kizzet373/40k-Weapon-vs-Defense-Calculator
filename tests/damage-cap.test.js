@@ -920,20 +920,28 @@ assert.strictEqual(JSON.stringify(app.matchupDefenseProfileLines(mixedDefender))
   'T5 | 2+ 4++ | W3 | 1 models',
 ]), 'mixed defender headers show each unique defensive profile on its own line');
 
-assert.strictEqual(app.matchupSideSortLabel('attacker'), 'DESC', 'attacker sort defaults to best overall damage first');
-assert.strictEqual(app.matchupSideSortLabel('defender'), 'DESC', 'defender sort defaults to best overall incoming damage first');
+assert.strictEqual(app.matchup.sortAttackers, 'score', 'attacker sort defaults to Score');
+assert.strictEqual(app.matchup.sortDefenders, 'score', 'defender sort defaults to Score');
+assert.strictEqual(app.matchupSideSortLabel('attacker'), '↓', 'attacker sort button defaults to descending arrow');
+assert.strictEqual(app.matchupSideSortLabel('defender'), '↓', 'defender sort button defaults to descending arrow');
 app.cycleMatchupSideSort('attacker');
-assert.strictEqual(app.matchupSideSortLabel('attacker'), 'ASC', 'attacker sort cycles from DESC to ASC');
+assert.strictEqual(app.matchupSideSortLabel('attacker'), '↑', 'attacker sort button toggles from desc to asc');
 app.cycleMatchupSideSort('attacker');
-assert.strictEqual(app.matchupSideSortLabel('attacker'), 'A-Z', 'attacker sort cycles from ASC to A-Z');
-app.cycleMatchupSideSort('attacker');
-assert.strictEqual(app.matchupSideSortLabel('attacker'), 'DESC', 'attacker sort cycles from A-Z back to default DESC');
+assert.strictEqual(app.matchupSideSortLabel('attacker'), '↓', 'attacker sort button toggles from asc back to desc');
+app.setMatchupSideSortMode('attacker', 'overallDamage');
+assert.strictEqual(app.matchup.sortAttackers, 'overallDamage', 'attacker dropdown can sort by Total');
+app.setMatchupSideSortMode('attacker', 'alpha');
+assert.strictEqual(app.matchup.sortAttackers, 'alpha', 'attacker dropdown can sort by Name');
 app.cycleMatchupSideSort('defender');
-assert.strictEqual(app.matchupSideSortLabel('defender'), 'ASC', 'defender sort cycles from DESC to ASC');
+assert.strictEqual(app.matchupSideSortLabel('defender'), '↑', 'defender sort button toggles from desc to asc');
 app.cycleMatchupSideSort('defender');
-assert.strictEqual(app.matchupSideSortLabel('defender'), 'A-Z', 'defender sort cycles from ASC to A-Z');
-app.cycleMatchupSideSort('defender');
-assert.strictEqual(app.matchupSideSortLabel('defender'), 'DESC', 'defender sort cycles from A-Z back to DESC');
+assert.strictEqual(app.matchupSideSortLabel('defender'), '↓', 'defender sort button toggles from asc back to desc');
+app.setMatchupSideSortMode('defender', 'overallDamage');
+assert.strictEqual(app.matchup.sortDefenders, 'overallDamage', 'defender dropdown can sort by Total');
+app.setMatchupSideSortMode('defender', 'alpha');
+assert.strictEqual(app.matchup.sortDefenders, 'alpha', 'defender dropdown can sort by Name');
+app.setMatchupSideSortMode('attacker', 'score');
+app.setMatchupSideSortMode('defender', 'score');
 
 const profileScoreAttacker = {
   label: 'Profile score attacker',
