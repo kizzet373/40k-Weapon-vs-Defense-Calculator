@@ -508,7 +508,7 @@
                           </span>
                           <span class="profileMetaText" x-text="matchupHeaderMeta(col.unit, 'defender')"></span>
                           <template x-for="line in matchupDefenseProfileLines(col.unit)" :key="line">
-                            <span class="muted matchupDefenseText" x-text="line"></span>
+                            <span class="muted matchupDefenseText" x-html="defenseProfileLineHtml(line)"></span>
                           </template>
                         </button>
                         <button type="button" class="expandButton eyeButton" x-show="!col.isChild && hasChildUnits(col.unit)" @click="toggleUnitExpanded(col.unit)" :title="isUnitExpanded(col.unit) ? 'Hide models' : 'Show models'">
@@ -624,7 +624,7 @@
             <span style="font-weight:800" x-text="profileModalRole ? `${profileModalRole}: ${unitLabelText(profileUnit)}` : unitLabelText(profileUnit)"></span>
             <span class="profilePointsText" x-show="unitPointsText(profileUnit)" x-text="unitPointsText(profileUnit)"></span>
           </div>
-          <div class="muted" style="font-size:12px" x-text="matchupDefenseLabel(profileUnit)"></div>
+          <div class="muted" style="font-size:12px" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(profileUnit))"></div>
           <div class="profileScoreSummary">
             <div x-text="profileOffensiveScoreText(profileUnit)"></div>
             <div>
@@ -714,7 +714,7 @@
                 <span class="profileNameText" x-text="unitLabelText(child, `Model ${ci+1}`)"></span>
                 <span class="profilePointsText" x-show="unitPointsText(child)" x-text="unitPointsText(child)"></span>
               </button>
-              <div class="muted" style="font-size:12px" x-text="`${matchupDefenseLabel(child)} · ${matchupWeaponSummary(child)}`"></div>
+              <div class="muted" style="font-size:12px" x-html="profileChildSummaryHtml(child)"></div>
             </div>
           </template>
 

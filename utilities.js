@@ -508,21 +508,26 @@ function weaponVsDefenseApp(){
 
     matchupDefenseLabel(u){
       const d = this.effectiveDefense(u);
-      const t = (d.T!=null) ? `T${d.T}` : '';
-      const saves = [
-        (d.Sv!=null && d.Sv!=='') ? `${d.Sv}+` : '',
-        (d.Inv!=null && d.Inv!=='') ? `${d.Inv}++` : '',
-      ].filter(Boolean).join(' ');
-      const w = (d.W!=null) ? `W${d.W}` : '';
-      const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
-      const cover = d.cover ? 'Cover' : '';
-      const models = d.models ?? u?.size ?? null;
-      const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' - ');
+      return this.matchupDefenseProfileLine(d, d.models ?? u?.size ?? null);
     },
 
     matchupDefenseHeaderLabel(u){
       return this.matchupDefenseProfileLines(u).join('\n');
+    },
+
+    defenseProfileLineHtml(line){
+      return this.htmlCell(line).replace(/\s\|\s/g, ' <span class="defenseProfileSeparator">|</span> ');
+    },
+
+    defenseProfileTextHtml(text){
+      return String(text || '')
+        .split('\n')
+        .map(line => this.defenseProfileLineHtml(line))
+        .join('<br>');
+    },
+
+    profileChildSummaryHtml(child){
+      return `${this.defenseProfileTextHtml(this.matchupDefenseHeaderLabel(child))} <span class="profileSummarySeparator">·</span> ${this.htmlCell(this.matchupWeaponSummary(child))}`;
     },
 
     matchupDefenseProfileLines(u){
@@ -556,7 +561,7 @@ function weaponVsDefenseApp(){
     changedDefensePart(label, effective, base, formatter=value => String(value)){
       if(effective == null || effective === '') return '';
       const effectiveText = formatter(effective);
-      if(base == null || base === '') return `${effectiveText} added`;
+      if(base == null || base === '') return `${label}${effectiveText}`;
       const baseText = formatter(base);
       if(String(effectiveText) === String(baseText)) return `${label}${effectiveText}`;
       const effectiveNumber = parseFloat(effective);
@@ -576,10 +581,10 @@ function weaponVsDefenseApp(){
       const saves = [sv, inv].filter(Boolean).join(' ');
       const w = (d.W!=null) ? this.changedDefensePart('W', d.W, base.W) : '';
       const fnp = (d.Fnp!=null && d.Fnp!=='') ? this.changedDefensePart('FNP ', d.Fnp, base.Fnp, value => `${value}+`) : '';
-      const cover = d.cover ? (base.cover ? 'Cover' : 'Cover added') : '';
+      const cover = d.cover ? 'Cover' : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' - ');
+      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' | ');
     },
 
     matchupDefenseProfileLine(d, modelsOverride=null){
@@ -593,7 +598,7 @@ function weaponVsDefenseApp(){
       const cover = d.cover ? 'Cover' : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' - ');
+      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' | ');
     },
 
     matchupWeaponSummary(u){
@@ -2942,9 +2947,8 @@ function weaponVsDefenseApp(){
 
     renderDefensePills(def){
       if(!def) return '<div class="muted">No defensive data.</div>';
-      const p = (label, v, suffix='') => (v!=null && v!=='') ? `<span class="pill">${label}: ${v}${suffix}</span>` : '';
-      const html = [p('T', def.T), p('Save', def.Sv), p('Inv', def.Inv), p('W', def.W), p('FNP', def.Fnp, '+'), p('Models', def.models)].filter(Boolean).join(' ');
-      return html || '<div class="muted">No defensive data.</div>';
+      const line = this.matchupDefenseProfileLine(def, def.models ?? null);
+      return line ? `<div class="defenseProfileLine">${this.defenseProfileLineHtml(line)}</div>` : '<div class="muted">No defensive data.</div>';
     },
 
     unitDefenseModifierList(unit){
@@ -2969,7 +2973,7 @@ function weaponVsDefenseApp(){
         : '';
       if(!lines.length) return `${this.renderDefensePills(this.effectiveDefense(unit))}${modifierHtml}`;
       return `<div class="defenseProfileList">${
-        lines.map(line => `<div class="defenseProfileLine">${this.htmlCell(line)}</div>`).join('')
+        lines.map(line => `<div class="defenseProfileLine">${this.defenseProfileLineHtml(line)}</div>`).join('')
       }</div>${modifierHtml}`;
     },
 

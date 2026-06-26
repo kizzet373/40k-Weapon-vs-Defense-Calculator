@@ -357,8 +357,8 @@ const mixedMainPageDefense = {
   ],
 };
 const mixedMainPageDefenseHtml = app.renderUnitDefenseProfiles(mixedMainPageDefense);
-assert.ok(/T5 - 2\+ 4\+\+ - W4 - 3 models/.test(mixedMainPageDefenseHtml), 'main page defense panel renders the first unique child defensive profile');
-assert.ok(/T5 - 2\+ 4\+\+ - W3 - 1 models/.test(mixedMainPageDefenseHtml), 'main page defense panel renders additional unique child defensive profiles');
+assert.ok(/T5.*defenseProfileSeparator.*2\+ 4\+\+.*defenseProfileSeparator.*W4.*defenseProfileSeparator.*3 models/.test(mixedMainPageDefenseHtml), 'main page defense panel renders the first unique child defensive profile');
+assert.ok(/T5.*defenseProfileSeparator.*2\+ 4\+\+.*defenseProfileSeparator.*W3.*defenseProfileSeparator.*1 models/.test(mixedMainPageDefenseHtml), 'main page defense panel renders additional unique child defensive profiles');
 app.defense.Inv = 4;
 app.defense.Fnp = 5;
 app.units = [{ label: 'No invulnerable', defense: { T: 4, Sv: 3, Inv: null, W: 2, models: 1 } }];
@@ -373,15 +373,16 @@ const modifiedDefenseLine = app.matchupDefenseProfileLine(
   ),
   1
 );
-assert.strictEqual(modifiedDefenseLine, 'T5 - 2+ 5++ - W2 - FNP 5+ - 1 models', 'defensive modifiers and FNP are reflected in header formatting');
+assert.strictEqual(modifiedDefenseLine, 'T5 | 2+ 5++ | W2 | FNP 5+ | 1 models', 'defensive modifiers and FNP are reflected in header formatting');
 const stealthTarget = { label: 'Stealth target', abilities: ['Stealth'], defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 }, _unitKey: 'stealth-target' };
 assert.strictEqual(app.effectiveDefense(stealthTarget).cover, true, 'Stealth gives the unit cover in its effective defensive profile');
-assert.strictEqual(app.matchupDefenseProfileLine(app.effectiveDefense(stealthTarget), 1), 'T4 - 4+ - W2 - Cover - 1 models', 'cover is reflected in defensive profile text');
+assert.strictEqual(app.matchupDefenseProfileLine(app.effectiveDefense(stealthTarget), 1), 'T4 | 4+ | W2 | Cover | 1 models', 'cover is reflected in defensive profile text');
 const faithfulFlockTarget = { label: 'Faithful Flock target', abilities: ['Faithful Flock'], defense: { T: 3, Sv: 7, W: 1, models: 10 }, _unitKey: 'faithful-flock' };
 const faithfulDefenseHtml = app.renderUnitDefenseProfiles(faithfulFlockTarget);
 assert.ok(/5\+\+/.test(faithfulDefenseHtml), 'main defense profile display includes ability-granted invulnerable saves');
 assert.ok(/Invulnerable Save 5\+/.test(faithfulDefenseHtml), 'main defense profile display lists the active defensive modifier');
-assert.ok(/5\+\+ added/.test(app.matchupDefenseHeaderLabel(faithfulFlockTarget)), 'grid defensive profile headers visually mark added saves');
+assert.ok(/5\+\+/.test(app.matchupDefenseHeaderLabel(faithfulFlockTarget)), 'grid defensive profile headers include ability-granted saves');
+assert.ok(!/added/i.test(app.matchupDefenseHeaderLabel(faithfulFlockTarget)), 'grid defensive profile headers do not append added text');
 app.units = [faithfulFlockTarget];
 app.selectedUnitIdx = 0;
 app.loadSelectedDefenseIntoForm();
@@ -696,9 +697,9 @@ const mixedDefender = {
   ],
 };
 assert.strictEqual(JSON.stringify(app.matchupDefenseProfileLines(mixedDefender)), JSON.stringify([
-  'T5 - 2+ 4++ - W4 - 3 models',
-  'T5 - 2+ 4++ - W8 - 1 models',
-  'T5 - 2+ 4++ - W3 - 1 models',
+  'T5 | 2+ 4++ | W4 | 3 models',
+  'T5 | 2+ 4++ | W8 | 1 models',
+  'T5 | 2+ 4++ | W3 | 1 models',
 ]), 'mixed defender headers show each unique defensive profile on its own line');
 
 assert.strictEqual(app.matchupSideSortLabel('attacker'), 'DESC', 'attacker sort defaults to best overall damage first');

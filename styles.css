@@ -326,6 +326,15 @@ th,td{border-bottom:1px solid #1b2636;padding:6px 8px;text-align:left}
   border-radius:8px;
   background:#0f141c;
 }
+.defenseProfileSeparator{
+  color:#7dd3fc;
+  font-weight:900;
+}
+.profileSummarySeparator{
+  color:#7dd3fc;
+  font-weight:900;
+  padding:0 2px;
+}
 .defenseProfileModifiers{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .defenseProfileModifiers .modifier{margin-right:0}
 
