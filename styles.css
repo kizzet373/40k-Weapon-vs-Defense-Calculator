@@ -512,7 +512,7 @@ details summary{cursor:pointer}
   white-space:nowrap
 }
 .attackerCornerLabel{left:0;bottom:7px;text-align:left}
-.defenderCornerLabel{right:99px;top:7px;text-align:right}
+.defenderCornerLabel{right:0;top:7px;text-align:right}
 .cornerSortSelect{
   position:absolute;
   height:28px;
@@ -524,11 +524,11 @@ details summary{cursor:pointer}
   color:var(--fg);
   font-size:11px
 }
-.attackerSortSelect{left:58px;bottom:0;transform:none}
-.defenderSortSelect{right:32px;top:0}
+.attackerSortSelect{left:42px;bottom:0;transform:none}
+.defenderSortSelect{right:76px;top:0}
 .sortIconButton.cornerSortButton{position:absolute;width:28px;height:28px;min-width:28px;padding:0;font-size:16px;font-weight:800}
-.attackerSortButton{left:128px;bottom:0;transform:none}
-.defenderSortButton{right:0;top:0;transform:none}
+.attackerSortButton{left:112px;bottom:0;transform:none}
+.defenderSortButton{right:42px;top:0;transform:none}
 .sortIconButton{
   width:28px;
   height:28px;
