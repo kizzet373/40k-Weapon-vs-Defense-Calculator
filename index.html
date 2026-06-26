@@ -440,10 +440,6 @@
               </select>
             </label>
 
-            <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')">
-              Combine shooting profiles
-            </button>
-
             <label class="toggleLine compactToggleLine">
               <input type="checkbox" :checked="matchup.conditionsMet" @change="setMatchupRecomputeOption('conditionsMet', $event.target.checked)" />
               <span>Conditions Met</span>
@@ -451,6 +447,9 @@
 
             <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">
               Shooting
+            </button>
+            <button type="button" class="seg" :class="!matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')" title="Split shooting and melee into separate rows/columns">
+              &lt; Split &gt;
             </button>
             <button type="button" class="seg" :class="matchup.showMelee ? 'active' : ''" @click="toggleMatchupRecomputeOption('showMelee')">
               Melee
