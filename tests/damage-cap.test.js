@@ -271,6 +271,9 @@ assert.strictEqual(
   JSON.stringify(['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1']),
   "Disciples of Be'lakor maps to the same always-on best Dark Pacts modifier"
 );
+const veteransModifierList = app.unitAbilityModifierNames('Veterans of the Long War');
+assert.ok(veteransModifierList.includes('Conditional | Melee: Reroll Wounds'), 'Veterans of the Long War uses the generic conditional gate for full wound rerolls');
+assert.ok(!veteransModifierList.some(mod => /Target On Objective/i.test(mod)), 'Veterans of the Long War does not expose bespoke objective-condition wording');
 const disciplesImportApp = context.weaponVsDefenseApp();
 disciplesImportApp.addRoster({
   roster: {
@@ -742,6 +745,23 @@ const kingsguard = { label: 'Arjac', abilities: ['Champion of The Kingsguard'], 
 const kingsguardHammer = { name: 'Foehammer', range: 'Melee', A: '5', skill: '2', S: '8', AP: '2', D: '3', modifiers: '', mode: 'melee', _weaponKey: 'foehammer' };
 assert.ok(/Reroll Hits/i.test(app.effectiveWeaponModifiers(kingsguardHammer, kingsguard, { label: 'Enemy Character', _keywords: ['Character'], defense: { T: 5, Sv: 2, W: 6, models: 1 } })), 'Champion of The Kingsguard applies into Character targets');
 assert.ok(!/Reroll Hits/i.test(app.effectiveWeaponModifiers(kingsguardHammer, kingsguard, { label: 'Enemy unit', _keywords: ['Infantry'], defense: { T: 5, Sv: 2, W: 3, models: 1 } })), 'Champion of The Kingsguard does not apply into non-Character targets');
+
+const veterans = { label: 'Legionaries', abilities: ['Veterans of the Long War'], weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 5 }, _unitKey: 'veterans' };
+const veteransSword = { name: 'Chainsword', range: 'Melee', A: '10', skill: '3', S: '4', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'veterans-sword' };
+const veteransGun = { name: 'Boltgun', range: '24', A: '10', skill: '3', S: '4', AP: '0', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'veterans-gun' };
+const veteransTarget = { label: 'Enemy unit', _keywords: ['Infantry'], defense: { T: 5, Sv: 3, W: 2, models: 5, totalWounds: 10 }, _unitKey: 'veterans-target' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+assert.ok(/Reroll Wounds 1/i.test(app.effectiveWeaponModifiers(veteransSword, veterans, veteransTarget)), 'Veterans of the Long War applies melee wound rerolls of 1 by default');
+assert.ok(!/Reroll Wounds/i.test(app.effectiveWeaponModifiers(veteransGun, veterans, veteransTarget)), 'Veterans of the Long War melee rerolls do not apply to ranged weapons');
+const veteransBaseDamage = app.computeMatchupCell({ ...veterans, abilities: [], weapons: [veteransSword], _unitKey: 'veterans-base' }, veteransTarget).dmg;
+const veteransRerollOnesDamage = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget).dmg;
+assert.ok(veteransRerollOnesDamage > veteransBaseDamage, 'Veterans of the Long War wound rerolls increase melee damage');
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+assert.ok(/Reroll Wounds\b/i.test(app.effectiveWeaponModifiers(veteransSword, veterans, veteransTarget)), 'Veterans of the Long War applies full melee wound rerolls when Conditions Met is enabled');
+const veteransFullRerollDamage = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget).dmg;
+assert.ok(veteransFullRerollDamage > veteransRerollOnesDamage, 'Veterans of the Long War full conditional wound rerolls increase melee damage beyond rerolling ones');
 
 const braggart = { label: 'Battle Leader', abilities: ['Braggart’s Steel'], weapons: [], defense: { T: 4, Sv: 3, W: 4, models: 1 }, _unitKey: 'braggart' };
 const braggartBlade = { name: 'Master-crafted power weapon', range: 'Melee', A: '4', skill: '3', S: '5', AP: '2', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'braggart-blade' };

@@ -54,7 +54,7 @@
     'Prescience (Psychic)': ['Unit-wide | Defense Attack: Hit Rolls -1'],
     'Faithful Flock': ['Unit-wide | Defense: Invulnerable Save 5+'],
     'Formidably Resilient': ['Defense Attack: Damage /2'],
-    'Veterans of the Long War': ['Melee: Reroll Wounds 1', 'Conditional | Target On Objective | Melee: Reroll Wounds'],
+    'Veterans of the Long War': ['Melee: Reroll Wounds 1', 'Conditional | Melee: Reroll Wounds'],
     'Despoilers': ['Conditional | Reroll Hits'],
     'Stabilisation Talons': ['Ranged: Ignore Hit Penalties'],
 

@@ -2502,6 +2502,20 @@ function weaponVsDefenseApp(){
       return !hasPenalty;
     },
 
+    modifierAppliesToWeaponMode(modifier, weapon){
+      if(!weapon) return true;
+      const mode = String(weapon?.mode || '').toLowerCase();
+      const text = String(modifier || '').trim();
+      if(/^Melee\s*:/i.test(text)) return mode === 'melee';
+      if(/^Ranged\s*:/i.test(text)) return mode === 'ranged';
+      return true;
+    },
+
+    modifierNamesForParsedSpec(parsed, context={}){
+      const modifiers = parsed?.modifiers || [];
+      return modifiers.filter(mod => this.modifierAppliesToWeaponMode(mod, context.weapon));
+    },
+
     modifiersFromRuleNames(ruleNames, context={}){
       const kind = context.kind || 'weapon';
       const cacheKey = [
@@ -2521,7 +2535,7 @@ function weaponVsDefenseApp(){
           const parsed = this.parsedModifierSpec(spec);
           if((parsed.meta?.kind || 'weapon') !== kind) return;
           if(!this.modifierSpecApplies(parsed, context)) return;
-          out.push(...(parsed.modifiers || []));
+          out.push(...this.modifierNamesForParsedSpec(parsed, context));
         });
       });
       const seen = new Set();
@@ -2542,7 +2556,7 @@ function weaponVsDefenseApp(){
         const parsed = this.parsedModifierSpec(spec);
         if((parsed.meta?.kind || 'weapon') !== kind) return;
         if(!this.modifierSpecApplies(parsed, context)) return;
-        out.push(...(parsed.modifiers || []));
+        out.push(...this.modifierNamesForParsedSpec(parsed, context));
       });
       const seen = new Set();
       return out.filter(mod => {
