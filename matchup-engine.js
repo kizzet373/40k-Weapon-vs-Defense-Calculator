@@ -109,6 +109,56 @@
     return aggregateProfiles(items).map(item => `${item.count}x ${item.name}`).join(', ');
   }
 
+  function fmtNumber(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return String(value ?? '');
+    return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
+  }
+
+  function changedProfileStats(weapon, modifierText){
+    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || '', weapon);
+    const diceMean = value => window.WeaponCalc.parseNdX(value).mean || 0;
+    const numeric = value => parseFloat(String(value ?? '').replace('+', ''));
+    const stats = [
+      ['A', diceMean(weapon?.A), diceMean(weapon?.A) + (kw.attacksAdd || 0), weapon?.A],
+      ['Skill', numeric(weapon?.skill) || 0, (numeric(weapon?.skill) || 0) + (kw.skillTargetMod || 0), weapon?.skill],
+      ['S', numeric(weapon?.S) || 0, (numeric(weapon?.S) || 0) + (kw.strengthAdd || 0), weapon?.S],
+      ['AP', Math.abs(numeric(weapon?.AP) || 0), Math.max(0, Math.abs(numeric(weapon?.AP) || 0) + (kw.apAdd || 0)), weapon?.AP],
+      ['D', diceMean(weapon?.D), diceMean(weapon?.D) + (kw.damageAdd || 0), weapon?.D],
+    ];
+    return stats
+      .filter(([, base, effective]) => Math.abs((effective || 0) - (base || 0)) > 1e-9)
+      .map(([label, base, effective, baseText]) => {
+        const delta = effective - base;
+        const sign = delta > 0 ? '+' : '';
+        return `${label} ${fmtNumber(effective)} from ${baseText ?? ''} (${sign}${fmtNumber(delta)})`;
+      });
+  }
+
+  function profileModifierEntries(weapon, modifierText){
+    const changes = changedProfileStats(weapon, modifierText);
+    if(!changes.length) return [];
+    return [{ name: weaponProfileLabel(weapon), text: changes.join(', ') }];
+  }
+
+  function formatProfileModifiers(entries){
+    const seen = new Set();
+    return (entries || [])
+      .map(entry => {
+        const name = String(entry?.name || '').trim();
+        const text = String(entry?.text || '').trim();
+        return text ? `${name}: ${text}` : '';
+      })
+      .filter(Boolean)
+      .filter(line => {
+        const key = line.toLowerCase();
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .join(' | ');
+  }
+
   function normalizeChoiceText(value){
     return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
@@ -143,6 +193,7 @@
       dmg: list.reduce((total, item) => total + (item?.dmg || 0), 0),
       kills: list.reduce((total, item) => total + (item?.kills || 0), 0),
       profilesUsed: aggregateProfiles(list.flatMap(item => item?.profilesUsed || [])),
+      profileModifiers: list.flatMap(item => item?.profileModifiers || []),
       formulaItems: list.flatMap(item => item?.formulaItems || (item?.formula ? [item.formula] : [])),
     };
   }
@@ -436,6 +487,11 @@
         ...childCells.flatMap(cell => cell?.profilesUsed || []),
         ...mortalItems.map(item => item.profile),
       ]);
+      const profileModifierText = childCells
+        .map(cell => cell?.profileModifierText)
+        .filter(Boolean)
+        .filter((text, index, list) => list.indexOf(text) === index)
+        .join(' | ');
       const formulaItems = options.includeFormula ? [
         ...childCells.flatMap(cell => cell?.formulaItems || []),
         ...mortalItems.map(item => mortalFormulaItem(item, defenderUnit)),
@@ -446,6 +502,7 @@
         pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
         pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
         weaponName: formatProfiles(profilesUsed),
+        profileModifierText,
         profilesUsed,
         ...(options.includeFormula ? { formulaItems } : {}),
       };
@@ -476,6 +533,7 @@
         weaponName: w.name || '',
         profileLabel: weaponProfileLabel(w),
         profilesUsed: [weaponProfileEntry(w)],
+        profileModifiers: profileModifierEntries(w, bestVariant?.text || modifierText),
         ...(options.includeFormula ? { formulaItems: [result.formula].filter(Boolean) } : {}),
         extraAttacks: !!kw.extraAttacks,
       };
@@ -508,6 +566,10 @@
           ...extraTotals.profilesUsed,
           ...mortalItems.map(item => item.profile),
         ]),
+        profileModifiers: [
+          ...(choice?.profileModifiers || []),
+          ...extraTotals.profileModifiers,
+        ],
         ...(options.includeFormula ? { formulaItems: [
           ...(choice?.formulaItems || []),
           ...extraTotals.formulaItems,
@@ -519,18 +581,21 @@
 
     let selectedProfiles = [];
     let selectedFormulaItems = [];
+    let selectedProfileModifiers = [];
     let dmg = 0;
     let kills = 0;
     if(options.combineShootingProfiles){
       dmg = shootingSelection.dmg + meleeSelection.dmg;
       kills = shootingSelection.kills + meleeSelection.kills;
       selectedProfiles = aggregateProfiles([...shootingSelection.profilesUsed, ...meleeSelection.profilesUsed]);
+      selectedProfileModifiers = [...(shootingSelection.profileModifiers || []), ...(meleeSelection.profileModifiers || [])];
       selectedFormulaItems = [...(shootingSelection.formulaItems || []), ...(meleeSelection.formulaItems || [])];
     }else{
       const selected = meleeSelection.dmg > shootingSelection.dmg ? meleeSelection : shootingSelection;
       dmg = selected.dmg || 0;
       kills = selected.kills || 0;
       selectedProfiles = selected.profilesUsed || [];
+      selectedProfileModifiers = selected.profileModifiers || [];
       selectedFormulaItems = selected.formulaItems || [];
     }
 
@@ -540,6 +605,7 @@
       pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
       pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
       weaponName: formatProfiles(selectedProfiles),
+      profileModifierText: formatProfileModifiers(selectedProfileModifiers),
       profilesUsed: aggregateProfiles(selectedProfiles),
       ...(options.includeFormula ? { formulaItems: selectedFormulaItems } : {}),
     };

@@ -306,6 +306,13 @@ th,td{border-bottom:1px solid #1b2636;padding:6px 8px;text-align:left}
 .weaponKeywordsLabel{display:inline-block;margin-right:8px;font-weight:700;color:var(--muted)}
 .weaponKeywordPills{display:inline-flex;gap:4px;flex-wrap:wrap;vertical-align:middle}
 .weaponKeywordPills .modifier{margin-right:0}
+.effectiveStatChanged{color:var(--accent);font-weight:800}
+.effectiveStatBase{display:block;color:var(--muted);font-size:10px;font-weight:600;line-height:1.1;white-space:nowrap}
+.profileWeaponStats{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;line-height:1.3}
+.profileWeaponEffectiveModifiers{margin-top:6px}
+.customModifierBox{display:grid;gap:6px;margin-bottom:12px}
+.customModifierRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.customModifierItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:6px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.025)}
 
 .defenseProfileList{display:grid;gap:6px}
 .defenseProfileLine{
@@ -317,6 +324,8 @@ th,td{border-bottom:1px solid #1b2636;padding:6px 8px;text-align:left}
   border-radius:8px;
   background:#0f141c;
 }
+.defenseProfileModifiers{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.defenseProfileModifiers .modifier{margin-right:0}
 
 .pill{
   display:inline-block;
@@ -473,6 +482,7 @@ details summary{cursor:pointer}
 .matchupCellValueButton:hover{outline:2px solid rgba(7,16,22,.28);outline-offset:2px}
 .matchupCellValue{font-weight:900;font-size:18px;line-height:1.1}
 .matchupCellNote{font-size:11px;line-height:1.2;margin-top:4px;color:rgba(7,16,22,.78);white-space:normal;overflow-wrap:anywhere;word-break:normal}
+.matchupCellModifiers{font-size:10px;line-height:1.2;margin-top:4px;color:rgba(7,16,22,.72);font-weight:700;white-space:normal;overflow-wrap:anywhere;word-break:normal}
 .childMatchupRow .stickyCol,.matchupGrid thead th.childMatchupCol{background:rgba(34,55,82,.98)}
 .childMatchupRow th,.childMatchupRow td{border-bottom-color:rgba(255,255,255,.04)}
 .unitNameLine{display:grid;grid-template-columns:26px minmax(0,1fr) 28px;column-gap:7px;align-items:center}

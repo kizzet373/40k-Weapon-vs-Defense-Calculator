@@ -44,6 +44,7 @@ function weaponVsDefenseApp(){
     expandedUnitKeys: {},
     modifierToggleState: {},
     unitToggleState: {},
+    unitCustomModifierState: {},
     matchupClipboardStatus: '',
     matchupExportFormat: 'visible',
     matchupActionMenu: '',
@@ -57,6 +58,7 @@ function weaponVsDefenseApp(){
     profileModalOpen: false,
     profileModalRole: '',
     profileUnit: null,
+    profileCustomModifierText: '',
     formulaModalOpen: false,
     formulaCell: null,
     formulaAttacker: null,
@@ -247,6 +249,64 @@ function weaponVsDefenseApp(){
 
     weaponKeywordList(w){
       return window.ArmyImportService?.splitModifiers(w?.modifiers) || [];
+    },
+
+    fmtProfileNumber(value){
+      const n = Number(value);
+      if(!Number.isFinite(n)) return String(value ?? '');
+      return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
+    },
+
+    weaponEffectiveStats(w, unit=null, defender=null){
+      const modifierText = this.effectiveWeaponModifiers(w, unit || this.activeUnit, defender);
+      const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || '', w);
+      const base = {
+        range: String(w?.range || ''),
+        A: String(w?.A || ''),
+        skill: String(w?.skill || ''),
+        S: String(w?.S || ''),
+        AP: String(w?.AP || ''),
+        D: String(w?.D || ''),
+      };
+      const diceMean = value => window.WeaponCalc.parseNdX(value).mean || 0;
+      const numeric = value => parseFloat(String(value ?? '').replace('+', ''));
+      const profileValue = (field, effective, baseText=base[field], comparableBase=baseText) => {
+        const text = this.fmtProfileNumber(effective);
+        const baseComparable = this.fmtProfileNumber(comparableBase);
+        return {
+          text,
+          base: baseText,
+          changed: text !== baseComparable && String(baseText ?? '') !== '',
+        };
+      };
+
+      return {
+        range: { text: base.range, base: base.range, changed: false },
+        A: profileValue('A', Math.max(0, diceMean(w?.A) + (kw.attacksAdd || 0))),
+        skill: profileValue('skill', Math.max(0, (numeric(w?.skill) || 0) + (kw.skillTargetMod || 0))),
+        S: profileValue('S', Math.max(0, (numeric(w?.S) || 0) + (kw.strengthAdd || 0))),
+        AP: profileValue('AP', Math.max(0, Math.abs(numeric(w?.AP) || 0) + (kw.apAdd || 0)), base.AP, Math.abs(numeric(w?.AP) || 0)),
+        D: profileValue('D', Math.max(0, diceMean(w?.D) + (kw.damageAdd || 0))),
+      };
+    },
+
+    weaponEffectiveStat(w, field, unit=null, defender=null){
+      return this.weaponEffectiveStats(w, unit, defender)?.[field] || { text: '', base: '', changed: false };
+    },
+
+    weaponEffectiveKeywordList(w, unit=null, defender=null){
+      const modifierText = this.effectiveWeaponModifiers(w, unit || this.activeUnit, defender);
+      const tokens = window.ArmyImportService?.splitModifiers(modifierText) || [];
+      const seen = new Set();
+      return tokens
+        .map(token => String(token || '').replace(/^(?:Melee|Ranged|Shooting):\s*/i, '').trim())
+        .filter(Boolean)
+        .filter(token => {
+          const key = token.toLowerCase();
+          if(seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     },
 
     get activeForce(){
@@ -489,9 +549,37 @@ function weaponVsDefenseApp(){
 
       return order.map(key => {
         const entry = profiles.get(key);
-        const d = this.effectiveDefense(entry.unit);
-        return this.matchupDefenseProfileLine(d, entry.models);
+        return this.matchupDefenseProfileLineForUnit(entry.unit, entry.models);
       }).filter(Boolean);
+    },
+
+    changedDefensePart(label, effective, base, formatter=value => String(value)){
+      if(effective == null || effective === '') return '';
+      const effectiveText = formatter(effective);
+      if(base == null || base === '') return `${effectiveText} added`;
+      const baseText = formatter(base);
+      if(String(effectiveText) === String(baseText)) return `${label}${effectiveText}`;
+      const effectiveNumber = parseFloat(effective);
+      const baseNumber = parseFloat(base);
+      const deltaText = Number.isFinite(effectiveNumber) && Number.isFinite(baseNumber)
+        ? ` (${effectiveNumber - baseNumber > 0 ? '+' : ''}${this.fmtProfileNumber(effectiveNumber - baseNumber)})`
+        : '';
+      return `${label}${effectiveText} from ${baseText}${deltaText}`;
+    },
+
+    matchupDefenseProfileLineForUnit(unit, modelsOverride=null){
+      const d = this.effectiveDefense(unit);
+      const base = unit?.defense || {};
+      const t = (d.T!=null) ? this.changedDefensePart('T', d.T, base.T) : '';
+      const sv = (d.Sv!=null && d.Sv!=='') ? this.changedDefensePart('', d.Sv, base.Sv, value => `${value}+`) : '';
+      const inv = (d.Inv!=null && d.Inv!=='') ? this.changedDefensePart('', d.Inv, base.Inv, value => `${value}++`) : '';
+      const saves = [sv, inv].filter(Boolean).join(' ');
+      const w = (d.W!=null) ? this.changedDefensePart('W', d.W, base.W) : '';
+      const fnp = (d.Fnp!=null && d.Fnp!=='') ? this.changedDefensePart('FNP ', d.Fnp, base.Fnp, value => `${value}+`) : '';
+      const cover = d.cover ? (base.cover ? 'Cover' : 'Cover added') : '';
+      const models = modelsOverride ?? d.models ?? null;
+      const size = (models!=null) ? `${models} models` : '';
+      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' - ');
     },
 
     matchupDefenseProfileLine(d, modelsOverride=null){
@@ -1387,7 +1475,8 @@ function weaponVsDefenseApp(){
 
     matchupCellCopyText(cell){
       const weapons = cell?.weaponName ? ` - ${cell.weaponName}` : '';
-      return this.tsvCell(`${this.formatMatchupMetric(cell)}${weapons}`);
+      const modifiers = cell?.profileModifierText ? ` - ${cell.profileModifierText}` : '';
+      return this.tsvCell(`${this.formatMatchupMetric(cell)}${weapons}${modifiers}`);
     },
 
     normalizedMatchupExportFormat(format=this.matchupExportFormat){
@@ -1529,6 +1618,7 @@ function weaponVsDefenseApp(){
       if(cell.classList?.contains('matchupCell')){
         add(this.visibleElementText(cell.querySelector('.matchupCellValue')));
         add(this.visibleElementText(cell.querySelector('.matchupCellNote')));
+        add(this.visibleElementText(cell.querySelector('.matchupCellModifiers')));
         return lines;
       }
 
@@ -1922,6 +2012,42 @@ function weaponVsDefenseApp(){
       }
     },
 
+    clearMatchupDerivedCaches(){
+      this.matchupComputationCache = { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {} };
+      if(this.matchup) this.matchup.cacheWarmToken = (this.matchup.cacheWarmToken || 0) + 1;
+    },
+
+    relatedUnitKeys(unit){
+      const keys = new Set();
+      const add = entry => {
+        if(!entry) return;
+        const key = this.unitKey(entry);
+        if(key) keys.add(key);
+      };
+      add(unit);
+      add(unit?._baseUnit);
+      add(unit?._parentUnit);
+      if(unit?._parentUnit){
+        (unit._parentUnit._children || []).forEach(add);
+      }
+      (unit?._children || []).forEach(add);
+      this.attackModeVariants(unit || {}).forEach(add);
+      return keys;
+    },
+
+    invalidateMatchupForUnit(unit, scope='both'){
+      this.clearMatchupDerivedCaches();
+      if(!this.matchup?.cellCache) return;
+      const keys = this.relatedUnitKeys(unit);
+      Object.keys(this.matchup.cellCache).forEach(cacheKey => {
+        const [attackerKey, defenderKey] = cacheKey.split('=>');
+        if((scope !== 'defender' && keys.has(attackerKey)) || (scope !== 'attacker' && keys.has(defenderKey))){
+          delete this.matchup.cellCache[cacheKey];
+        }
+      });
+      if(this.matchupModalOpen) this.refreshMatchupPresentation();
+    },
+
     unitPointsText(unit){
       const points = parseFloat(unit?._points);
       if(!Number.isFinite(points)) return '';
@@ -2110,11 +2236,11 @@ function weaponVsDefenseApp(){
       return !!state[mod];
     },
 
-    toggleWeaponModifier(w, mod){
+    toggleWeaponModifier(w, mod, unit=null){
       if(!w) return;
       const state = this.ensureModifierState(w);
       state[mod] = !this.isWeaponModifierEnabled(w, mod);
-      this.clearMatchupComputationCache();
+      this.invalidateMatchupForUnit(unit || this.profileUnit || this.activeUnit, 'attacker');
     },
 
     unitModifierRuleNames(unit){
@@ -2280,6 +2406,24 @@ function weaponVsDefenseApp(){
       return result;
     },
 
+    modifierNamesFromSpecs(specs, context={}){
+      const kind = context.kind || 'weapon';
+      const out = [];
+      (specs || []).forEach(spec => {
+        const parsed = this.parsedModifierSpec(spec);
+        if((parsed.meta?.kind || 'weapon') !== kind) return;
+        if(!this.modifierSpecApplies(parsed, context)) return;
+        out.push(...(parsed.modifiers || []));
+      });
+      const seen = new Set();
+      return out.filter(mod => {
+        const key = String(mod || '').trim().toLowerCase();
+        if(!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    },
+
     unitFamilyRoot(unit){
       if(!unit) return null;
       return unit._parentUnit || unit._baseUnit?._parentUnit || (Array.isArray(unit._children) && unit._children.length ? unit : null);
@@ -2308,7 +2452,11 @@ function weaponVsDefenseApp(){
     },
 
     abilityModifierNamesForUnit(unit, context={}){
-      return this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), { ...context, kind: context.kind || 'weapon' });
+      const resolvedContext = { ...context, kind: context.kind || 'weapon' };
+      return [
+        ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), resolvedContext),
+        ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), resolvedContext),
+      ];
     },
 
     ruleModifierNames(name){
@@ -2330,15 +2478,27 @@ function weaponVsDefenseApp(){
     },
 
     defenseModifierNamesForUnit(unit){
-      return this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), { kind: 'defenseProfile', defender: unit });
+      const context = { kind: 'defenseProfile', defender: unit };
+      return [
+        ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), context),
+        ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), context),
+      ];
     },
 
     defenseAttackModifierNamesForUnit(unit, context={}){
-      return this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), { ...context, kind: 'defenseAttack', defender: unit });
+      const resolvedContext = { ...context, kind: 'defenseAttack', defender: unit };
+      return [
+        ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), resolvedContext),
+        ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), resolvedContext),
+      ];
     },
 
     targetDefenseModifierNamesForUnit(attacker, defender){
-      return this.modifiersFromRuleNames(this.unitModifierRuleNames(attacker), { kind: 'targetDefense', attacker, defender });
+      const context = { kind: 'targetDefense', attacker, defender };
+      return [
+        ...this.modifiersFromRuleNames(this.unitModifierRuleNames(attacker), context),
+        ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(attacker), context),
+      ];
     },
 
     applyDefenseModifiers(defense, modifiers=[]){
@@ -2384,18 +2544,6 @@ function weaponVsDefenseApp(){
           return;
         }
 
-        match = text.match(/\b(?:Sv|Save|Armou?r Save)\s*([+-]\d+(?:\.\d+)?)\b/i);
-        if(match){
-          const current = numeric('Sv');
-          if(current != null) setIfFinite('Sv', this.clamp(current - parseFloat(match[1]), 2, 7));
-          return;
-        }
-        match = text.match(/\b(?:Sv|Save|Armou?r Save)\s*(\d)\+/i);
-        if(match){
-          next.Sv = bestSave(next.Sv, parseFloat(match[1]));
-          return;
-        }
-
         match = text.match(/\b(?:Invulnerable Save|Invuln|Inv)\s*(\d)\+/i);
         if(match){
           next.Inv = bestSave(next.Inv, parseFloat(match[1]));
@@ -2405,6 +2553,18 @@ function weaponVsDefenseApp(){
         match = text.match(/\b(?:Feel No Pain|FNP)\s*(\d)\+/i);
         if(match){
           next.Fnp = bestSave(next.Fnp, parseFloat(match[1]));
+          return;
+        }
+
+        match = text.match(/\b(?:Sv|Save|Armou?r Save)\s*([+-]\d+(?:\.\d+)?)\b/i);
+        if(match){
+          const current = numeric('Sv');
+          if(current != null) setIfFinite('Sv', this.clamp(current - parseFloat(match[1]), 2, 7));
+          return;
+        }
+        match = text.match(/\b(?:Sv|Save|Armou?r Save)\s*(\d)\+/i);
+        if(match){
+          next.Sv = bestSave(next.Sv, parseFloat(match[1]));
           return;
         }
 
@@ -2484,7 +2644,7 @@ function weaponVsDefenseApp(){
       if(!unit || !ability) return;
       const state = this.ensureUnitToggleState(unit);
       state.abilities[ability] = !this.isUnitAbilityEnabled(unit, ability);
-      this.clearMatchupComputationCache();
+      this.invalidateMatchupForUnit(unit, 'both');
     },
 
     isUnitEnhancementEnabled(unit, enhancement){
@@ -2498,7 +2658,52 @@ function weaponVsDefenseApp(){
       if(!unit || !enhancement) return;
       const state = this.ensureUnitToggleState(unit);
       state.enhancements[enhancement] = !this.isUnitEnhancementEnabled(unit, enhancement);
-      this.clearMatchupComputationCache();
+      this.invalidateMatchupForUnit(unit, 'both');
+    },
+
+    unitCustomModifiers(unit){
+      const key = this.unitStateKey(unit);
+      if(!key) return [];
+      if(!Array.isArray(this.unitCustomModifierState[key])) this.unitCustomModifierState[key] = [];
+      return this.unitCustomModifierState[key];
+    },
+
+    enabledUnitCustomModifierSpecs(unit){
+      const specs = [];
+      let cursor = unit || null;
+      while(cursor){
+        specs.push(...this.unitCustomModifiers(cursor));
+        cursor = cursor._parentUnit || cursor._baseUnit?._parentUnit || null;
+      }
+      return specs
+        .filter(mod => mod?.enabled !== false && String(mod?.text || '').trim())
+        .map(mod => mod.text.trim());
+    },
+
+    addCustomModifier(unit){
+      const text = String(this.profileCustomModifierText || '').trim();
+      if(!unit || !text) return;
+      this.unitCustomModifiers(unit).push({
+        id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+        text,
+        enabled: true,
+      });
+      this.profileCustomModifierText = '';
+      this.invalidateMatchupForUnit(unit, 'both');
+    },
+
+    toggleCustomModifier(unit, id){
+      const mod = this.unitCustomModifiers(unit).find(entry => entry.id === id);
+      if(!mod) return;
+      mod.enabled = !mod.enabled;
+      this.invalidateMatchupForUnit(unit, 'both');
+    },
+
+    removeCustomModifier(unit, id){
+      const key = this.unitStateKey(unit);
+      if(!key || !Array.isArray(this.unitCustomModifierState[key])) return;
+      this.unitCustomModifierState[key] = this.unitCustomModifierState[key].filter(entry => entry.id !== id);
+      this.invalidateMatchupForUnit(unit, 'both');
     },
 
     parseWeaponKeywords(txt){
@@ -2551,7 +2756,7 @@ function weaponVsDefenseApp(){
     loadSelectedDefenseIntoForm(){
       const u = this.activeUnit;
       if(!u){ alert('No unit selected.'); return; }
-      const def = u.defense || {};
+      const def = this.effectiveDefense(u) || {};
       this.defense.T = def.T ?? '';
       this.defense.Sv = def.Sv ?? '';
       this.defense.Inv = def.Inv ?? '';
@@ -2559,6 +2764,7 @@ function weaponVsDefenseApp(){
       this.defense.Fnp = def.Fnp ?? '';
       this.defense.DR = def.DR ?? 0;
       this.defense.models = def.models ?? 1;
+      this.defense.cover = !!def.cover;
     },
 
     renderDefensePills(def){
@@ -2568,13 +2774,30 @@ function weaponVsDefenseApp(){
       return html || '<div class="muted">No defensive data.</div>';
     },
 
+    unitDefenseModifierList(unit){
+      const units = (Array.isArray(unit?._children) && unit._children.length) ? [unit, ...unit._children] : [unit];
+      const seen = new Set();
+      return units
+        .flatMap(entry => this.defenseModifierNamesForUnit(entry))
+        .filter(mod => {
+          const key = String(mod || '').trim().toLowerCase();
+          if(!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    },
+
     renderUnitDefenseProfiles(unit){
       if(!unit) return '<div class="muted">No defensive data.</div>';
       const lines = this.matchupDefenseProfileLines(unit);
-      if(!lines.length) return this.renderDefensePills(unit.defense);
+      const modifiers = this.unitDefenseModifierList(unit);
+      const modifierHtml = modifiers.length
+        ? `<div class="defenseProfileModifiers">${modifiers.map(mod => `<span class="modifier">${this.htmlCell(mod)}</span>`).join('')}</div>`
+        : '';
+      if(!lines.length) return `${this.renderDefensePills(this.effectiveDefense(unit))}${modifierHtml}`;
       return `<div class="defenseProfileList">${
         lines.map(line => `<div class="defenseProfileLine">${this.htmlCell(line)}</div>`).join('')
-      }</div>`;
+      }</div>${modifierHtml}`;
     },
 
     // ---------------- Output helpers ----------------

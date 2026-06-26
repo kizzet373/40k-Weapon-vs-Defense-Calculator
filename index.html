@@ -561,6 +561,9 @@
                         <template x-if="cell.weaponName">
                           <div class="matchupCellNote" x-text="cell.weaponName"></div>
                         </template>
+                        <template x-if="cell.profileModifierText">
+                          <div class="matchupCellModifiers" x-text="cell.profileModifierText"></div>
+                        </template>
                       </td>
                     </template>
                   </tr>
@@ -645,7 +648,36 @@
               <div class="profileWeaponHead">
                 <div>
                   <strong x-text="w.name || `Weapon ${wi+1}`"></strong>
-                  <div class="muted" style="font-size:12px" x-text="`${w.range || ''} A:${w.A || ''} Skill:${w.skill || ''} S:${w.S || ''} AP:${w.AP || ''} D:${w.D || ''}`"></div>
+                  <div class="muted profileWeaponStats">
+                    <span x-text="weaponEffectiveStat(w, 'range', profileUnit).text"></span>
+                    <span :class="weaponEffectiveStat(w, 'A', profileUnit).changed ? 'effectiveStatChanged' : ''">
+                      A:<span x-text="weaponEffectiveStat(w, 'A', profileUnit).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'A', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'A', profileUnit).base}`"></span>
+                    </span>
+                    <span :class="weaponEffectiveStat(w, 'skill', profileUnit).changed ? 'effectiveStatChanged' : ''">
+                      Skill:<span x-text="weaponEffectiveStat(w, 'skill', profileUnit).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'skill', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'skill', profileUnit).base}`"></span>
+                    </span>
+                    <span :class="weaponEffectiveStat(w, 'S', profileUnit).changed ? 'effectiveStatChanged' : ''">
+                      S:<span x-text="weaponEffectiveStat(w, 'S', profileUnit).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'S', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'S', profileUnit).base}`"></span>
+                    </span>
+                    <span :class="weaponEffectiveStat(w, 'AP', profileUnit).changed ? 'effectiveStatChanged' : ''">
+                      AP:<span x-text="weaponEffectiveStat(w, 'AP', profileUnit).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'AP', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'AP', profileUnit).base}`"></span>
+                    </span>
+                    <span :class="weaponEffectiveStat(w, 'D', profileUnit).changed ? 'effectiveStatChanged' : ''">
+                      D:<span x-text="weaponEffectiveStat(w, 'D', profileUnit).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'D', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'D', profileUnit).base}`"></span>
+                    </span>
+                  </div>
+                  <template x-if="weaponEffectiveKeywordList(w, profileUnit).length">
+                    <div class="profileRuleModifiers profileWeaponEffectiveModifiers">
+                      <template x-for="mod in weaponEffectiveKeywordList(w, profileUnit)" :key="`profile-w-effective-${wi}-${mod}`">
+                        <span class="modifier" x-text="mod"></span>
+                      </template>
+                    </div>
+                  </template>
                 </div>
               </div>
               <div class="modifierToggleList">
@@ -654,7 +686,7 @@
                 </template>
                 <template x-for="mod in weaponModifierNames(w)" :key="`profile-w-${wi}-${mod}`">
                   <label class="toggleLine">
-                    <input type="checkbox" :checked="isWeaponModifierEnabled(w, mod)" @change="toggleWeaponModifier(w, mod); rebuildMatchup()" />
+                    <input type="checkbox" :checked="isWeaponModifierEnabled(w, mod)" @change="toggleWeaponModifier(w, mod, profileUnit)" />
                     <span x-text="mod"></span>
                   </label>
                 </template>
@@ -678,6 +710,27 @@
             </div>
           </template>
 
+          <h2>Custom Modifiers</h2>
+          <div class="customModifierBox">
+            <div class="customModifierRow">
+              <input type="text" x-model="profileCustomModifierText" @keydown.enter.prevent="addCustomModifier(profileUnit)"
+                     placeholder="Melee: Strength +1 or Defense: Invulnerable Save 4+" />
+              <button type="button" class="secondary" @click="addCustomModifier(profileUnit)">Add</button>
+            </div>
+            <template x-if="unitCustomModifiers(profileUnit).length === 0">
+              <div class="muted" style="font-size:12px">No custom modifiers.</div>
+            </template>
+            <template x-for="mod in unitCustomModifiers(profileUnit)" :key="mod.id">
+              <div class="customModifierItem">
+                <label class="toggleLine">
+                  <input type="checkbox" :checked="mod.enabled !== false" @change="toggleCustomModifier(profileUnit, mod.id)" />
+                  <span x-text="mod.text"></span>
+                </label>
+                <button type="button" class="secondary tagX" @click="removeCustomModifier(profileUnit, mod.id)">x</button>
+              </div>
+            </template>
+          </div>
+
           <h2>Enhancements</h2>
           <template x-if="!(profileUnit?._enhancements || []).length">
             <div class="muted">No enhancements found.</div>
@@ -685,7 +738,7 @@
           <template x-for="(enh, ei) in (profileUnit?._enhancements || [])" :key="`profile-enh-${ei}`">
             <div class="profileModel">
               <label class="toggleLine">
-                <input type="checkbox" :checked="isUnitEnhancementEnabled(profileUnit, enh.name)" @change="toggleUnitEnhancement(profileUnit, enh.name); rebuildMatchup()" />
+                <input type="checkbox" :checked="isUnitEnhancementEnabled(profileUnit, enh.name)" @change="toggleUnitEnhancement(profileUnit, enh.name)" />
                 <span>
                   <strong x-text="enh.name || `Enhancement ${ei+1}`"></strong>
                   <span class="profilePointsText" x-show="enh.points" x-text="`(${enh.points} pts)`"></span>
@@ -709,7 +762,7 @@
           <template x-for="(ability, ai) in (profileUnit?.abilities || [])" :key="`profile-a-${ai}`">
             <div class="profileRuleBlock">
               <label class="toggleLine abilityToggleLine">
-                <input type="checkbox" :checked="isUnitAbilityEnabled(profileUnit, ability)" @change="toggleUnitAbility(profileUnit, ability); rebuildMatchup()" />
+                <input type="checkbox" :checked="isUnitAbilityEnabled(profileUnit, ability)" @change="toggleUnitAbility(profileUnit, ability)" />
                 <span x-text="ability"></span>
               </label>
               <template x-if="unitAbilityModifierNames(ability).length">

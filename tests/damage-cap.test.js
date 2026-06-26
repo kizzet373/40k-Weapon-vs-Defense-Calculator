@@ -377,6 +377,15 @@ assert.strictEqual(modifiedDefenseLine, 'T5 - 2+ 5++ - W2 - FNP 5+ - 1 models', 
 const stealthTarget = { label: 'Stealth target', abilities: ['Stealth'], defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 }, _unitKey: 'stealth-target' };
 assert.strictEqual(app.effectiveDefense(stealthTarget).cover, true, 'Stealth gives the unit cover in its effective defensive profile');
 assert.strictEqual(app.matchupDefenseProfileLine(app.effectiveDefense(stealthTarget), 1), 'T4 - 4+ - W2 - Cover - 1 models', 'cover is reflected in defensive profile text');
+const faithfulFlockTarget = { label: 'Faithful Flock target', abilities: ['Faithful Flock'], defense: { T: 3, Sv: 7, W: 1, models: 10 }, _unitKey: 'faithful-flock' };
+const faithfulDefenseHtml = app.renderUnitDefenseProfiles(faithfulFlockTarget);
+assert.ok(/5\+\+/.test(faithfulDefenseHtml), 'main defense profile display includes ability-granted invulnerable saves');
+assert.ok(/Invulnerable Save 5\+/.test(faithfulDefenseHtml), 'main defense profile display lists the active defensive modifier');
+assert.ok(/5\+\+ added/.test(app.matchupDefenseHeaderLabel(faithfulFlockTarget)), 'grid defensive profile headers visually mark added saves');
+app.units = [faithfulFlockTarget];
+app.selectedUnitIdx = 0;
+app.loadSelectedDefenseIntoForm();
+assert.strictEqual(app.defense.Inv, 5, 'loading selected defense uses ability-granted invulnerable saves');
 const unmodifiedTarget = { label: 'Base target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
 const tougherTarget = { label: 'Tougher target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
 const defenseModifierAttacker = {
@@ -609,9 +618,16 @@ app.clearMatchupComputationCache();
 const braggartBaseMods = app.effectiveWeaponModifiers(braggartBlade, braggart, hardTarget);
 assert.ok(/Strength \+2/i.test(braggartBaseMods), 'Braggart’s Steel always applies melee strength');
 assert.ok(!/Damage \+1/i.test(braggartBaseMods), 'Braggart’s Steel boast damage is conditional');
+assert.strictEqual(app.weaponEffectiveStat(braggartBlade, 'S', braggart).text, '7', 'effective weapon helper reflects always-on ability strength modifiers');
+assert.strictEqual(app.weaponEffectiveStat(braggartBlade, 'D', braggart).text, '2', 'effective weapon helper does not show conditional damage modifiers when conditions are off');
 app.matchup.conditionsMet = true;
 app.clearMatchupComputationCache();
 assert.ok(/Damage \+1/i.test(app.effectiveWeaponModifiers(braggartBlade, braggart, hardTarget)), 'Braggart’s Steel applies damage when conditions are met');
+assert.strictEqual(app.weaponEffectiveStat(braggartBlade, 'D', braggart).text, '3', 'effective weapon helper reflects conditional ability damage modifiers when conditions are met');
+assert.ok(app.weaponEffectiveKeywordList(braggartBlade, braggart).some(mod => /Damage \+1/i.test(mod)), 'effective weapon helper lists active ability modifiers');
+const braggartCell = app.computeMatchupCell({ ...braggart, weapons: [braggartBlade] }, hardTarget);
+assert.ok(/S 7 from 5/.test(braggartCell.profileModifierText), 'grid cells show weapon characteristic modifiers used in the calculation');
+assert.ok(/D 3 from 2/.test(braggartCell.profileModifierText), 'grid cells show conditional weapon damage modifiers used in the calculation');
 
 const heroicDefender = { label: 'Resolved Character', abilities: ['Heroic Resolve'], defense: { T: 4, Sv: 7, W: 3, models: 1 }, _unitKey: 'heroic-resolve' };
 const damageTwo = { name: 'Damage two', range: '24', A: '1', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'ranged', _weaponKey: 'damage-two' };
@@ -648,6 +664,19 @@ app.matchup.conditionsMet = false;
 app.toggleUnitAbility(darkPactAttacker, 'Dark Pacts');
 const darkPactDisabled = app.computeMatchupCell(darkPactAttacker, hardTarget);
 assert.ok(Math.abs(darkPactDisabled.dmg - 0.5) < 1e-9, 'turning off Dark Pacts removes its chosen damage modifier');
+
+const customAttacker = { label: 'Custom attacker', _viewKey: 'custom-attacker', _unitKey: 'custom-attacker', abilities: [], weapons: [{ name: 'Custom blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'custom-blade' }], defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+const customDefender = { label: 'Custom defender', _viewKey: 'custom-defender', _unitKey: 'custom-defender', abilities: [], weapons: [], defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
+app.matchupAttackerUnits = [customAttacker];
+app.matchupDefenderUnits = [customDefender];
+app.matchup.rows = [{ unit: customAttacker, cells: [app.computeMatchupCell(customAttacker, customDefender)] }];
+app.seedAggregateCellCache();
+const beforeCustom = app.cachedMatchupCell(customAttacker, customDefender);
+app.profileCustomModifierText = 'Strength +4';
+app.addCustomModifier(customAttacker);
+const afterCustom = app.cachedMatchupCell(customAttacker, customDefender);
+assert.ok(afterCustom.dmg > beforeCustom.dmg, 'custom profile modifiers affect matchup calculations');
+assert.ok(/S 8 from 4/.test(afterCustom.profileModifierText), 'custom profile modifiers are represented visually in grid cells');
 
 const mixedDefender = {
   label: 'Mixed Terminators',
