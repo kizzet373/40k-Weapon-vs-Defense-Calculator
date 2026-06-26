@@ -2262,9 +2262,9 @@ function weaponVsDefenseApp(){
       if(rerollMode === 'ones') return `Reroll ${rollName} of 1`;
       if(rerollMode !== 'all') return '';
       const strategyText = strategy === 'crits'
-        ? 'fish for crits'
-        : (strategy === 'failures' ? 'reroll failures' : '');
-      return [`Reroll ${rollName}`, strategyText].filter(Boolean).join(', ');
+        ? 'crits'
+        : (strategy === 'failures' ? 'failures' : '');
+      return [`Reroll ${rollName}`, strategyText].filter(Boolean).join(' - ');
     },
 
     formulaItemLines(item, index=0){
