@@ -236,23 +236,23 @@ function weaponVsDefenseApp(){
 
     baseProfilesRosterData(){
       const profiles = [
-        ['Light Infantry',      { T: 3,  Sv: 5, W: 1,  models: 1 }],
-        ['Armored Infantry',    { T: 3,  Sv: 4, W: 1,  models: 1 }],
-        ['Power Armour',        { T: 4,  Sv: 3, W: 2,  models: 1 }],
-        ['Tough Infantry',      { T: 5,  Sv: 5, W: 1,  models: 1 }],
-        ['Elite Infantry',      { T: 5,  Sv: 3, W: 3,  models: 1 }],
-        ['Terminator',          { T: 5,  Sv: 2, Inv: 4, W: 3,  models: 1 }],
-        ['Gravis Armour',       { T: 6,  Sv: 3, W: 3,  models: 1 }],
-        ['Light Vehicle',       { T: 9,  Sv: 3, W: 10, models: 1 }],
-        ['Battle Tank',         { T: 10, Sv: 3, W: 12, models: 1 }],
-        ['Titanic Target',      { T: 12, Sv: 2, Inv: 5, W: 22, models: 1 }],
+        ['Light Infantry',      60,  { T: 3,  Sv: 5, W: 1,  models: 10 }],
+        ['Armored Infantry',    100, { T: 3,  Sv: 4, W: 1,  models: 10 }],
+        ['Power Armour',        90,  { T: 4,  Sv: 3, W: 2,  models: 5 }],
+        ['Tough Infantry',      80,  { T: 5,  Sv: 5, W: 1,  models: 10 }],
+        ['Elite Infantry',      90,  { T: 5,  Sv: 3, W: 3,  models: 3 }],
+        ['Terminators',         180, { T: 5,  Sv: 2, Inv: 4, W: 3,  models: 5 }],
+        ['Gravis Armour',       120, { T: 6,  Sv: 3, W: 3,  models: 3 }],
+        ['Light Vehicle',       80,  { T: 9,  Sv: 3, W: 10, models: 1 }],
+        ['Battle Tank',         150, { T: 10, Sv: 3, W: 12, models: 1 }],
+        ['Titanic Target',      400, { T: 12, Sv: 2, Inv: 5, W: 22, models: 1 }],
       ];
       return {
         roster: {
           name: 'Base Profiles',
           forces: [{
             name: 'Common defensive profiles',
-            _importedUnits: profiles.map(([label, defense], index) => ({
+            _importedUnits: profiles.map(([label, points, defense], index) => ({
               label,
               weapons: [],
               defense: {
@@ -265,7 +265,7 @@ function weaponVsDefenseApp(){
               _groupId: `base-profile-${index + 1}`,
               _children: [],
               _keywords: [],
-              _points: null,
+              _points: points,
               _enhancements: [],
               _upgrades: [],
             })),

@@ -14,6 +14,7 @@ const context = {
   RegExp,
   parseFloat,
   parseInt,
+  queueMicrotask: fn => fn(),
 };
 context.global = context;
 context.window = context;
@@ -219,8 +220,46 @@ const baseProfileUnits = baseProfiles.roster.forces[0]._importedUnits;
 assert.strictEqual(baseProfiles.roster.name, 'Base Profiles', 'base profiles roster is named for generic matchup use');
 assert.strictEqual(baseProfileUnits.length, 10, 'base profiles roster includes ten common unique defensive profiles');
 assert.ok(baseProfileUnits.every(unit => !unit.weapons.length && !unit.abilities.length && !(unit._enhancements || []).length), 'base profiles roster has no weapons, abilities, enhancements, or modifiers');
-assert.ok(baseProfileUnits.some(unit => unit.defense.T === 3 && unit.defense.Sv === 5 && unit.defense.W === 1), 'base profiles include light infantry');
-assert.ok(baseProfileUnits.some(unit => unit.defense.T === 12 && unit.defense.Inv === 5 && unit.defense.W === 22), 'base profiles include a titanic target');
+assert.ok(baseProfileUnits.every(unit => Number.isFinite(unit._points) && unit._points > 0), 'base profiles include point values for scoring');
+const lightInfantryProfile = baseProfileUnits.find(unit => unit.label === 'Light Infantry');
+assert.ok(lightInfantryProfile, 'base profiles include light infantry');
+assert.strictEqual(lightInfantryProfile.defense.models, 10, 'light infantry uses a common ten-model squad size');
+assert.strictEqual(lightInfantryProfile.defense.totalWounds, 10, 'light infantry total wounds match its model count');
+assert.strictEqual(lightInfantryProfile._points, 60, 'light infantry includes a common low-cost squad point value');
+const powerArmourProfile = baseProfileUnits.find(unit => unit.label === 'Power Armour');
+assert.ok(powerArmourProfile, 'base profiles include power armour');
+assert.strictEqual(powerArmourProfile.defense.models, 5, 'power armour uses a common five-model squad size');
+assert.strictEqual(powerArmourProfile._points, 90, 'power armour includes a common five-model point value');
+const titanicProfile = baseProfileUnits.find(unit => unit.label === 'Titanic Target');
+assert.ok(titanicProfile && titanicProfile.defense.T === 12 && titanicProfile.defense.Inv === 5 && titanicProfile.defense.W === 22, 'base profiles include a titanic target');
+assert.strictEqual(titanicProfile._points, 400, 'titanic target includes a common large-model point value');
+
+const baseScoreApp = context.weaponVsDefenseApp();
+baseScoreApp.addRoster({
+  roster: {
+    name: 'Score attacker roster',
+    forces: [{
+      name: 'Force',
+      _importedUnits: [{
+        label: 'Score attacker',
+        weapons: [{ name: 'Score gun', range: '24', A: '6', skill: 'auto', S: '5', AP: '1', D: '1', modifiers: '', mode: 'ranged' }],
+        defense: { T: 4, Sv: 3, W: 2, models: 1, totalWounds: 2 },
+        abilities: [],
+        _unitKey: 'score-attacker',
+        _groupId: 'score-attacker',
+        _points: 100,
+        _children: [],
+      }],
+    }],
+  },
+}, 'Score attacker roster');
+baseScoreApp.addRoster(baseProfiles, 'Base Profiles');
+baseScoreApp.selectedRosterIdx = 0;
+baseScoreApp.selectedForceIdx = 0;
+baseScoreApp.openMatchupModal();
+const baseDefender = baseScoreApp.matchupDefenderUnits.find(unit => unit.label === 'Power Armour');
+assert.ok(baseDefender, 'base profiles can be selected as matchup defenders');
+assert.ok(/^\(90 pts\) - Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseDefender, 'defender')), 'base profiles display calibrated defensive scores from their point values');
 
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Dark Pacts')),
