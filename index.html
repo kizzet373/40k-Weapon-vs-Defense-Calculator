@@ -326,6 +326,16 @@
       </div>
 
       <div class="modalBody">
+        <div class="matchupOptionsCollapseRow">
+          <button type="button" class="secondary iconBtn matchupOptionsToggle"
+                  aria-controls="matchupOptionsPanel"
+                  :aria-expanded="(!matchupOptionsCollapsed).toString()"
+                  :title="matchupOptionsCollapsed ? 'Show matchup options' : 'Hide matchup options'"
+                  x-text="matchupOptionsCollapsed ? '⌄' : '⌃'"
+                  @click="matchupOptionsCollapsed = !matchupOptionsCollapsed"></button>
+        </div>
+
+        <div id="matchupOptionsPanel" x-show="!matchupOptionsCollapsed" x-cloak>
         <div class="matchupControls">
           <div class="matchupSide">
             <div class="matchupSideHead">
@@ -470,6 +480,7 @@
             </div>
             <span class="muted copyStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
           </div>
+        </div>
         </div>
 
         <template x-if="matchup.loading">

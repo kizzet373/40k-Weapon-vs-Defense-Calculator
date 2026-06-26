@@ -2,6 +2,7 @@ function weaponVsDefenseApp(){
   return {
     // ---------------- UI ----------------
     sidebarCollapsed: false,
+    matchupOptionsCollapsed: false,
     jsonPaste: '',
     importStatus: { type: '', text: '' },
 

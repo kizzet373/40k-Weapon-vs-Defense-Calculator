@@ -403,6 +403,10 @@ details summary{cursor:pointer}
 .modalBody{padding:12px 14px;overflow:auto;min-height:0;overscroll-behavior:contain}
 .modalWide[aria-label="Unit matchups"] .modalBody{display:flex;flex-direction:column;overflow:hidden;flex:1 1 auto;padding-bottom:0}
 
+.matchupOptionsCollapseRow{display:flex;justify-content:flex-start;align-items:center;margin-bottom:6px;flex:0 0 auto}
+.matchupOptionsToggle{width:34px;height:28px;min-width:34px;min-height:28px;border-radius:9px;font-size:20px}
+.matchupOptionsToggle.secondary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#001016;border-color:rgba(110,231,255,.8);box-shadow:0 0 0 1px rgba(255,255,255,.22) inset,0 8px 22px rgba(0,0,0,.22)}
+#matchupOptionsPanel{flex:0 0 auto}
 .matchupControls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start;margin-bottom:8px}
 .matchupSide{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:7px}
 .matchupSideHead{display:flex;align-items:center;margin-bottom:5px}
