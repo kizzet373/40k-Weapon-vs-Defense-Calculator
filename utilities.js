@@ -224,6 +224,7 @@ function weaponVsDefenseApp(){
 
     // ---------------- Lifecycle ----------------
     init(){
+      this.addBaseProfilesRoster();
       this.syncModValueDefault();
       this.renderBreakdownChart(null);
 
@@ -231,6 +232,53 @@ function weaponVsDefenseApp(){
         if (this.output && Number.isFinite(this.output.dmg)) this.calculate();
         else this.renderBreakdownChart(null);
       });
+    },
+
+    baseProfilesRosterData(){
+      const profiles = [
+        ['Light Infantry',      { T: 3,  Sv: 5, W: 1,  models: 1 }],
+        ['Armored Infantry',    { T: 3,  Sv: 4, W: 1,  models: 1 }],
+        ['Power Armour',        { T: 4,  Sv: 3, W: 2,  models: 1 }],
+        ['Tough Infantry',      { T: 5,  Sv: 5, W: 1,  models: 1 }],
+        ['Elite Infantry',      { T: 5,  Sv: 3, W: 3,  models: 1 }],
+        ['Terminator',          { T: 5,  Sv: 2, Inv: 4, W: 3,  models: 1 }],
+        ['Gravis Armour',       { T: 6,  Sv: 3, W: 3,  models: 1 }],
+        ['Light Vehicle',       { T: 9,  Sv: 3, W: 10, models: 1 }],
+        ['Battle Tank',         { T: 10, Sv: 3, W: 12, models: 1 }],
+        ['Titanic Target',      { T: 12, Sv: 2, Inv: 5, W: 22, models: 1 }],
+      ];
+      return {
+        roster: {
+          name: 'Base Profiles',
+          forces: [{
+            name: 'Common defensive profiles',
+            _importedUnits: profiles.map(([label, defense], index) => ({
+              label,
+              weapons: [],
+              defense: {
+                ...defense,
+                totalWounds: (parseFloat(defense.W) || 0) * (parseInt(defense.models, 10) || 1),
+              },
+              abilities: [],
+              source: 'Base Profiles',
+              _unitKey: `base-profile-${index + 1}`,
+              _groupId: `base-profile-${index + 1}`,
+              _children: [],
+              _keywords: [],
+              _points: null,
+              _enhancements: [],
+              _upgrades: [],
+            })),
+            _unitMerges: [],
+          }],
+        },
+        _sourceFormat: 'base-profiles',
+      };
+    },
+
+    addBaseProfilesRoster(){
+      if((this.rosters || []).some(roster => roster?.data?._sourceFormat === 'base-profiles')) return;
+      this.addRoster(this.baseProfilesRosterData(), 'Base Profiles');
     },
 
     // ---------------- Derived ----------------
@@ -1564,8 +1612,7 @@ function weaponVsDefenseApp(){
 
     matchupCellCopyText(cell){
       const weapons = cell?.weaponName ? ` - ${cell.weaponName}` : '';
-      const modifiers = cell?.profileModifierText ? ` - ${cell.profileModifierText}` : '';
-      return this.tsvCell(`${this.formatMatchupMetric(cell)}${weapons}${modifiers}`);
+      return this.tsvCell(`${this.formatMatchupMetric(cell)}${weapons}`);
     },
 
     normalizedMatchupExportFormat(format=this.matchupExportFormat){
@@ -1707,7 +1754,6 @@ function weaponVsDefenseApp(){
       if(cell.classList?.contains('matchupCell')){
         add(this.visibleElementText(cell.querySelector('.matchupCellValue')));
         add(this.visibleElementText(cell.querySelector('.matchupCellNote')));
-        add(this.visibleElementText(cell.querySelector('.matchupCellModifiers')));
         return lines;
       }
 

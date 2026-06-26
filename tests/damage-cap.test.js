@@ -214,6 +214,14 @@ assert.ok(Math.abs(nonPrecisionCell.dmg - 2) < 1e-9, 'non-Precision weapons allo
 assert.ok(Math.abs(precisionCell.dmg - (2 / 3)) < 1e-9, 'Precision weapons allocate into character defensive profiles first');
 
 const app = context.weaponVsDefenseApp();
+const baseProfiles = app.baseProfilesRosterData();
+const baseProfileUnits = baseProfiles.roster.forces[0]._importedUnits;
+assert.strictEqual(baseProfiles.roster.name, 'Base Profiles', 'base profiles roster is named for generic matchup use');
+assert.strictEqual(baseProfileUnits.length, 10, 'base profiles roster includes ten common unique defensive profiles');
+assert.ok(baseProfileUnits.every(unit => !unit.weapons.length && !unit.abilities.length && !(unit._enhancements || []).length), 'base profiles roster has no weapons, abilities, enhancements, or modifiers');
+assert.ok(baseProfileUnits.some(unit => unit.defense.T === 3 && unit.defense.Sv === 5 && unit.defense.W === 1), 'base profiles include light infantry');
+assert.ok(baseProfileUnits.some(unit => unit.defense.T === 12 && unit.defense.Inv === 5 && unit.defense.W === 22), 'base profiles include a titanic target');
+
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Dark Pacts')),
   JSON.stringify(['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1']),
@@ -711,8 +719,11 @@ assert.ok(/Damage \+1/i.test(app.effectiveWeaponModifiers(braggartBlade, braggar
 assert.strictEqual(app.weaponEffectiveStat(braggartBlade, 'D', braggart).text, '3', 'effective weapon helper reflects conditional ability damage modifiers when conditions are met');
 assert.ok(app.weaponEffectiveKeywordList(braggartBlade, braggart).some(mod => /Damage \+1/i.test(mod)), 'effective weapon helper lists active ability modifiers');
 const braggartCell = app.computeMatchupCell({ ...braggart, weapons: [braggartBlade] }, hardTarget);
-assert.ok(/S 7 from 5/.test(braggartCell.profileModifierText), 'grid cells show weapon characteristic modifiers used in the calculation');
-assert.ok(/D 3 from 2/.test(braggartCell.profileModifierText), 'grid cells show conditional weapon damage modifiers used in the calculation');
+assert.ok(/S 7 from 5/.test(braggartCell.profileModifierText), 'calculation breakdown data keeps weapon characteristic modifiers used in the calculation');
+assert.ok(/D 3 from 2/.test(braggartCell.profileModifierText), 'calculation breakdown data keeps conditional weapon damage modifiers used in the calculation');
+const braggartCellCopyText = app.matchupCellCopyText(braggartCell);
+assert.ok(/Master-crafted power weapon/.test(braggartCellCopyText), 'copy/export cells include the profiles used in the calculation');
+assert.ok(!/S 7 from 5|D 3 from 2/.test(braggartCellCopyText), 'copy/export cells omit profile modifier details from the grid cell text');
 
 const heroicDefender = { label: 'Resolved Character', abilities: ['Heroic Resolve'], defense: { T: 4, Sv: 7, W: 3, models: 1 }, _unitKey: 'heroic-resolve' };
 const damageTwo = { name: 'Damage two', range: '24', A: '1', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'ranged', _weaponKey: 'damage-two' };
@@ -761,7 +772,7 @@ app.profileCustomModifierText = 'Strength +4';
 app.addCustomModifier(customAttacker);
 const afterCustom = app.cachedMatchupCell(customAttacker, customDefender);
 assert.ok(afterCustom.dmg > beforeCustom.dmg, 'custom profile modifiers affect matchup calculations');
-assert.ok(/S 8 from 4/.test(afterCustom.profileModifierText), 'custom profile modifiers are represented visually in grid cells');
+assert.ok(/S 8 from 4/.test(afterCustom.profileModifierText), 'custom profile modifiers are retained for calculation breakdown data');
 assert.ok(app.unitCustomModifierOptions().some(option => option.value === 'Hit Rolls +1' && /\+1 to Hit/.test(option.label)), 'unit custom modifier dropdown includes readable offensive effects');
 assert.ok(app.unitCustomModifierOptions().some(option => option.value === 'Defense: Invulnerable Save 4+'), 'unit custom modifier dropdown includes defensive profile effects');
 const scopedWeaponA = { name: 'Scoped blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'scoped-a' };
