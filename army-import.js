@@ -86,6 +86,18 @@
     return xs.length ? xs.join(', ') : '';
   }
 
+  function mergeDescriptionMaps(...maps){
+    const out = {};
+    maps.forEach(map => {
+      Object.entries(map || {}).forEach(([name, description]) => {
+        const key = cleanProfileName(name);
+        const text = cleanText(description);
+        if(key && text && !out[key]) out[key] = text;
+      });
+    });
+    return out;
+  }
+
   function parseStatline(lines){
     const headerIdx = lines.findIndex(line => /\bM\b/i.test(line) && /\bT\b/i.test(line) && /\bSv\b/i.test(line) && /\bW\b/i.test(line));
     if(headerIdx < 0) return null;
@@ -194,6 +206,7 @@
     const invMatch = description.match(/Invulnerable Save:\s*(\d)\+/i) || description.match(/(\d)\+\s*Invulnerable Save/i);
     const abilitiesIdx = lines.findIndex(line => /^Abilities$/i.test(line));
     const abilities = abilitiesIdx >= 0 ? lines.slice(abilitiesIdx + 1).filter(line => !/weapons$/i.test(line)) : [];
+    const abilityDescriptions = Object.fromEntries(abilities.map(name => [name, name]));
 
     const weapons = [];
     let mode = null;
@@ -228,6 +241,7 @@
         models: 1,
       },
       abilities,
+      _abilityDescriptions: abilityDescriptions,
       source: 'Tabletop Simulator',
       rawDescription: description,
       _unitKey: unitKey,
@@ -431,6 +445,10 @@
       weapons: ordered.reduce((all, ch) => mergeWeapons(all, ch.weapons || []), []),
       defense,
       abilities: [...new Set([...sourceUnits, ...ordered].flatMap(ch => ch.abilities || []))],
+      _abilityDescriptions: mergeDescriptionMaps(
+        ...sourceUnits.map(unit => unit._abilityDescriptions || {}),
+        ...ordered.map(unit => unit._abilityDescriptions || {})
+      ),
       source: [...new Set([...sourceUnits, ...ordered].map(unit => unit.source).filter(Boolean))].join(' + ') || 'Imported',
       _unitKey: key,
       _groupId: key,
@@ -841,10 +859,31 @@
       .filter(Boolean);
   }
 
+  function abilityDescriptionEntriesFromProfiles(profiles){
+    return (profiles || [])
+      .filter(profile => /abilities|shadow form/i.test(profile?.typeName || ''))
+      .map(profile => {
+        const name = cleanProfileName(profile?.name);
+        const description = cleanText(profileCharacteristic(profile, ['Description', 'Effect']) || profileCharacteristicsText(profile));
+        return name && description ? [name, description] : null;
+      })
+      .filter(Boolean);
+  }
+
   function ruleNamesFromNode(node){
     return (node?.rules || [])
       .map(rule => cleanProfileName(rule?.name))
       .filter(name => name && (window.AbilityModifierService?.modifiersForRule(name).length));
+  }
+
+  function ruleDescriptionEntriesFromNode(node){
+    return (node?.rules || [])
+      .map(rule => {
+        const name = cleanProfileName(rule?.name);
+        const description = cleanText(rule?.description || rule?.$text || '');
+        return name && description ? [name, description] : null;
+      })
+      .filter(Boolean);
   }
 
   function abilityNamesFromTree(node){
@@ -852,6 +891,13 @@
       ...ruleNamesFromNode(item),
       ...abilityNamesFromProfiles(item?.profiles || []),
     ]));
+  }
+
+  function abilityDescriptionsFromTree(node){
+    return mergeDescriptionMaps(...[node, ...getAllSelections(node)].map(item => Object.fromEntries([
+      ...ruleDescriptionEntriesFromNode(item),
+      ...abilityDescriptionEntriesFromProfiles(item?.profiles || []),
+    ])));
   }
 
   function normalizeAbilityNames(names){
@@ -947,6 +993,7 @@
       const baseLabel = cleanName(model?.name) || `Model ${modelIndex + 1}`;
       const modelIsCharacter = selectionIsCharacter || hasCharacterCategory(model);
       const modelKeywords = [...new Set([...selectionKeywords, ...keywordNamesFromCategories(model)])];
+      const modelAbilityDescriptions = abilityDescriptionsFromTree(model);
       return Array.from({ length: count }, (_, instanceIndex) => ({
         label: count > 1 ? `${baseLabel} ${instanceIndex + 1}` : baseLabel,
         weapons: weaponProfilesFromTree(
@@ -956,6 +1003,7 @@
         ),
         defense: cloneDefenseForModel(parentDefense, unitProfileFromNode(model), 1),
         abilities: abilityNamesFromTree(model),
+        _abilityDescriptions: modelAbilityDescriptions,
         source: 'NewRecruit/BattleScribe',
         _unitKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}-${instanceIndex}`,
         _groupId: selection?.id || selection?.entryId || String(index),
@@ -984,6 +1032,10 @@
           .flatMap((child, childIndex) => weaponProfilesFromTree(child, `nr-${selection?.id || index}|direct-${childIndex}`))
       : weaponProfilesFromTree(selection, `nr-${selection?.id || index}`);
     const enhancementList = enhancementEntries(selection);
+    const abilityDescriptions = mergeDescriptionMaps(
+      abilityDescriptionsFromTree(selection),
+      Object.fromEntries(enhancementList.map(enh => [enh.name, enh.description]).filter(entry => entry[0] && entry[1]))
+    );
     const abilities = normalizeAbilityNames([
       ...ruleNamesFromNode(selection),
       ...abilityNamesFromProfiles(selection?.profiles || []),
@@ -1002,6 +1054,7 @@
         : directWeapons,
       defense: parentDefense,
       abilities,
+      _abilityDescriptions: abilityDescriptions,
       source: 'NewRecruit/BattleScribe',
       _unitKey: key,
       _groupId: key,
@@ -1094,6 +1147,7 @@
       })),
       defense: { ...(unit?.defense || {}) },
       abilities: normalizeAbilityNames(unit?.abilities || []),
+      _abilityDescriptions: { ...(unit?.abilityDescriptions || unit?._abilityDescriptions || {}) },
       _children: (unit?.children || unit?._children || []).map(parseMatchupImportUnit),
       _tags: [...(unit?._tags || [])],
       _keywords: [...(unit?.keywords || unit?._keywords || [])],
@@ -1146,6 +1200,7 @@
         _modifierToggles: { ...(w._modifierToggles || Object.fromEntries(splitModifiers(w.modifiers).map(mod => [mod, true]))) },
       })),
       abilities: [...(unit.abilities || [])],
+      _abilityDescriptions: { ...(unit._abilityDescriptions || {}) },
       _children: (unit._children || []).map(cloneUnit),
       _tags: [...(unit._tags || [])],
       _keywords: [...(unit._keywords || [])],

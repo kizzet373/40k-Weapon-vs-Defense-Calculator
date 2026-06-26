@@ -22,6 +22,7 @@ context.window = context;
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, 'calculator-core.js'), 'utf8'), context, { filename: 'calculator-core.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'ability-modifiers.js'), 'utf8'), context, { filename: 'ability-modifiers.js' });
+vm.runInContext(fs.readFileSync(path.join(root, 'keyword-definitions.js'), 'utf8'), context, { filename: 'keyword-definitions.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'matchup-engine.js'), 'utf8'), context, { filename: 'matchup-engine.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'army-import.js'), 'utf8'), context, { filename: 'army-import.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'utilities.js'), 'utf8'), context, { filename: 'utilities.js' });
@@ -274,6 +275,59 @@ assert.strictEqual(
 const veteransModifierList = app.unitAbilityModifierNames('Veterans of the Long War');
 assert.ok(veteransModifierList.includes('Conditional | Unit-wide | Melee: Reroll Wounds'), 'Veterans of the Long War uses the generic conditional gate for full wound rerolls');
 assert.ok(!veteransModifierList.some(mod => /Target On Objective/i.test(mod)), 'Veterans of the Long War does not expose bespoke objective-condition wording');
+const descriptionApp = context.weaponVsDefenseApp();
+descriptionApp.addRoster({
+  roster: {
+    name: 'Description roster',
+    battleScribeVersion: 2.03,
+    forces: [{
+      name: 'Force',
+      selections: [{
+        type: 'unit',
+        id: 'description-unit',
+        name: 'Description Unit',
+        number: '1',
+        profiles: [
+          {
+            typeName: 'Unit',
+            name: 'Description Unit',
+            characteristics: [
+              { name: 'T', $text: '4' },
+              { name: 'Sv', $text: '3+' },
+              { name: 'W', $text: '2' },
+            ],
+          },
+          {
+            typeName: 'Abilities',
+            name: 'Veterans of the Long War',
+            characteristics: [{ name: 'Description', $text: 'Each time this unit makes a melee attack, reroll wound rolls of 1.' }],
+          },
+        ],
+        selections: [{
+          type: 'upgrade',
+          name: 'Fade to Darkness',
+          costs: [{ name: 'pts', value: '30' }],
+          profiles: [{
+            typeName: 'Abilities',
+            name: 'Fade to Darkness',
+            characteristics: [{ name: 'Description', $text: 'Once per battle, this unit fades away from danger.' }],
+          }],
+        }],
+      }],
+    }],
+  },
+}, 'Description roster');
+const descriptionUnit = descriptionApp.units[0];
+assert.ok(/melee attack/i.test(descriptionApp.unitAbilityDescription(descriptionUnit, 'Veterans of the Long War')), 'raw roster ability descriptions are retained on imported units');
+descriptionApp.openRuleDescription({ type: 'Ability', name: 'Veterans of the Long War', title: 'Veterans of the Long War', unit: descriptionUnit });
+assert.ok(descriptionApp.ruleDescriptionModalOpen, 'clicking an ability name can open the rule description modal');
+assert.ok(/reroll wound rolls of 1/i.test(descriptionApp.ruleDescription.description), 'ability description modal uses imported roster text');
+descriptionApp.openRuleDescription({ type: 'Enhancement', name: 'Fade to Darkness', title: 'Fade to Darkness', enhancement: descriptionUnit._enhancements[0], unit: descriptionUnit });
+assert.ok(/fades away/i.test(descriptionApp.ruleDescription.description), 'enhancement description modal uses imported roster text');
+descriptionApp.openRuleDescription({ type: 'Keyword', name: 'Sustained Hits 1', title: 'Sustained Hits 1' });
+assert.ok(/additional hit/i.test(descriptionApp.ruleDescription.description), 'keyword description modal uses local keyword definitions');
+descriptionApp.closeRuleDescription();
+assert.ok(!descriptionApp.ruleDescriptionModalOpen, 'rule description modal can close independently');
 const disciplesImportApp = context.weaponVsDefenseApp();
 disciplesImportApp.addRoster({
   roster: {

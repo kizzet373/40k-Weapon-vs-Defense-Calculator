@@ -63,6 +63,8 @@ function weaponVsDefenseApp(){
     formulaCell: null,
     formulaAttacker: null,
     formulaDefender: null,
+    ruleDescriptionModalOpen: false,
+    ruleDescription: { title: '', type: '', description: '', source: '' },
 
     // ---------------- Roster state ----------------
     rosters: [],
@@ -1946,6 +1948,7 @@ function weaponVsDefenseApp(){
         defense: { ...(unit?.defense || {}) },
         weapons: cleanWeapons,
         abilities: [...(unit?.abilities || [])],
+        abilityDescriptions: { ...(unit?._abilityDescriptions || {}) },
         enhancements: [...(unit?._enhancements || [])],
         keywords: [...(unit?._keywords || [])],
         isCharacterUnit: !!unit?._isCharacterUnit,
@@ -2202,6 +2205,68 @@ function weaponVsDefenseApp(){
       this.profileModalOpen = false;
       this.profileModalRole = '';
       this.profileUnit = null;
+    },
+
+    ruleLookupName(value){
+      if(window.AbilityModifierService?.normalizeRuleName){
+        return window.AbilityModifierService.normalizeRuleName(value);
+      }
+      return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    },
+
+    unitAbilityDescription(unit, ability){
+      const wanted = this.ruleLookupName(ability);
+      const maps = [
+        unit?._abilityDescriptions || {},
+        unit?._parentUnit?._abilityDescriptions || {},
+        unit?._baseUnit?._abilityDescriptions || {},
+        unit?._baseUnit?._parentUnit?._abilityDescriptions || {},
+      ];
+      for(const map of maps){
+        const found = Object.entries(map || {}).find(([name]) => this.ruleLookupName(name) === wanted);
+        if(found && found[1]) return String(found[1]);
+      }
+      return '';
+    },
+
+    ruleModifierDescription(name){
+      const modifiers = this.ruleModifierNames(name);
+      return modifiers.length ? `Damage calculation modifiers: ${modifiers.join('; ')}` : '';
+    },
+
+    weaponModifierDescription(modifier){
+      const definition = window.KeywordDefinitionService?.definitionForKeyword?.(modifier);
+      if(definition?.description) return definition.description;
+      return 'No local keyword definition has been added yet.';
+    },
+
+    customModifierDescription(modifier){
+      return `Custom damage calculation modifier: ${this.customModifierLabel(modifier)}`;
+    },
+
+    openRuleDescription(payload={}){
+      const type = payload.type || 'Rule';
+      const unit = payload.unit || this.profileUnit || null;
+      const title = payload.title || payload.name || 'Rule';
+      const description = (() => {
+        if(type === 'Ability') return this.unitAbilityDescription(unit, payload.name) || this.ruleModifierDescription(payload.name);
+        if(type === 'Enhancement') return payload.enhancement?.description || this.unitAbilityDescription(unit, payload.enhancement?.name || payload.name) || this.ruleModifierDescription(payload.enhancement?.name || payload.name);
+        if(type === 'Keyword' || type === 'Modifier') return this.weaponModifierDescription(payload.name);
+        if(type === 'Custom Modifier') return this.customModifierDescription(payload.modifier || payload.name);
+        return payload.description || '';
+      })();
+      this.ruleDescription = {
+        title,
+        type,
+        description: description || 'No description was included in the imported roster data.',
+        source: payload.source || (type === 'Keyword' || type === 'Modifier' ? 'Local keyword definition' : 'Imported roster data'),
+      };
+      this.ruleDescriptionModalOpen = true;
+    },
+
+    closeRuleDescription(){
+      this.ruleDescriptionModalOpen = false;
+      this.ruleDescription = { title: '', type: '', description: '', source: '' };
     },
 
     openMatchupFormula(cell, attacker, defender){

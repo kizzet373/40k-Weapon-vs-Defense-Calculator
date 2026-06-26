@@ -408,6 +408,7 @@ details summary{cursor:pointer}
 }
 .modalWide{max-width:1400px}
 .modalSmall{max-width:720px}
+.modalTiny{max-width:520px}
 .formulaOverlay{z-index:80}
 .formulaBody{max-height:70vh}
 .formulaSummary{margin-bottom:10px}
@@ -584,6 +585,21 @@ details summary{cursor:pointer}
 }
 .toggleLine input{width:auto}
 .abilityToggleLine{margin:4px 0}
+.ruleLink{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:var(--accent);
+  padding:0;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.ruleLink:hover{color:#f5d76e}
+.strongRuleLink{font-weight:800;color:var(--text)}
+.ruleDescriptionBody{display:flex;flex-direction:column;gap:10px;line-height:1.45}
 .compactToggleLine{padding:6px 8px;font-size:12px;white-space:nowrap}
 .profileRuleBlock{margin-bottom:8px}
 .profileRuleModifiers{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0 26px}
