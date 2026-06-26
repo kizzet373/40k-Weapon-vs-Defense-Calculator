@@ -562,11 +562,14 @@ details summary{cursor:pointer}
 .profileNameText{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .profilePointsText{font-weight:400;color:var(--muted);white-space:nowrap;flex:0 0 auto}
 .profileTitle{display:flex;align-items:baseline;gap:5px;min-width:0}
+.inlineEditButton{padding:4px 8px;border-radius:8px;font-size:12px;line-height:1.1}
 .profileScoreSummary{margin-top:5px;color:#cfd7e3;font-size:12px;line-height:1.35}
 .profileScoreDivider{color:var(--muted)}
 .profileBody{display:grid;grid-template-columns:1.4fr .8fr;gap:14px;max-height:70vh;overflow:auto}
 .profileWeapon{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.025)}
 .profileModel{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.02)}
+.profileModelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.profileModelHead .profileLink{min-width:0}
 .profileWeaponHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .modifierToggleList{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .toggleLine{

@@ -312,6 +312,61 @@ deleteUnitApp.selectedUnitIdx = 0;
 deleteUnitApp.deleteSelectedUnit();
 assert.strictEqual(deleteUnitApp.units.length, 1, 'Delete Unit removes the selected unit from the main unit list');
 assert.strictEqual(deleteUnitApp.units[0].label, 'Unit B', 'Delete Unit keeps the remaining unit selected safely');
+
+const renameUnitApp = context.weaponVsDefenseApp();
+renameUnitApp.addRoster({
+  roster: {
+    name: 'Rename unit check',
+    forces: [{
+      name: 'Force',
+      _importedUnits: [{
+        label: 'Wolf Squad',
+        weapons: [],
+        defense: { T: 4, Sv: 3, W: 2, models: 2 },
+        _unitKey: 'wolf-squad',
+        _groupId: 'wolf-squad',
+        _children: [
+          { label: 'Pack Leader', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'pack-leader', _groupId: 'wolf-squad' },
+          { label: 'Wolf Guard', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'wolf-guard', _groupId: 'wolf-squad' },
+        ],
+      }, {
+        label: 'Leader',
+        weapons: [],
+        defense: { T: 4, Sv: 3, W: 3, models: 1 },
+        _unitKey: 'leader',
+        _groupId: 'leader',
+      }],
+      _unitMerges: [],
+    }],
+  },
+}, 'Rename unit check');
+renameUnitApp.selectedUnitIdx = renameUnitApp.units.findIndex(unit => unit._unitKey === 'wolf-squad');
+renameUnitApp.renameUnit(renameUnitApp.activeUnit, 'Renamed Squad');
+assert.strictEqual(renameUnitApp.activeUnit.label, 'Renamed Squad', 'renaming a main unit refreshes the selected unit label');
+assert.ok(/^Renamed Squad \(\d+\)$/.test(renameUnitApp.unitDropdownLabel(renameUnitApp.activeUnit)), 'renaming a main unit updates the dropdown label');
+assert.strictEqual(renameUnitApp.forces[0]._importedUnits[0].label, 'Renamed Squad', 'renaming persists to the imported unit source');
+renameUnitApp.profileModalOpen = true;
+renameUnitApp.profileUnit = renameUnitApp.activeUnit;
+const renamedChild = renameUnitApp.profileUnit._children[0];
+renameUnitApp.renameUnit(renamedChild, 'Pack Boss');
+assert.strictEqual(renameUnitApp.profileUnit.label, 'Renamed Squad', 'renaming a child keeps the parent profile modal open');
+assert.ok(renameUnitApp.profileUnit._children.some(child => child.label === 'Pack Boss'), 'renaming a child updates model rows in the profile modal');
+assert.ok(renameUnitApp.forces[0]._importedUnits[0]._children.some(child => child.label === 'Pack Boss'), 'renaming a child persists to the imported model source');
+renameUnitApp.matchup.attackerRosterIdx = 0;
+renameUnitApp.matchup.attackerForceIdx = 0;
+renameUnitApp.matchup.defenderRosterIdx = 0;
+renameUnitApp.matchup.defenderForceIdx = 0;
+renameUnitApp.onMatchupRosterChanged('attacker', false);
+renameUnitApp.onMatchupRosterChanged('defender', false);
+renameUnitApp.matchupMerge.attackerFrom = 'leader';
+renameUnitApp.matchupMerge.attackerTo = 'wolf-squad';
+renameUnitApp.applyManualMerge('attacker');
+assert.strictEqual(renameUnitApp.activeUnit._unitKey, 'wolf-squad', 'merging into the selected roster keeps the main dropdown mapped to the target unit');
+assert.strictEqual(renameUnitApp.activeUnit.label, 'Renamed Squad', 'merged unit keeps renamed target label in the main dropdown');
+renameUnitApp.matchupMerge.attackerTo = 'wolf-squad';
+renameUnitApp.unmergeSelectedUnit('attacker');
+assert.ok(renameUnitApp.units.some(unit => unit.label === 'Pack Boss'), 'unmerge keeps renamed unique model names when they split out');
+
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Shadow Lord (Aura, Psychic)')),
   JSON.stringify(['Unit-wide | Reroll Hits 1']),

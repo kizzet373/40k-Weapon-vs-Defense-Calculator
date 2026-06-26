@@ -1186,6 +1186,34 @@
     return keys;
   }
 
+  function findUnitByIdentity(units, unitKey, groupId=''){
+    for(const unit of units || []){
+      const key = String(unit?._unitKey || '');
+      const group = String(unit?._groupId || '');
+      if(unitKey ? key === unitKey : (groupId && group === groupId)) return unit;
+      const child = findUnitByIdentity(unit?._children || [], unitKey, groupId);
+      if(child) return child;
+    }
+    return null;
+  }
+
+  function renameSelectionByIdentity(selections, unitKey, groupId, newLabel){
+    const genericKey = unitKey.replace(/^generic-/, '');
+    for(const selection of selections || []){
+      const selectionKey = String(selection?.id || selection?.entryId || selection?.name || '');
+      const selectionGroup = String(selection?.entryGroupId || selection?.group || selection?.name || '');
+      if(unitKey
+        ? (selectionKey === genericKey || selectionKey === unitKey)
+        : (selectionKey === groupId || (groupId && selectionGroup === groupId))
+      ){
+        selection.name = newLabel;
+        return true;
+      }
+      if(renameSelectionByIdentity(selection?.selections || [], unitKey, groupId, newLabel)) return true;
+    }
+    return false;
+  }
+
   function clonePlainSelection(selection){
     return JSON.parse(JSON.stringify(selection));
   }
@@ -1276,6 +1304,27 @@
           return selectionKey !== genericKey && selectionKey !== unitKey && selectionKey !== groupId;
         });
         changed = force.selections.length !== before;
+      }
+
+      return changed;
+    },
+    renameUnit(force, unit, newLabel){
+      const label = cleanName(newLabel);
+      if(!force || !unit || !label) return false;
+      const unitKey = String(unit?._baseUnit?._unitKey || unit?._unitKey || '');
+      const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
+      let changed = false;
+
+      if(Array.isArray(force._importedUnits)){
+        const target = findUnitByIdentity(force._importedUnits, unitKey, groupId);
+        if(target){
+          target.label = label;
+          changed = true;
+        }
+      }
+
+      if(Array.isArray(force.selections) && renameSelectionByIdentity(force.selections, unitKey, groupId, label)){
+        changed = true;
       }
 
       return changed;

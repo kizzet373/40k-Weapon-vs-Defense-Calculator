@@ -417,6 +417,81 @@ function weaponVsDefenseApp(){
       this.selectedUnitIdx = 0;
     },
 
+    sourceUnitKey(unit){
+      return String(unit?._baseUnit?._unitKey || unit?._unitKey || unit?._groupId || unit?.label || '');
+    },
+
+    refreshUnitsPreservingSelection(preferredKey=null){
+      const previousKey = preferredKey || this.sourceUnitKey(this.activeUnit);
+      const previousIndex = this.selectedUnitIdx;
+      const force = this.getForceByIdx(this.selectedForceIdx);
+      this.units = force ? this.collectUnits(force) : [];
+      const nextIndex = previousKey
+        ? this.units.findIndex(unit => this.sourceUnitKey(unit) === previousKey)
+        : -1;
+      this.selectedUnitIdx = nextIndex >= 0
+        ? nextIndex
+        : (this.units.length ? this.clamp(previousIndex, 0, this.units.length - 1) : 0);
+    },
+
+    rosterForces(){
+      return (this.rosters || []).flatMap(roster => (roster?.data?.roster?.forces) || (roster?.data?.forces) || []);
+    },
+
+    flattenUnitTree(units){
+      const out = [];
+      (units || []).forEach(unit => {
+        out.push(unit);
+        out.push(...this.flattenUnitTree(unit?._children || []));
+      });
+      return out;
+    },
+
+    findDisplayedUnitBySourceKey(sourceKey){
+      if(!sourceKey) return null;
+      for(const force of this.rosterForces()){
+        const found = this.flattenUnitTree(this.collectUnits(force)).find(unit => this.sourceUnitKey(unit) === sourceKey);
+        if(found) return found;
+      }
+      return null;
+    },
+
+    refreshAfterRosterUnitChange(preferredKey=null, profileKey=null){
+      this.refreshUnitsPreservingSelection(preferredKey);
+      if(profileKey && this.profileModalOpen){
+        const refreshedProfile = this.findDisplayedUnitBySourceKey(profileKey);
+        if(refreshedProfile) this.profileUnit = refreshedProfile;
+      }
+      this.onUnitChanged();
+      this.clearMatchupComputationCache();
+      if(this.matchupModalOpen) this.rebuildMatchup();
+    },
+
+    renameUnit(unit, newLabel){
+      const label = String(newLabel || '').trim();
+      if(!unit || !label) return false;
+      const profileKey = this.sourceUnitKey(unit);
+      const currentProfileKey = this.sourceUnitKey(this.profileUnit);
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
+      let changed = false;
+      this.rosterForces().forEach(force => {
+        if(window.ArmyImportService?.renameUnit(force, unit, label)) changed = true;
+      });
+      if(!changed) unit.label = label;
+      this.refreshAfterRosterUnitChange(selectedKey, currentProfileKey);
+      if(this.profileUnit && this.sourceUnitKey(this.profileUnit) === profileKey) this.profileUnit.label = label;
+      return true;
+    },
+
+    promptRenameUnit(unit=null){
+      const target = unit || this.activeUnit;
+      if(!target) return;
+      const current = this.unitLabelText(target, 'Unit');
+      const next = window.prompt('Rename unit/model', current);
+      if(next == null) return;
+      this.renameUnit(target, next);
+    },
+
     duplicateSelectedUnit(){
       const unit = this.activeUnit;
       const force = this.getForceByIdx(this.selectedForceIdx);
@@ -1084,6 +1159,7 @@ function weaponVsDefenseApp(){
       const fromKey = side === 'attacker' ? this.matchupMerge.attackerFrom : this.matchupMerge.defenderFrom;
       const toKey = side === 'attacker' ? this.matchupMerge.attackerTo : this.matchupMerge.defenderTo;
       const force = this.forceForMatchupSide(side);
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
       const ok = window.ArmyImportService?.mergeUnits(force, fromKey, toKey);
       if(!ok){ alert('Choose two different units to merge.'); return; }
       if(side === 'attacker'){
@@ -1093,18 +1169,24 @@ function weaponVsDefenseApp(){
         this.matchupMerge.defenderFrom = '';
         this.matchupMerge.defenderTo = '';
       }
+      this.refreshUnitsPreservingSelection(selectedKey === fromKey ? toKey : selectedKey);
+      this.onUnitChanged();
       this.rebuildMatchup();
     },
 
     clearManualMerges(side){
       const force = this.forceForMatchupSide(side);
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
       window.ArmyImportService?.clearMerges(force);
+      this.refreshUnitsPreservingSelection(selectedKey);
+      this.onUnitChanged();
       this.rebuildMatchup();
     },
 
     unmergeSelectedUnit(side){
       const targetKey = side === 'attacker' ? this.matchupMerge.attackerTo : this.matchupMerge.defenderTo;
       const force = this.forceForMatchupSide(side);
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
       const ok = window.ArmyImportService?.unmergeUnit(force, targetKey);
       if(!ok){ alert('No uniquely named models or merges found for that unit.'); return; }
       if(side === 'attacker'){
@@ -1114,6 +1196,8 @@ function weaponVsDefenseApp(){
         this.matchupMerge.defenderFrom = '';
         this.matchupMerge.defenderTo = '';
       }
+      this.refreshUnitsPreservingSelection(selectedKey || targetKey);
+      this.onUnitChanged();
       this.rebuildMatchup();
     },
 

@@ -90,6 +90,7 @@
             </template>
           </select>
         </label>
+        <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptRenameUnit(activeUnit)">Rename</button>
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
         <button class="danger" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
       </div>
@@ -623,6 +624,7 @@
           <div class="profileTitle">
             <span style="font-weight:800" x-text="profileModalRole ? `${profileModalRole}: ${unitLabelText(profileUnit)}` : unitLabelText(profileUnit)"></span>
             <span class="profilePointsText" x-show="unitPointsText(profileUnit)" x-text="unitPointsText(profileUnit)"></span>
+            <button type="button" class="secondary inlineEditButton" @click="promptRenameUnit(profileUnit)">Edit</button>
           </div>
           <div class="muted" style="font-size:12px" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(profileUnit))"></div>
           <div class="profileScoreSummary">
@@ -710,10 +712,13 @@
           </template>
           <template x-for="(child, ci) in (profileUnit?._children || [])" :key="`profile-child-${ci}`">
             <div class="profileModel">
-              <button type="button" class="profileLink" @click="profileUnit = child">
-                <span class="profileNameText" x-text="unitLabelText(child, `Model ${ci+1}`)"></span>
-                <span class="profilePointsText" x-show="unitPointsText(child)" x-text="unitPointsText(child)"></span>
-              </button>
+              <div class="profileModelHead">
+                <button type="button" class="profileLink" @click="profileUnit = child">
+                  <span class="profileNameText" x-text="unitLabelText(child, `Model ${ci+1}`)"></span>
+                  <span class="profilePointsText" x-show="unitPointsText(child)" x-text="unitPointsText(child)"></span>
+                </button>
+                <button type="button" class="secondary inlineEditButton" @click.stop="promptRenameUnit(child)">Edit</button>
+              </div>
               <div class="muted" style="font-size:12px" x-html="profileChildSummaryHtml(child)"></div>
             </div>
           </template>
