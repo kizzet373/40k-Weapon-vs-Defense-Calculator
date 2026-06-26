@@ -220,17 +220,22 @@ const baseProfiles = app.baseProfilesRosterData();
 const baseProfileUnits = baseProfiles.roster.forces[0]._importedUnits;
 assert.strictEqual(baseProfiles.roster.name, 'Base Profiles', 'base profiles roster is named for generic matchup use');
 assert.strictEqual(baseProfileUnits.length, 10, 'base profiles roster includes ten common unique defensive profiles');
-assert.ok(baseProfileUnits.every(unit => !unit.weapons.length && !unit.abilities.length && !(unit._enhancements || []).length), 'base profiles roster has no weapons, abilities, enhancements, or modifiers');
+assert.ok(baseProfileUnits.every(unit => unit.weapons.length > 0 && !unit.abilities.length && !(unit._enhancements || []).length), 'base profiles roster includes weapon profiles but no abilities or enhancements');
+assert.ok(baseProfileUnits.every(unit => unit.weapons.every(weapon => !weapon.modifiers)), 'base profile weapons are modifier-free baseline profiles');
 assert.ok(baseProfileUnits.every(unit => Number.isFinite(unit._points) && unit._points > 0), 'base profiles include point values for scoring');
 const lightInfantryProfile = baseProfileUnits.find(unit => unit.label === 'Light Infantry');
 assert.ok(lightInfantryProfile, 'base profiles include light infantry');
 assert.strictEqual(lightInfantryProfile.defense.models, 10, 'light infantry uses a common ten-model squad size');
 assert.strictEqual(lightInfantryProfile.defense.totalWounds, 10, 'light infantry total wounds match its model count');
 assert.strictEqual(lightInfantryProfile._points, 60, 'light infantry includes a common low-cost squad point value');
+assert.ok(lightInfantryProfile.weapons.some(weapon => weapon.name === 'Basic rifle' && weapon.A === '10' && weapon.mode === 'ranged'), 'light infantry includes a common basic ranged profile');
 const powerArmourProfile = baseProfileUnits.find(unit => unit.label === 'Power Armour');
 assert.ok(powerArmourProfile, 'base profiles include power armour');
 assert.strictEqual(powerArmourProfile.defense.models, 5, 'power armour uses a common five-model squad size');
 assert.strictEqual(powerArmourProfile._points, 90, 'power armour includes a common five-model point value');
+assert.ok(powerArmourProfile.weapons.some(weapon => weapon.name === 'Bolt rifle' && weapon.AP === '1'), 'power armour includes a common bolt rifle profile');
+const terminatorProfile = baseProfileUnits.find(unit => unit.label === 'Terminators');
+assert.ok(terminatorProfile.weapons.some(weapon => weapon.name === 'Power fists' && weapon.mode === 'melee'), 'terminators include a common heavy melee profile');
 const titanicProfile = baseProfileUnits.find(unit => unit.label === 'Titanic Target');
 assert.ok(titanicProfile && titanicProfile.defense.T === 12 && titanicProfile.defense.Inv === 5 && titanicProfile.defense.W === 22, 'base profiles include a titanic target');
 assert.strictEqual(titanicProfile._points, 400, 'titanic target includes a common large-model point value');
@@ -261,6 +266,11 @@ baseScoreApp.openMatchupModal();
 const baseDefender = baseScoreApp.matchupDefenderUnits.find(unit => unit.label === 'Power Armour');
 assert.ok(baseDefender, 'base profiles can be selected as matchup defenders');
 assert.ok(/^\(90 pts\) - Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseDefender, 'defender')), 'base profiles display calibrated defensive scores from their point values');
+baseScoreApp.swapMatchupSides();
+const baseAttacker = baseScoreApp.matchupAttackerUnits.find(unit => unit.label === 'Power Armour');
+assert.ok(baseAttacker, 'base profiles can be selected as matchup attackers');
+assert.ok(/^\(90 pts\) - Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseAttacker, 'attacker')), 'base profiles display calibrated offensive scores from their point values and weapon profiles');
+assert.ok(baseScoreApp.cachedMatchupCell(baseAttacker, baseScoreApp.matchupDefenderUnits[0]).dmg > 0, 'base profile weapon packages produce matchup damage');
 
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Dark Pacts')),

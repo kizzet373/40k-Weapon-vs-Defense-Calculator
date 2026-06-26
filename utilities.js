@@ -238,25 +238,72 @@ function weaponVsDefenseApp(){
 
     baseProfilesRosterData(){
       const profiles = [
-        ['Light Infantry',      60,  { T: 3,  Sv: 5, W: 1,  models: 10 }],
-        ['Armored Infantry',    100, { T: 3,  Sv: 4, W: 1,  models: 10 }],
-        ['Power Armour',        90,  { T: 4,  Sv: 3, W: 2,  models: 5 }],
-        ['Tough Infantry',      80,  { T: 5,  Sv: 5, W: 1,  models: 10 }],
-        ['Elite Infantry',      90,  { T: 5,  Sv: 3, W: 3,  models: 3 }],
-        ['Terminators',         180, { T: 5,  Sv: 2, Inv: 4, W: 3,  models: 5 }],
-        ['Gravis Armour',       120, { T: 6,  Sv: 3, W: 3,  models: 3 }],
-        ['Light Vehicle',       80,  { T: 9,  Sv: 3, W: 10, models: 1 }],
-        ['Battle Tank',         150, { T: 10, Sv: 3, W: 12, models: 1 }],
-        ['Titanic Target',      400, { T: 12, Sv: 2, Inv: 5, W: 22, models: 1 }],
+        ['Light Infantry',      60,  { T: 3,  Sv: 5, W: 1,  models: 10 }, [
+          ['Basic rifle', '24', '10', '4', '3', '0', '1', 'ranged'],
+          ['Close combat weapons', 'Melee', '10', '4', '3', '0', '1', 'melee'],
+        ]],
+        ['Armored Infantry',    100, { T: 3,  Sv: 4, W: 1,  models: 10 }, [
+          ['Carbine', '24', '10', '4', '4', '0', '1', 'ranged'],
+          ['Close combat weapons', 'Melee', '10', '4', '3', '0', '1', 'melee'],
+        ]],
+        ['Power Armour',        90,  { T: 4,  Sv: 3, W: 2,  models: 5 }, [
+          ['Bolt rifle', '24', '10', '3', '4', '1', '1', 'ranged'],
+          ['Combat blades', 'Melee', '10', '3', '4', '0', '1', 'melee'],
+        ]],
+        ['Tough Infantry',      80,  { T: 5,  Sv: 5, W: 1,  models: 10 }, [
+          ['Scrap guns', '18', '10', '4', '4', '0', '1', 'ranged'],
+          ['Heavy close combat weapons', 'Melee', '20', '4', '4', '0', '1', 'melee'],
+        ]],
+        ['Elite Infantry',      90,  { T: 5,  Sv: 3, W: 3,  models: 3 }, [
+          ['Elite rifle', '24', '6', '3', '5', '1', '2', 'ranged'],
+          ['Power weapons', 'Melee', '9', '3', '5', '2', '1', 'melee'],
+        ]],
+        ['Terminators',         180, { T: 5,  Sv: 2, Inv: 4, W: 3,  models: 5 }, [
+          ['Storm bolters', '24', '20', '3', '4', '0', '1', 'ranged'],
+          ['Power fists', 'Melee', '15', '3', '8', '2', '2', 'melee'],
+        ]],
+        ['Gravis Armour',       120, { T: 6,  Sv: 3, W: 3,  models: 3 }, [
+          ['Heavy bolt rifles', '30', '6', '3', '5', '1', '2', 'ranged'],
+          ['Heavy fists', 'Melee', '9', '3', '5', '1', '1', 'melee'],
+        ]],
+        ['Light Vehicle',       80,  { T: 9,  Sv: 3, W: 10, models: 1 }, [
+          ['Autocannon', '48', '4', '4', '9', '1', '3', 'ranged'],
+          ['Hull weapon', '36', '3', '4', '5', '0', '1', 'ranged'],
+          ['Armoured hull', 'Melee', '3', '4', '6', '0', '1', 'melee'],
+        ]],
+        ['Battle Tank',         150, { T: 10, Sv: 3, W: 12, models: 1 }, [
+          ['Battle cannon', '72', 'D6+3', '4', '10', '1', '3', 'ranged'],
+          ['Heavy bolter', '36', '3', '4', '5', '1', '2', 'ranged'],
+          ['Armoured tracks', 'Melee', '3', '4', '7', '0', '1', 'melee'],
+        ]],
+        ['Titanic Target',      400, { T: 12, Sv: 2, Inv: 5, W: 22, models: 1 }, [
+          ['Titanic cannon', '72', '8', '3', '12', '2', '4', 'ranged'],
+          ['Secondary guns', '36', '12', '3', '5', '1', '1', 'ranged'],
+          ['Titanic feet', 'Melee', '6', '3', '8', '2', '3', 'melee'],
+        ]],
       ];
+      const weaponsForProfile = (entries, unitIndex) => entries.map(([name, range, A, skill, S, AP, D, mode], weaponIndex) => ({
+        name,
+        range,
+        A,
+        skill,
+        S,
+        AP,
+        D,
+        modifiers: '',
+        mode,
+        _profileCount: 1,
+        _count: 1,
+        _weaponKey: `base-profile-${unitIndex + 1}|weapon-${weaponIndex + 1}`,
+      }));
       return {
         roster: {
           name: 'Base Profiles',
           forces: [{
             name: 'Common defensive profiles',
-            _importedUnits: profiles.map(([label, points, defense], index) => ({
+            _importedUnits: profiles.map(([label, points, defense, weapons], index) => ({
               label,
-              weapons: [],
+              weapons: weaponsForProfile(weapons || [], index),
               defense: {
                 ...defense,
                 totalWounds: (parseFloat(defense.W) || 0) * (parseInt(defense.models, 10) || 1),
