@@ -216,12 +216,12 @@ assert.ok(Math.abs(precisionCell.dmg - (2 / 3)) < 1e-9, 'Precision weapons alloc
 const app = context.weaponVsDefenseApp();
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Dark Pacts')),
-  JSON.stringify(['Choose Best: Lethal Hits; Sustained Hits 1']),
+  JSON.stringify(['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1']),
   'profile modal can list mapped modifiers under abilities'
 );
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames("Disciples of Be'lakor")),
-  JSON.stringify(['Choose Best: Lethal Hits; Sustained Hits 1']),
+  JSON.stringify(['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1']),
   "Disciples of Be'lakor maps to the same always-on best Dark Pacts modifier"
 );
 const disciplesImportApp = context.weaponVsDefenseApp();
@@ -527,7 +527,7 @@ const sharedAbilitySource = {
 };
 const sharedAbilityReceiver = {
   label: 'Squad model',
-  abilities: ['Dark Pacts'],
+  abilities: [],
   weapons: [{ name: 'Borrowed pact gun', range: '24', A: '6', skill: '4', S: '10', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'borrowed-pact-gun' }],
   defense: { T: 4, Sv: 3, W: 2, models: 1 },
   _unitKey: 'shared-receiver',
@@ -546,6 +546,35 @@ const sharedModifiers = app.effectiveWeaponModifiers(sharedAbilityReceiver.weapo
 assert.strictEqual((sharedModifiers.match(/Choose Best:/g) || []).length, 1, 'shared model abilities do not stack duplicate modifiers on the same model');
 const sharedCell = app.computeMatchupCell(sharedAbilityReceiver, hardTarget);
 assert.ok(Math.abs(sharedCell.dmg - (4 / 3)) < 1e-9, 'mapped abilities from one model in a unit apply to the other models in that unit');
+
+const bearerParent = {
+  label: 'Bearer parent',
+  abilities: ['Braggart’s Steel'],
+  weapons: [],
+  defense: { T: 4, Sv: 3, W: 4, models: 2 },
+  _children: [],
+  _unitKey: 'bearer-parent',
+};
+const bearerOnlyModel = {
+  label: 'Actual bearer',
+  abilities: ['Braggart’s Steel'],
+  weapons: [{ name: 'Bearer blade', range: 'Melee', A: '1', skill: 'auto', S: '5', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'bearer-blade' }],
+  defense: { T: 4, Sv: 3, W: 4, models: 1 },
+  _unitKey: 'bearer-only-model',
+};
+const bearerSibling = {
+  label: 'Non-bearer sibling',
+  abilities: [],
+  weapons: [{ name: 'Sibling blade', range: 'Melee', A: '1', skill: 'auto', S: '5', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'sibling-blade' }],
+  defense: { T: 4, Sv: 3, W: 4, models: 1 },
+  _unitKey: 'bearer-sibling',
+};
+bearerParent._children = [bearerOnlyModel, bearerSibling];
+Object.defineProperty(bearerOnlyModel, '_parentUnit', { value: bearerParent, enumerable: false, configurable: true });
+Object.defineProperty(bearerSibling, '_parentUnit', { value: bearerParent, enumerable: false, configurable: true });
+app.clearMatchupComputationCache();
+assert.ok(/Strength \+2/i.test(app.effectiveWeaponModifiers(bearerOnlyModel.weapons[0], bearerOnlyModel, hardTarget)), 'bearer-only abilities still apply to the actual model with the ability');
+assert.ok(!/Strength \+2/i.test(app.effectiveWeaponModifiers(bearerSibling.weapons[0], bearerSibling, hardTarget)), 'bearer-only abilities on an aggregate parent do not leak to sibling models');
 
 const skullmaster = {
   label: 'Skullmaster',

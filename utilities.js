@@ -2253,20 +2253,12 @@ function weaponVsDefenseApp(){
       if(cacheKey && this.matchupComputationCache.ruleNames?.[cacheKey]){
         return this.matchupComputationCache.ruleNames[cacheKey];
       }
-      const units = [];
-      let cursor = unit || null;
-      while(cursor){
-        units.push(cursor);
-        cursor = cursor._parentUnit || cursor._baseUnit?._parentUnit || null;
-      }
       const names = [];
-      units.forEach(current => {
-        this.unitAbilityNames(current).forEach(name => {
-          if(this.isUnitAbilityEnabled(current, name)) names.push(name);
-        });
-        this.unitEnhancementNames(current).forEach(name => {
-          if(this.isUnitEnhancementEnabled(current, name)) names.push(name);
-        });
+      this.unitAbilityNames(unit).forEach(name => {
+        if(this.isUnitAbilityEnabled(unit, name)) names.push(name);
+      });
+      this.unitEnhancementNames(unit).forEach(name => {
+        if(this.isUnitEnhancementEnabled(unit, name)) names.push(name);
       });
       this.sharedUnitAbilityRuleNames(unit).forEach(name => names.push(name));
       const result = [...new Set(names)];

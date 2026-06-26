@@ -1,7 +1,7 @@
 (function(){
   const ABILITY_MODIFIERS = {
-    'Dark Pacts': ['Choose Best: Lethal Hits; Sustained Hits 1'],
-    "Disciples of Be'lakor": ['Choose Best: Lethal Hits; Sustained Hits 1'],
+    'Dark Pacts': ['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1'],
+    "Disciples of Be'lakor": ['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1'],
     'Stealth': ['Defense: Cover'],
     'Cover': ['Defense: Cover'],
     'Benefit of Cover': ['Defense: Cover'],
@@ -35,7 +35,7 @@
     'Bloodmaster': ['Unit-wide | Wound Rolls +1'],
     'Blood Throne': ['Conditional | Unit-wide | Strength +1 | AP +1 | Damage +1'],
     'Relentless Carnage': ['Conditional | Fight Phase Mortals: 8D6 4+'],
-    'Champion Slayer': ['Melee: Reroll Wounds | Target: Character | Target: Monster'],
+    'Champion Slayer': ['Bearer | Melee: Reroll Wounds | Target: Character | Target: Monster'],
     "Skullmaster's Fury": ['Conditional | Unit-wide | Weapon: Juggernaut bladed horns | Melee: Devastating Wounds'],
     'Keep Counting!': ['Unit-wide | Melee: Sustained Hits 1'],
     'Tormentbringer (Aura)': ['Unit-wide | Melee: Sustained Hits 1'],
@@ -44,7 +44,7 @@
     'Brass Stampede': ['Conditional | Unit-wide | Mortal Wounds On Charge'],
     'Cutting Down the Foe': ['Conditional | Unit-wide | Melee: Strength +1 | Melee: Damage +1'],
     "Death's Heads": ['Conditional | Unit-wide | Reroll Wounds'],
-    'Chance for Glory': ['Conditional | Melee: Strength +1 | Melee: Attacks +1 | Melee: AP +1 | Melee: Damage +1'],
+    'Chance for Glory': ['Bearer | Conditional | Melee: Strength +1 | Melee: Attacks +1 | Melee: AP +1 | Melee: Damage +1'],
     'Dark Ritual': ['Conditional | Unit-wide | Hit Rolls +1 | Wound Rolls +1'],
     'Dark Zealotry': ['Unit-wide | Melee: Wound Rolls +1'],
     'Eldritch Flames (Psychic)': ['Conditional | Ranged: Ignores Cover'],
@@ -60,8 +60,8 @@
 
     'Fierce Example': ['Defense: Toughness +1'],
     'Enhancement: Fierce Example': ['Defense: Toughness +1'],
-    'Fangs of the Pack': ['Conditional | Melee: Precision'],
-    'Stratagem: Fangs of the Pack (1CP)': ['Conditional | Melee: Precision'],
+    'Fangs of the Pack': ['Bearer | Conditional | Melee: Precision'],
+    'Stratagem: Fangs of the Pack (1CP)': ['Bearer | Conditional | Melee: Precision'],
     'Inspiring Presence': ['Conditional | Melee: Lethal Hits'],
     'Stratagem: Inspiring Presence (1CP)': ['Conditional | Melee: Lethal Hits'],
     "Champion's Guidance": ['Conditional | Reroll Hits'],
@@ -70,19 +70,19 @@
     'Stratagem: Champion’s Guidance (1CP)': ['Conditional | Reroll Hits'],
     'Heroic Resolve': ['Conditional | Defense Attack: Damage -1'],
     'Stratagem: Heroic Resolve (2CP)': ['Conditional | Defense Attack: Damage -1'],
-    'Champion of The Kingsguard': ['Melee: Reroll Hits | Melee: Reroll Wounds | Target: Character'],
+    'Champion of The Kingsguard': ['Bearer | Melee: Reroll Hits | Melee: Reroll Wounds | Target: Character'],
     'Legendary Tenacity': ['Defense Attack: Wound Rolls -1 | If Strength > Toughness'],
     'Rugged Resilience': ['Defense Attack: Wound Rolls -1 | If Strength > Toughness'],
     'Priority Objective Identified': ['Conditional | Unit-wide | Reroll Wounds 1'],
     'Tempered Ferocity': ['Unit-wide | Sustained Hits 1', 'Conditional | Unit-wide | Reroll Hits 1'],
-    'Headhunters': ['Conditional | Devastating Wounds | Precision'],
-    'Deadly Stalkers': ['Conditional | Wound Rolls +1'],
+    'Headhunters': ['Bearer | Conditional | Devastating Wounds | Precision'],
+    'Deadly Stalkers': ['Bearer | Conditional | Wound Rolls +1'],
     'Storm Shield': ['Defense: Invulnerable Save 4+'],
 
-    'Devastating Charge': ['Conditional | Melee: Lance'],
-    "Braggart's Steel": ['Melee: Strength +2', 'Conditional | Melee: Damage +1'],
-    'Braggart’s Steel': ['Melee: Strength +2', 'Conditional | Melee: Damage +1'],
-    'Hordeslayer': ['Conditional | Melee: Attacks +3'],
+    'Devastating Charge': ['Bearer | Conditional | Melee: Lance'],
+    "Braggart's Steel": ['Bearer | Melee: Strength +2', 'Bearer | Conditional | Melee: Damage +1'],
+    'Braggart’s Steel': ['Bearer | Melee: Strength +2', 'Bearer | Conditional | Melee: Damage +1'],
+    'Hordeslayer': ['Bearer | Conditional | Melee: Attacks +3'],
   };
 
   function normalizeRuleName(value){
@@ -119,6 +119,7 @@
     if(parsedSpecCache.has(cacheKey)) return parsedSpecCache.get(cacheKey);
     const meta = {
       conditional: false,
+      bearer: false,
       unitWide: false,
       weapons: [],
       weaponKeywords: [],
@@ -132,6 +133,7 @@
     splitSpecParts(value).forEach(part => {
       let match = null;
       if(/^Conditional$/i.test(part)){ meta.conditional = true; return; }
+      if(/^Bearer$/i.test(part)){ meta.bearer = true; return; }
       if(/^Unit[-\s]?wide$/i.test(part)){ meta.unitWide = true; return; }
       if((match = part.match(/^Weapon:\s*(.+)$/i))){ meta.weapons.push(match[1]); return; }
       if((match = part.match(/^Weapon Keyword:\s*(.+)$/i))){ meta.weaponKeywords.push(match[1]); return; }
