@@ -691,6 +691,14 @@
                   </label>
                 </template>
               </div>
+              <div class="customModifierRow weaponCustomModifierRow">
+                <select @change="addWeaponCustomModifier(profileUnit, w, $event.target.value); $event.target.value=''">
+                  <option value="">Add weapon profile modifier...</option>
+                  <template x-for="option in weaponCustomModifierOptions(w)" :key="`weapon-custom-${wi}-${option.value}`">
+                    <option :value="option.value" x-text="option.label"></option>
+                  </template>
+                </select>
+              </div>
             </div>
           </template>
         </div>
@@ -713,9 +721,12 @@
           <h2>Custom Modifiers</h2>
           <div class="customModifierBox">
             <div class="customModifierRow">
-              <input type="text" x-model="profileCustomModifierText" @keydown.enter.prevent="addCustomModifier(profileUnit)"
-                     placeholder="Melee: Strength +1 or Defense: Invulnerable Save 4+" />
-              <button type="button" class="secondary" @click="addCustomModifier(profileUnit)">Add</button>
+              <select @change="addCustomModifierFromSelect(profileUnit, $event.target.value); $event.target.value=''">
+                <option value="">Add unit/model modifier...</option>
+                <template x-for="option in unitCustomModifierOptions()" :key="`unit-custom-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
             </div>
             <template x-if="unitCustomModifiers(profileUnit).length === 0">
               <div class="muted" style="font-size:12px">No custom modifiers.</div>
@@ -724,7 +735,7 @@
               <div class="customModifierItem">
                 <label class="toggleLine">
                   <input type="checkbox" :checked="mod.enabled !== false" @change="toggleCustomModifier(profileUnit, mod.id)" />
-                  <span x-text="mod.text"></span>
+                  <span x-text="customModifierLabel(mod)"></span>
                 </label>
                 <button type="button" class="secondary tagX" @click="removeCustomModifier(profileUnit, mod.id)">x</button>
               </div>

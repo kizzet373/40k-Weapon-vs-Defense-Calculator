@@ -677,6 +677,14 @@ app.addCustomModifier(customAttacker);
 const afterCustom = app.cachedMatchupCell(customAttacker, customDefender);
 assert.ok(afterCustom.dmg > beforeCustom.dmg, 'custom profile modifiers affect matchup calculations');
 assert.ok(/S 8 from 4/.test(afterCustom.profileModifierText), 'custom profile modifiers are represented visually in grid cells');
+assert.ok(app.unitCustomModifierOptions().some(option => option.value === 'Hit Rolls +1' && /\+1 to Hit/.test(option.label)), 'unit custom modifier dropdown includes readable offensive effects');
+assert.ok(app.unitCustomModifierOptions().some(option => option.value === 'Defense: Invulnerable Save 4+'), 'unit custom modifier dropdown includes defensive profile effects');
+const scopedWeaponA = { name: 'Scoped blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'scoped-a' };
+const scopedWeaponB = { name: 'Other blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'scoped-b' };
+const scopedAttacker = { label: 'Scoped attacker', _viewKey: 'scoped-attacker', _unitKey: 'scoped-attacker', abilities: [], weapons: [scopedWeaponA, scopedWeaponB], defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+app.addWeaponCustomModifier(scopedAttacker, scopedWeaponA, 'Strength +1');
+assert.ok(/Strength \+1/.test(app.effectiveWeaponModifiers(scopedWeaponA, scopedAttacker, customDefender)), 'weapon custom dropdown modifiers apply to the selected weapon profile');
+assert.ok(!/Strength \+1/.test(app.effectiveWeaponModifiers(scopedWeaponB, scopedAttacker, customDefender)), 'weapon custom dropdown modifiers do not leak to other weapon profiles');
 
 const mixedDefender = {
   label: 'Mixed Terminators',

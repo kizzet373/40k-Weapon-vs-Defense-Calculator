@@ -2311,8 +2311,10 @@ function weaponVsDefenseApp(){
     },
 
     weaponNameMatchesScope(weapon, scope){
+      const rawScope = String(scope || '').trim();
+      if(rawScope && rawScope === this.weaponStateKey(weapon)) return true;
       const weaponName = this.normalizeMatchupName(weapon?.name);
-      const wanted = this.normalizeMatchupName(scope);
+      const wanted = this.normalizeMatchupName(rawScope);
       if(!wanted) return true;
       return weaponName.includes(wanted) || wanted.includes(weaponName);
     },
@@ -2661,6 +2663,147 @@ function weaponVsDefenseApp(){
       this.invalidateMatchupForUnit(unit, 'both');
     },
 
+    customModifierSeedOptions(){
+      return [
+        { label: '+1 to Hit', value: 'Hit Rolls +1' },
+        { label: '-1 to Hit', value: 'Hit Rolls -1' },
+        { label: '+1 to Wound', value: 'Wound Rolls +1' },
+        { label: '-1 to Wound', value: 'Wound Rolls -1' },
+        { label: 'Reroll Hits', value: 'Reroll Hits' },
+        { label: 'Reroll Hits of 1', value: 'Reroll Hits 1' },
+        { label: 'Reroll Wounds', value: 'Reroll Wounds' },
+        { label: 'Reroll Wounds of 1', value: 'Reroll Wounds 1' },
+        { label: 'Lethal Hits', value: 'Lethal Hits' },
+        { label: 'Sustained Hits 1', value: 'Sustained Hits 1' },
+        { label: 'Sustained Hits D3', value: 'Sustained Hits D3' },
+        { label: 'Choose Best: Lethal/Sustained', value: 'Choose Best: Lethal Hits; Sustained Hits 1' },
+        { label: 'Devastating Wounds', value: 'Devastating Wounds' },
+        { label: 'Lance', value: 'Lance' },
+        { label: 'Precision', value: 'Precision' },
+        { label: 'Ignores Cover', value: 'Ignores Cover' },
+        { label: 'Ignore Hit Penalties', value: 'Ignore Hit Penalties' },
+        { label: 'Critical Hits 5+', value: 'Critical Hits 5+' },
+        { label: 'Attacks +1', value: 'Attacks +1' },
+        { label: 'Attacks -1', value: 'Attacks -1' },
+        { label: 'Strength +1', value: 'Strength +1' },
+        { label: 'Strength +2', value: 'Strength +2' },
+        { label: 'Strength -1', value: 'Strength -1' },
+        { label: 'AP +1', value: 'AP +1' },
+        { label: 'AP -1', value: 'AP -1' },
+        { label: 'Damage +1', value: 'Damage +1' },
+        { label: 'Damage -1', value: 'Damage -1' },
+        { label: 'Skill +1', value: 'Skill +1' },
+        { label: 'Skill -1', value: 'Skill -1' },
+        { label: 'Melee: +1 to Hit', value: 'Melee: Hit Rolls +1' },
+        { label: 'Melee: +1 to Wound', value: 'Melee: Wound Rolls +1' },
+        { label: 'Melee: Strength +1', value: 'Melee: Strength +1' },
+        { label: 'Melee: AP +1', value: 'Melee: AP +1' },
+        { label: 'Melee: Damage +1', value: 'Melee: Damage +1' },
+        { label: 'Ranged: +1 to Hit', value: 'Ranged: Hit Rolls +1' },
+        { label: 'Ranged: +1 to Wound', value: 'Ranged: Wound Rolls +1' },
+        { label: 'Ranged: Strength +1', value: 'Ranged: Strength +1' },
+        { label: 'Ranged: AP +1', value: 'Ranged: AP +1' },
+        { label: 'Ranged: Damage +1', value: 'Ranged: Damage +1' },
+        { label: 'Defense: Cover', value: 'Defense: Cover' },
+        { label: 'Defense: Toughness +1', value: 'Defense: Toughness +1' },
+        { label: 'Defense: Toughness -1', value: 'Defense: Toughness -1' },
+        { label: 'Defense: Save +1', value: 'Defense: Save +1' },
+        { label: 'Defense: Save -1', value: 'Defense: Save -1' },
+        { label: 'Defense: Invulnerable Save 6+', value: 'Defense: Invulnerable Save 6+' },
+        { label: 'Defense: Invulnerable Save 5+', value: 'Defense: Invulnerable Save 5+' },
+        { label: 'Defense: Invulnerable Save 4+', value: 'Defense: Invulnerable Save 4+' },
+        { label: 'Defense: Feel No Pain 6+', value: 'Defense: Feel No Pain 6+' },
+        { label: 'Defense: Feel No Pain 5+', value: 'Defense: Feel No Pain 5+' },
+        { label: 'Defense: Feel No Pain 4+', value: 'Defense: Feel No Pain 4+' },
+        { label: 'Incoming Attacks: -1 to Hit', value: 'Defense Attack: Hit Rolls -1' },
+        { label: 'Incoming Attacks: -1 to Wound', value: 'Defense Attack: Wound Rolls -1' },
+        { label: 'Incoming Attacks: Damage -1', value: 'Defense Attack: Damage -1' },
+        { label: 'Incoming Attacks: Damage /2', value: 'Defense Attack: Damage /2' },
+        { label: 'Target Defense: Toughness -1', value: 'Target Defense: Toughness -1' },
+      ];
+    },
+
+    customModifierValueFromParsed(parsed){
+      const meta = parsed?.meta || {};
+      if(meta.special) return '';
+      const kind = meta.kind || 'weapon';
+      const modifiers = parsed?.modifiers || [];
+      if(!modifiers.length) return '';
+      const body = modifiers.join(', ');
+      if(kind === 'defenseProfile') return `Defense: ${body}`;
+      if(kind === 'defenseAttack') return `Defense Attack: ${body}`;
+      if(kind === 'targetDefense') return `Target Defense: ${body}`;
+      if(kind === 'special') return '';
+      return body;
+    },
+
+    customModifierAutoOptions(){
+      const map = window.AbilityModifierMap || {};
+      return Object.values(map)
+        .flatMap(specs => specs || [])
+        .map(spec => this.customModifierValueFromParsed(this.parsedModifierSpec(spec)))
+        .filter(Boolean)
+        .map(value => ({ label: this.customModifierOptionLabel(value), value }));
+    },
+
+    customModifierOptionLabel(value){
+      let text = String(value || '').trim();
+      const prefixMatch = text.match(/^(Melee|Ranged|Shooting|Defense|Defense Attack|Target Defense):\s*(.+)$/i);
+      const prefix = prefixMatch ? prefixMatch[1].replace(/^Defense Attack$/i, 'Incoming Attacks').replace(/^Target Defense$/i, 'Target Defense') : '';
+      if(prefixMatch) text = prefixMatch[2].trim();
+      text = text
+        .replace(/^Hit Rolls \+1$/i, '+1 to Hit')
+        .replace(/^Hit Rolls -1$/i, '-1 to Hit')
+        .replace(/^Wound Rolls \+1$/i, '+1 to Wound')
+        .replace(/^Wound Rolls -1$/i, '-1 to Wound')
+        .replace(/^Reroll Hits 1$/i, 'Reroll Hits of 1')
+        .replace(/^Reroll Wounds 1$/i, 'Reroll Wounds of 1');
+      return prefix ? `${prefix}: ${text}` : text;
+    },
+
+    cleanWeaponCustomModifierValue(value){
+      return String(value || '').trim().replace(/^(?:Melee|Ranged|Shooting):\s*/i, '');
+    },
+
+    dedupeCustomModifierOptions(options){
+      const seen = new Set();
+      return (options || [])
+        .map(option => ({
+          label: option.label || this.customModifierOptionLabel(option.value),
+          value: String(option.value || '').trim(),
+        }))
+        .filter(option => {
+          const key = option.value.toLowerCase();
+          if(!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((a, b) => a.label.localeCompare(b.label));
+    },
+
+    unitCustomModifierOptions(){
+      return this.dedupeCustomModifierOptions([
+        ...this.customModifierSeedOptions(),
+        ...this.customModifierAutoOptions(),
+      ]);
+    },
+
+    weaponCustomModifierOptions(){
+      const options = this.unitCustomModifierOptions()
+        .filter(option => !/^(?:Defense|Defense Attack|Target Defense):/i.test(option.value))
+        .map(option => {
+          const value = this.cleanWeaponCustomModifierValue(option.value);
+          return { label: this.customModifierOptionLabel(value), value };
+        });
+      return this.dedupeCustomModifierOptions(options);
+    },
+
+    scopedWeaponModifierText(w, value){
+      const effect = this.cleanWeaponCustomModifierValue(value);
+      if(!w || !effect) return effect;
+      return `Weapon: ${this.weaponStateKey(w)} | ${effect}`;
+    },
+
     unitCustomModifiers(unit){
       const key = this.unitStateKey(unit);
       if(!key) return [];
@@ -2682,14 +2825,44 @@ function weaponVsDefenseApp(){
 
     addCustomModifier(unit){
       const text = String(this.profileCustomModifierText || '').trim();
-      if(!unit || !text) return;
+      this.addCustomModifierSpec(unit, text, this.customModifierOptionLabel(text));
+      this.profileCustomModifierText = '';
+    },
+
+    addCustomModifierSpec(unit, text, label=''){
+      const value = String(text || '').trim();
+      if(!unit || !value) return;
+      const existing = this.unitCustomModifiers(unit).find(entry => String(entry?.text || '').trim().toLowerCase() === value.toLowerCase());
+      if(existing){
+        existing.enabled = true;
+        this.invalidateMatchupForUnit(unit, 'both');
+        return;
+      }
       this.unitCustomModifiers(unit).push({
         id: `custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-        text,
+        text: value,
+        label: label || this.customModifierOptionLabel(value),
         enabled: true,
       });
-      this.profileCustomModifierText = '';
       this.invalidateMatchupForUnit(unit, 'both');
+    },
+
+    addCustomModifierFromSelect(unit, value){
+      const option = this.unitCustomModifierOptions().find(entry => entry.value === value);
+      this.addCustomModifierSpec(unit, value, option?.label || this.customModifierOptionLabel(value));
+    },
+
+    addWeaponCustomModifier(unit, weapon, value){
+      if(!unit || !weapon || !value) return;
+      const option = this.weaponCustomModifierOptions(weapon).find(entry => entry.value === value);
+      const scoped = this.scopedWeaponModifierText(weapon, value);
+      const weaponName = weapon?.name || 'Weapon profile';
+      const label = `${weaponName}: ${option?.label || this.customModifierOptionLabel(value)}`;
+      this.addCustomModifierSpec(unit, scoped, label);
+    },
+
+    customModifierLabel(mod){
+      return mod?.label || this.customModifierOptionLabel(mod?.text || '');
     },
 
     toggleCustomModifier(unit, id){

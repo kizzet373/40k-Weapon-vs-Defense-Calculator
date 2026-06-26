@@ -311,7 +311,9 @@ th,td{border-bottom:1px solid #1b2636;padding:6px 8px;text-align:left}
 .profileWeaponStats{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;line-height:1.3}
 .profileWeaponEffectiveModifiers{margin-top:6px}
 .customModifierBox{display:grid;gap:6px;margin-bottom:12px}
-.customModifierRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.customModifierRow{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-items:center}
+.customModifierRow select{width:100%}
+.weaponCustomModifierRow{margin-top:8px}
 .customModifierItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:6px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.025)}
 
 .defenseProfileList{display:grid;gap:6px}
