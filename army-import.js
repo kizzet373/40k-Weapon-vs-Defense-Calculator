@@ -848,10 +848,18 @@
   }
 
   function abilityNamesFromTree(node){
-    return [...new Set([node, ...getAllSelections(node)].flatMap(item => [
+    return normalizeAbilityNames([node, ...getAllSelections(node)].flatMap(item => [
       ...ruleNamesFromNode(item),
       ...abilityNamesFromProfiles(item?.profiles || []),
-    ]))];
+    ]));
+  }
+
+  function normalizeAbilityNames(names){
+    const cleaned = [...new Set((names || []).map(name => cleanProfileName(name)).filter(Boolean))];
+    const hasDisciples = cleaned.some(name => /^Disciples of Be['’]lakor$/i.test(name));
+    return hasDisciples
+      ? cleaned.filter(name => !/^Dark Pacts$/i.test(name))
+      : cleaned;
   }
 
   function modifiersFromWeaponNode(node, profile){
@@ -976,13 +984,14 @@
           .flatMap((child, childIndex) => weaponProfilesFromTree(child, `nr-${selection?.id || index}|direct-${childIndex}`))
       : weaponProfilesFromTree(selection, `nr-${selection?.id || index}`);
     const enhancementList = enhancementEntries(selection);
-    const abilities = [...new Set([
+    const abilities = normalizeAbilityNames([
+      ...ruleNamesFromNode(selection),
       ...abilityNamesFromProfiles(selection?.profiles || []),
       ...enhancementList.map(enh => enh.points ? `${enh.name} (${fmtNumber(enh.points)} pts)` : enh.name),
       ...((selection?.selections || [])
         .filter(child => child?.type !== 'model')
         .flatMap(child => abilityNamesFromTree(child))),
-    ])];
+    ]);
     const points = totalPointsForTree(selection);
     const key = `nr-${selection?.id || selection?.entryId || `${selection?.name || 'unit'}-${index}`}`;
 
@@ -1084,7 +1093,7 @@
         _count: Math.max(1, parseInt(weapon.count ?? weapon._count ?? 1, 10) || 1),
       })),
       defense: { ...(unit?.defense || {}) },
-      abilities: [...(unit?.abilities || [])],
+      abilities: normalizeAbilityNames(unit?.abilities || []),
       _children: (unit?.children || unit?._children || []).map(parseMatchupImportUnit),
       _tags: [...(unit?._tags || [])],
       _keywords: [...(unit?.keywords || unit?._keywords || [])],
@@ -1149,6 +1158,45 @@
     };
   }
 
+  function uniqueDuplicateLabel(label, existingLabels){
+    const base = `${cleanName(label) || 'Unit'} Copy`;
+    if(!existingLabels.has(base)) return base;
+    let index = 2;
+    while(existingLabels.has(`${base} ${index}`)) index++;
+    return `${base} ${index}`;
+  }
+
+  function rewriteDuplicatedUnitIdentity(unit, existingKeys, parentGroup=null){
+    const baseKey = unit?._unitKey || unit?._groupId || unit?.label || 'unit';
+    unit._unitKey = uniqueUnitKey(`${baseKey}-copy`, existingKeys);
+    existingKeys.add(unit._unitKey);
+    unit._groupId = parentGroup || unit._unitKey;
+    delete unit._baseUnit;
+    delete unit._parentUnit;
+    delete unit._viewKey;
+    (unit._children || []).forEach(child => rewriteDuplicatedUnitIdentity(child, existingKeys, unit._unitKey));
+    return unit;
+  }
+
+  function collectUnitIdentityKeys(unit, keys=new Set()){
+    if(!unit) return keys;
+    if(unit._unitKey) keys.add(unit._unitKey);
+    if(unit._groupId) keys.add(unit._groupId);
+    (unit._children || []).forEach(child => collectUnitIdentityKeys(child, keys));
+    return keys;
+  }
+
+  function clonePlainSelection(selection){
+    return JSON.parse(JSON.stringify(selection));
+  }
+
+  function rewriteSelectionIdentity(selection, suffix){
+    if(!selection || typeof selection !== 'object') return;
+    if(selection.id != null) selection.id = `${selection.id}${suffix}`;
+    if(selection.entryId != null) selection.entryId = `${selection.entryId}${suffix}`;
+    if(Array.isArray(selection.selections)) selection.selections.forEach(child => rewriteSelectionIdentity(child, suffix));
+  }
+
   window.ArmyImportService = {
     normalizeRosterData,
     collectImportedUnits(force){
@@ -1159,6 +1207,78 @@
     collectUnits(force, opts){
       const imported = this.collectImportedUnits(force);
       return imported || collectGenericUnits(force, opts);
+    },
+    duplicateUnit(force, unit){
+      if(!force || !unit) return null;
+      const unitKey = String(unit?._baseUnit?._unitKey || unit?._unitKey || '');
+      const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
+
+      if(Array.isArray(force._importedUnits)){
+        const storedSource = force._importedUnits.find(candidate => {
+          const candidateKey = String(candidate?._unitKey || '');
+          const candidateGroup = String(candidate?._groupId || '');
+          return candidateKey === unitKey || (groupId && candidateGroup === groupId);
+        });
+        const source = unit?._isAggregate && Array.isArray(unit?._children) && unit._children.length ? unit : storedSource;
+        if(source){
+          const existingKeys = force._importedUnits.reduce((keys, candidate) => collectUnitIdentityKeys(candidate, keys), new Set());
+          const existingLabels = new Set(force._importedUnits.map(candidate => cleanName(candidate?.label)).filter(Boolean));
+          const copy = rewriteDuplicatedUnitIdentity(cloneUnit(source), existingKeys);
+          copy.label = uniqueDuplicateLabel(source.label, existingLabels);
+          force._importedUnits.push(copy);
+          return copy;
+        }
+      }
+
+      if(Array.isArray(force.selections)){
+        const genericKey = unitKey.replace(/^generic-/, '');
+        const source = force.selections.find(selection => {
+          const selectionKey = String(selection?.id || selection?.entryId || selection?.name || '');
+          return selectionKey === genericKey || selectionKey === unitKey || selectionKey === groupId;
+        });
+        if(source){
+          const copy = clonePlainSelection(source);
+          const existingNames = new Set(force.selections.map(selection => cleanName(selection?.name)).filter(Boolean));
+          copy.name = uniqueDuplicateLabel(source.name, existingNames);
+          rewriteSelectionIdentity(copy, `-copy-${Date.now().toString(36)}`);
+          force.selections.push(copy);
+          return { key: `generic-${copy.id || copy.entryId || copy.name}` };
+        }
+      }
+
+      return null;
+    },
+    removeUnit(force, unit){
+      if(!force || !unit) return false;
+      const unitKey = String(unit?._baseUnit?._unitKey || unit?._unitKey || '');
+      const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
+      let changed = false;
+
+      if(Array.isArray(force._importedUnits)){
+        const before = force._importedUnits.length;
+        force._importedUnits = force._importedUnits.filter(candidate => {
+          const candidateKey = String(candidate?._unitKey || '');
+          const candidateGroup = String(candidate?._groupId || '');
+          return candidateKey !== unitKey && candidateGroup !== groupId;
+        });
+        changed = force._importedUnits.length !== before;
+      }
+
+      if(Array.isArray(force._unitMerges)){
+        force._unitMerges = force._unitMerges.filter(merge => merge?.from !== unitKey && merge?.to !== unitKey);
+      }
+
+      if(!changed && Array.isArray(force.selections)){
+        const genericKey = unitKey.replace(/^generic-/, '');
+        const before = force.selections.length;
+        force.selections = force.selections.filter(selection => {
+          const selectionKey = String(selection?.id || selection?.entryId || selection?.name || '');
+          return selectionKey !== genericKey && selectionKey !== unitKey && selectionKey !== groupId;
+        });
+        changed = force.selections.length !== before;
+      }
+
+      return changed;
     },
     getAllSelections,
     extractWeaponsFromNode,

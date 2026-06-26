@@ -188,6 +188,58 @@
     };
   }
 
+  function specialMortalSpecs(unit, attackMode, options){
+    if(attackMode === 'shooting') return [];
+    if(!options?.conditionsMet) return [];
+    if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return [];
+    const service = window.AbilityModifierService;
+    if(!service?.modifiersForRule || !service?.parseModifierSpec) return [];
+    const specs = [];
+    (unit?.abilities || []).forEach(ability => {
+      if(!isAbilityEnabled(unit, ability, options)) return;
+      service.modifiersForRule(ability).forEach(spec => {
+        const parsed = service.parseModifierSpec(spec);
+        if(parsed?.meta?.kind !== 'special' || parsed?.meta?.special !== 'fightPhaseMortals') return;
+        const diceCount = parseInt(parsed.meta.diceCount, 10) || 0;
+        const rollTarget = parseInt(parsed.meta.rollTarget, 10) || 0;
+        const successChance = rollTarget > 0 ? (7 - Math.max(2, Math.min(6, rollTarget))) / 6 : 0;
+        const dmg = diceCount * successChance;
+        if(dmg <= 0) return;
+        specs.push({
+          dmg,
+          profile: { name: `${ability} mortal wounds`, count: 1 },
+          modifierText: parsed.modifiers?.[0] || 'Fight phase mortal wounds',
+        });
+      });
+    });
+    return specs;
+  }
+
+  function additionalMortalDamage(unit, attackMode, options){
+    const items = [];
+    const chargeMortals = chargeMortalDamage(unit, attackMode, options);
+    if(chargeMortals.profile) items.push({ ...chargeMortals, modifierText: 'Mortal wounds on charge' });
+    items.push(...specialMortalSpecs(unit, attackMode, options));
+    return items;
+  }
+
+  function allocateMortalDamageItems(items, defenderUnit, options, attackerUnit){
+    return (items || []).map(item => {
+      const allocated = allocateFlatDamageIntoDefender(item.dmg, defenderUnit, false, options, attackerUnit);
+      return { ...item, allocated };
+    });
+  }
+
+  function mortalFormulaItem(item, defenderUnit){
+    return {
+      weaponName: item.profile.name,
+      modifierText: item.modifierText || 'Mortal wounds',
+      totalDamage: item.allocated?.dmg || 0,
+      totalKills: item.allocated?.kills || 0,
+      lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: item.allocated?.dmg || 0 }],
+    };
+  }
+
   function fnpDamageMultiplier(def){
     const fnp = parseFloat(def?.Fnp ?? def?.fnp);
     if(!Number.isFinite(fnp) || fnp <= 0) return 1;
@@ -259,6 +311,7 @@
       inv: parseFloat(def.Inv) || 0,
       W: parseFloat(def.W) || 0,
       Fnp: parseFloat(def.Fnp) || 0,
+      cover: !!def.cover,
       keywords: [...(unit._keywords || []), ...(def.keywords || []), ...(def._keywords || [])],
     };
   }
@@ -374,23 +427,18 @@
     const childUnits = Array.isArray(attackerUnit?._children) ? attackerUnit._children : [];
     if(childUnits.length){
       const childCells = childUnits.map(child => computeCell(child, defenderUnit, { ...options, suppressInheritedUnitAbilities: true }));
-      const chargeMortals = chargeMortalDamage(attackerUnit, attackMode, options);
-      const chargeAllocated = allocateFlatDamageIntoDefender(chargeMortals.dmg, defenderUnit, false, options, attackerUnit);
-      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + chargeAllocated.dmg;
-      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + chargeAllocated.kills;
+      const mortalItems = allocateMortalDamageItems(additionalMortalDamage(attackerUnit, attackMode, options), defenderUnit, options, attackerUnit);
+      const mortalDmg = mortalItems.reduce((total, item) => total + (item.allocated?.dmg || 0), 0);
+      const mortalKills = mortalItems.reduce((total, item) => total + (item.allocated?.kills || 0), 0);
+      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + mortalDmg;
+      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + mortalKills;
       const profilesUsed = aggregateProfiles([
         ...childCells.flatMap(cell => cell?.profilesUsed || []),
-        ...(chargeMortals.profile ? [chargeMortals.profile] : []),
+        ...mortalItems.map(item => item.profile),
       ]);
       const formulaItems = options.includeFormula ? [
         ...childCells.flatMap(cell => cell?.formulaItems || []),
-        ...(chargeMortals.profile ? [{
-          weaponName: chargeMortals.profile.name,
-          modifierText: 'Mortal wounds on charge',
-          totalDamage: chargeAllocated.dmg,
-          totalKills: chargeAllocated.kills,
-          lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: chargeAllocated.dmg }],
-        }] : []),
+        ...mortalItems.map(item => mortalFormulaItem(item, defenderUnit)),
       ] : [];
       return {
         dmg,
@@ -448,27 +496,22 @@
       const extra = melee.filter(x => x.extraAttacks);
       const normal = melee.filter(x => !x.extraAttacks);
       const extraTotals = selectedTotals(extra);
-      const chargeMortals = chargeMortalDamage(attackerUnit, attackMode, options);
-      const chargeAllocated = allocateFlatDamageIntoDefender(chargeMortals.dmg, defenderUnit, false, options, attackerUnit);
+      const mortalItems = allocateMortalDamageItems(additionalMortalDamage(attackerUnit, attackMode, options), defenderUnit, options, attackerUnit);
+      const mortalDmg = mortalItems.reduce((total, item) => total + (item.allocated?.dmg || 0), 0);
+      const mortalKills = mortalItems.reduce((total, item) => total + (item.allocated?.kills || 0), 0);
       const choices = normal.length ? normal : (extra.length ? [{ dmg:0, kills:0, profilesUsed:[], formulaItems:[] }] : []);
       const winner = best(choices.map(choice => ({
-        dmg: (choice?.dmg || 0) + extraTotals.dmg + chargeAllocated.dmg,
-        kills: (choice?.kills || 0) + extraTotals.kills + chargeAllocated.kills,
+        dmg: (choice?.dmg || 0) + extraTotals.dmg + mortalDmg,
+        kills: (choice?.kills || 0) + extraTotals.kills + mortalKills,
         profilesUsed: aggregateProfiles([
           ...(choice?.profilesUsed || []),
           ...extraTotals.profilesUsed,
-          ...(chargeMortals.profile ? [chargeMortals.profile] : []),
+          ...mortalItems.map(item => item.profile),
         ]),
         ...(options.includeFormula ? { formulaItems: [
           ...(choice?.formulaItems || []),
           ...extraTotals.formulaItems,
-          ...(chargeMortals.profile ? [{
-            weaponName: chargeMortals.profile.name,
-            modifierText: 'Mortal wounds on charge',
-            totalDamage: chargeAllocated.dmg,
-            totalKills: chargeAllocated.kills,
-            lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: chargeAllocated.dmg }],
-          }] : []),
+          ...mortalItems.map(item => mortalFormulaItem(item, defenderUnit)),
         ] } : {}),
       })));
       meleeSelection = winner || meleeSelection;

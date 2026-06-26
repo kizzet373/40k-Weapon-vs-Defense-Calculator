@@ -46,11 +46,13 @@
     }));
   }
 
-  function expectedCappedDamage(expr, modelWounds, flatMod=0){
+  function expectedCappedDamage(expr, modelWounds, flatMod=0, divisor=1){
     const cap = parseFloat(modelWounds);
     const distribution = diceDistribution(expr, flatMod);
+    const div = parseFloat(divisor);
+    const damageDivisor = Number.isFinite(div) && div > 0 ? div : 1;
     return distribution.reduce((sum, entry) => {
-      const damage = Math.max(0, entry.value);
+      const damage = Math.ceil(Math.max(0, entry.value) / damageDivisor);
       const effective = Number.isFinite(cap) && cap > 0 ? Math.min(damage, cap) : damage;
       return sum + effective * entry.probability;
     }, 0);
@@ -72,6 +74,33 @@
     if(mode === 'all') return p + (1-p)*p;
     if(mode === 'ones') return p + (1/6)*p - (1/6)*p*p;
     return p;
+  }
+
+  function rollOutcome(successProbability, criticalProbability, rerollMode='none', strategy='failures'){
+    const success = clamp(successProbability || 0, 0, 1);
+    const critical = clamp(criticalProbability || 0, 0, success);
+    if(rerollMode === 'ones'){
+      return {
+        success: clamp(success + (1 / 6) * success, 0, 1),
+        critical: clamp(critical + (1 / 6) * critical, 0, 1),
+        strategy: 'ones',
+      };
+    }
+    if(rerollMode === 'all' && strategy === 'crits'){
+      return {
+        success: clamp(critical + (1 - critical) * success, 0, 1),
+        critical: clamp(critical + (1 - critical) * critical, 0, 1),
+        strategy: 'crits',
+      };
+    }
+    if(rerollMode === 'all'){
+      return {
+        success: clamp(success + (1 - success) * success, 0, 1),
+        critical: clamp(critical + (1 - success) * critical, 0, 1),
+        strategy: 'failures',
+      };
+    }
+    return { success, critical, strategy: 'none' };
   }
 
   function bestRerollMode(a='none', b='none'){
@@ -159,11 +188,13 @@
     let strengthAdd = 0;
     let apAdd = 0;
     let damageAdd = 0;
+    let damageDivisor = 1;
     let skillTargetMod = 0;
     let critMin = 6;
     let rerollHits = 'none';
     let rerollWounds = 'none';
     let ignoreHitPenalties = false;
+    let ignoresCover = false;
 
     tokens.forEach(token => {
       const text = String(token || '');
@@ -198,11 +229,17 @@
       if(apMatch) apAdd += parseFloat(apMatch[1]) || 0;
       const damageMatch = text.match(/\bDamage\s*([+-]\d+)\b/i);
       if(damageMatch) damageAdd += parseFloat(damageMatch[1]) || 0;
+      const damageDivisorMatch = text.match(/\bDamage\s*(?:\/|÷|divided\s+by)\s*(\d+(?:\.\d+)?)\b/i) || text.match(/\b(?:Halve|Half)\s+(?:the\s+)?Damage\b/i);
+      if(damageDivisorMatch){
+        const value = damageDivisorMatch[1] ? parseFloat(damageDivisorMatch[1]) : 2;
+        if(Number.isFinite(value) && value > 0) damageDivisor = Math.max(damageDivisor, value);
+      }
       const skillMatch = text.match(/\b(?:BS|WS|Skill)\s*([+-]\d+)\b/i);
       if(skillMatch) skillTargetMod -= parseFloat(skillMatch[1]) || 0;
       if(/\bReroll\s+Hits?\b/i.test(text) || /\bRe-roll\s+Hits?\b/i.test(text)) rerollHits = bestRerollMode(rerollHits, /\b(?:of\s+)?1s?\b/i.test(text) ? 'ones' : 'all');
       if(/\bReroll\s+Wounds?\b/i.test(text) || /\bRe-roll\s+Wounds?\b/i.test(text)) rerollWounds = bestRerollMode(rerollWounds, /\b(?:of\s+)?1s?\b/i.test(text) ? 'ones' : 'all');
       if(/\bIgnore\s+Hit\s+Penalties\b/i.test(text)) ignoreHitPenalties = true;
+      if(/\bIgnores?\s+Cover\b/i.test(text)) ignoresCover = true;
       const critHitMatch = text.match(/\bCritical\s+Hits?\s*(\d)\+/i);
       if(critHitMatch) critMin = Math.min(critMin, parseFloat(critHitMatch[1]) || critMin);
     });
@@ -221,6 +258,7 @@
       rerollHits,
       rerollWounds,
       ignoreHitPenalties,
+      ignoresCover,
       hitRollMod: capRollModifier(hitPositive, hitNegative),
       woundRollMod: capRollModifier(woundPositive + (has(/\bLance\b/i) ? 1 : 0), woundNegative),
       critMin,
@@ -228,6 +266,7 @@
       strengthAdd,
       apAdd,
       damageAdd,
+      damageDivisor,
       skillTargetMod,
     };
   }
@@ -240,48 +279,81 @@
     const apRaw = parseFloat(weapon?.AP) || 0;
     const AP = Math.max(0, Math.abs(apRaw) + (kw.apAdd || 0));
     const D = Math.max(0, parseNdX(weapon?.D).mean + (kw.damageAdd || 0));
-    const cappedD = expectedCappedDamage(weapon?.D, def.W, kw.damageAdd || 0);
+    const cappedD = expectedCappedDamage(weapon?.D, def.W, kw.damageAdd || 0, kw.damageDivisor || 1);
     const fnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
     const critMin = kw.critMin || 6;
-
-    let pHit = 0;
-    let pCrit = 0;
-    if(skill === 0 || skill === 1 || String(weapon?.skill || '').trim().toLowerCase() === 'auto' || kw.torrent){
-      pHit = 1;
-      pCrit = 0;
-    }else{
-      pHit = applyRerolls(probAtLeast(skill, kw.hitRollMod || 0, null), kw.rerollHits || 'none');
-      pCrit = applyRerolls((7 - critMin) / 6, kw.rerollHits || 'none');
-    }
-
-    const expectedHits = A * (pHit + ((kw.sustained || 0) * pCrit));
-    const needed = clamp(woundNeeded(S, def.T), 2, 6);
-    const pWound = applyRerolls(probAtLeast(needed, kw.woundRollMod || 0, null), kw.rerollWounds || 'none');
-    const critPortionOfHits = pHit > 0 ? (pCrit / pHit) : 0;
     const applicableAnti = (kw.antiRules || [])
       .filter(rule => targetHasKeyword(def, rule.target))
       .map(rule => rule.value)
       .filter(value => Number.isFinite(value) && value > 0);
     const bestAnti = applicableAnti.length ? Math.min(...applicableAnti) : (kw.anti || 0);
-    const pAntiWound = bestAnti > 0
-      ? applyRerolls(probAtLeast(bestAnti, 0, null), kw.rerollWounds || 'none')
-      : 0;
-    const pWoundRollSuccess = Math.max(pWound, pAntiWound);
-    const pLethalAmongHits = kw.lethal ? critPortionOfHits : 0;
-    const lethalWounds = expectedHits * pLethalAmongHits;
-    const woundRollHits = expectedHits * (1 - pLethalAmongHits);
-    const expectedWoundsFromRolls = woundRollHits * pWoundRollSuccess;
-    const expectedWounds = lethalWounds + expectedWoundsFromRolls;
-    const neededSave = pickSave(def.sv, def.inv, AP, 0);
+    const coverMod = (def.cover && !kw.ignoresCover) ? -1 : 0;
+    const neededSave = pickSave(def.sv, def.inv, AP, coverMod);
     const pSave = neededSave >= 7 ? 0 : (7 - clamp(neededSave, 2, 6)) / 6;
+    const normalWoundDamage = (1 - pSave) * cappedD;
+    const criticalWoundDamage = kw.devw ? D : normalWoundDamage;
+    const pFnp = fnp > 0 ? ((7 - clamp(fnp, 2, 6)) / 6) : 0;
+    const needed = clamp(woundNeeded(S, def.T), 2, 6);
+    const baseWound = probAtLeast(needed, kw.woundRollMod || 0, null);
     const criticalWoundTarget = bestAnti > 0 ? Math.min(bestAnti, critMin) : critMin;
-    const criticalWounds = kw.devw
-      ? Math.min(expectedWoundsFromRolls, woundRollHits * applyRerolls(probAtLeast(criticalWoundTarget, 0, null), kw.rerollWounds || 'none'))
-      : 0;
+    const baseCriticalWound = probAtLeast(criticalWoundTarget, 0, null);
+    const baseAntiWound = bestAnti > 0 ? probAtLeast(bestAnti, 0, null) : 0;
+    const baseWoundSuccess = Math.max(baseWound, baseAntiWound, baseCriticalWound);
+
+    function chooseWoundOutcome(){
+      const candidates = (kw.rerollWounds === 'all')
+        ? [rollOutcome(baseWoundSuccess, baseCriticalWound, 'all', 'failures'), rollOutcome(baseWoundSuccess, baseCriticalWound, 'all', 'crits')]
+        : [rollOutcome(baseWoundSuccess, baseCriticalWound, kw.rerollWounds || 'none', 'failures')];
+      const withDamage = candidates.map(outcome => {
+        const normal = Math.max(0, outcome.success - (kw.devw ? outcome.critical : 0));
+        const critical = kw.devw ? outcome.critical : 0;
+        return {
+          ...outcome,
+          normalPerRoll: normal,
+          criticalPerRoll: critical,
+          damagePerRoll: (normal * normalWoundDamage) + (critical * criticalWoundDamage),
+        };
+      });
+      return withDamage.reduce((best, candidate) => candidate.damagePerRoll > best.damagePerRoll ? candidate : best, withDamage[0]);
+    }
+
+    const woundOutcome = chooseWoundOutcome();
+
+    let hitOutcome = { success: 0, critical: 0, strategy: 'none' };
+    if(skill === 0 || skill === 1 || String(weapon?.skill || '').trim().toLowerCase() === 'auto' || kw.torrent){
+      hitOutcome = { success: 1, critical: 0, strategy: 'auto' };
+    }else{
+      const baseHit = probAtLeast(skill, kw.hitRollMod || 0, null);
+      const baseCrit = (7 - critMin) / 6;
+      const hitCandidates = (kw.rerollHits === 'all')
+        ? [rollOutcome(Math.max(baseHit, baseCrit), baseCrit, 'all', 'failures'), rollOutcome(Math.max(baseHit, baseCrit), baseCrit, 'all', 'crits')]
+        : [rollOutcome(Math.max(baseHit, baseCrit), baseCrit, kw.rerollHits || 'none', 'failures')];
+      const valueForHitOutcome = outcome => {
+        const criticalHits = outcome.critical;
+        const successfulHits = outcome.success;
+        const sustainedHits = (kw.sustained || 0) * criticalHits;
+        const lethalWoundsPerAttack = kw.lethal ? criticalHits : 0;
+        const woundRollsPerAttack = kw.lethal
+          ? Math.max(0, successfulHits - criticalHits) + sustainedHits
+          : successfulHits + sustainedHits;
+        return (lethalWoundsPerAttack * normalWoundDamage) + (woundRollsPerAttack * woundOutcome.damagePerRoll);
+      };
+      hitOutcome = hitCandidates.reduce((best, candidate) => valueForHitOutcome(candidate) > valueForHitOutcome(best) ? candidate : best, hitCandidates[0]);
+    }
+
+    const pHit = hitOutcome.success;
+    const pCrit = hitOutcome.critical;
+    const expectedHits = A * (pHit + ((kw.sustained || 0) * pCrit));
+    const lethalWounds = kw.lethal ? A * pCrit : 0;
+    const woundRollHits = A * (kw.lethal
+      ? Math.max(0, pHit - pCrit) + ((kw.sustained || 0) * pCrit)
+      : pHit + ((kw.sustained || 0) * pCrit));
+    const expectedWoundsFromRolls = woundRollHits * woundOutcome.success;
+    const expectedWounds = lethalWounds + expectedWoundsFromRolls;
+    const criticalWounds = kw.devw ? woundRollHits * woundOutcome.critical : 0;
     const normalWounds = Math.max(0, expectedWounds - criticalWounds);
     const unsavedNormal = normalWounds * (1 - pSave);
     const mortals = criticalWounds;
-    const pFnp = fnp > 0 ? ((7 - clamp(fnp, 2, 6)) / 6) : 0;
     const totalDamage = ((unsavedNormal * cappedD) + (mortals * D)) * (1 - pFnp);
     const result = {
       dmg: totalDamage,
@@ -297,8 +369,19 @@
         ap: AP,
         damage: D,
         cappedDamage: cappedD,
-        defense: { T: def.T, sv: def.sv, inv: def.inv, W: def.W, Fnp: fnp, keywords: [...(def?.keywords || []), ...(def?._keywords || [])] },
-        probabilities: { pHit, pCrit, pWound, pAntiWound, pWoundRollSuccess, pSave, pFnp },
+        defense: { T: def.T, sv: def.sv, inv: def.inv, W: def.W, Fnp: fnp > 0 ? fnp : null, cover: !!def.cover, keywords: [...(def?.keywords || []), ...(def?._keywords || [])] },
+        probabilities: {
+          pHit,
+          pCrit,
+          pWound: woundOutcome.success,
+          pAntiWound: bestAnti > 0 ? woundOutcome.success : 0,
+          pWoundRollSuccess: woundOutcome.success,
+          pCriticalWound: woundOutcome.critical,
+          pSave,
+          pFnp,
+          hitRerollStrategy: hitOutcome.strategy,
+          woundRerollStrategy: woundOutcome.strategy,
+        },
         totals: { expectedHits, lethalWounds, expectedWoundsFromRolls, expectedWounds, normalWounds, criticalWounds, unsavedNormal, mortals, totalDamage },
       };
     }
@@ -329,35 +412,67 @@
     const rapidFireBonusA = (mods.rapidFire > 0 && mods.withinHalf) ? mods.rapidFire : 0;
     const Aeff = A + blastBonusA + rapidFireBonusA;
 
-    let pHit = 0;
-    let pCrit = 0;
-    if(skill === 1 || String(weapon.skill).trim().toLowerCase() === 'auto' || mods.torrent){
-      pHit = 1;
-      pCrit = 0;
-    }else{
-      const heavyBonus = (mods.heavy && mods.stationary) ? 1 : 0;
-      pHit = applyRerolls(probAtLeast(skill, heavyBonus, mods.forceHit || null), rrHit);
-      pCrit = applyRerolls((7 - critMin) / 6, rrHit);
-    }
-
-    const extraHitsPerAttack = (mods.sustained || 0) * pCrit;
-    const expectedHits = Aeff * (pHit + extraHitsPerAttack);
-    const need = woundNeeded(S, T);
-    const neededAfterMod = clamp(need + (mods.charged ? 1 : 0), 2, 6);
-    const pWound = applyRerolls(probAtLeast(neededAfterMod, 0, mods.forceWound || null), rrWound);
-    const critPortionOfHits = pHit > 0 ? (pCrit / pHit) : 0;
-    const pLethalAmongHits = mods.lethal ? critPortionOfHits : 0;
-    const expectedWounds = expectedHits * (pLethalAmongHits + (1 - pLethalAmongHits) * pWound);
     const coverMod = (defense.cover && !mods.ignoresCover) ? -1 : 0;
     const neededSave = pickSave(sv, inv, AP, coverMod);
     const pSave = neededSave >= 7 ? 0 : (7 - clamp(neededSave, 2, 6)) / 6;
-    const pWoundCrit = applyRerolls((7 - critMin) / 6, rrWound);
-    const portionDevastating = mods.devw ? Math.min(1, pWoundCrit) : 0;
-    const unsavedNormal = expectedWounds * (1 - portionDevastating) * (1 - pSave);
-    const mortals = expectedWounds * portionDevastating;
     const DwithMelta = Math.max(0, D + (mods.melta > 0 ? mods.melta : 0));
     const effD = Math.max(0, DwithMelta - dmgRed);
     const cappedEffD = expectedCappedDamage(weapon.D, W, (mods.melta > 0 ? mods.melta : 0) - dmgRed);
+    const normalWoundDamage = (1 - pSave) * cappedEffD;
+    const criticalWoundDamage = mods.devw ? effD : normalWoundDamage;
+    const need = woundNeeded(S, T);
+    const neededAfterMod = clamp(need + (mods.charged ? 1 : 0), 2, 6);
+    const baseWoundSuccess = probAtLeast(neededAfterMod, 0, mods.forceWound || null);
+    const baseCriticalWound = (7 - critMin) / 6;
+    const woundCandidates = rrWound === 'all'
+      ? [rollOutcome(Math.max(baseWoundSuccess, baseCriticalWound), baseCriticalWound, 'all', 'failures'), rollOutcome(Math.max(baseWoundSuccess, baseCriticalWound), baseCriticalWound, 'all', 'crits')]
+      : [rollOutcome(Math.max(baseWoundSuccess, baseCriticalWound), baseCriticalWound, rrWound, 'failures')];
+    const woundOutcome = woundCandidates
+      .map(outcome => {
+        const critical = mods.devw ? outcome.critical : 0;
+        const normal = Math.max(0, outcome.success - critical);
+        return {
+          ...outcome,
+          damagePerRoll: (normal * normalWoundDamage) + (critical * criticalWoundDamage),
+        };
+      })
+      .reduce((best, candidate) => candidate.damagePerRoll > best.damagePerRoll ? candidate : best);
+
+    let hitOutcome = { success: 0, critical: 0, strategy: 'none' };
+    if(skill === 1 || String(weapon.skill).trim().toLowerCase() === 'auto' || mods.torrent){
+      hitOutcome = { success: 1, critical: 0, strategy: 'auto' };
+    }else{
+      const heavyBonus = (mods.heavy && mods.stationary) ? 1 : 0;
+      const baseHit = probAtLeast(skill, heavyBonus, mods.forceHit || null);
+      const baseCrit = (7 - critMin) / 6;
+      const hitCandidates = rrHit === 'all'
+        ? [rollOutcome(Math.max(baseHit, baseCrit), baseCrit, 'all', 'failures'), rollOutcome(Math.max(baseHit, baseCrit), baseCrit, 'all', 'crits')]
+        : [rollOutcome(Math.max(baseHit, baseCrit), baseCrit, rrHit, 'failures')];
+      const hitValue = outcome => {
+        const sustainedHits = (mods.sustained || 0) * outcome.critical;
+        const lethalWoundsPerAttack = mods.lethal ? outcome.critical : 0;
+        const woundRollsPerAttack = mods.lethal
+          ? Math.max(0, outcome.success - outcome.critical) + sustainedHits
+          : outcome.success + sustainedHits;
+        return (lethalWoundsPerAttack * normalWoundDamage) + (woundRollsPerAttack * woundOutcome.damagePerRoll);
+      };
+      hitOutcome = hitCandidates.reduce((best, candidate) => hitValue(candidate) > hitValue(best) ? candidate : best, hitCandidates[0]);
+    }
+
+    const pHit = hitOutcome.success;
+    const pCrit = hitOutcome.critical;
+    const extraHitsPerAttack = (mods.sustained || 0) * pCrit;
+    const expectedHits = Aeff * (pHit + extraHitsPerAttack);
+    const lethalWounds = mods.lethal ? Aeff * pCrit : 0;
+    const woundRollHits = Aeff * (mods.lethal
+      ? Math.max(0, pHit - pCrit) + extraHitsPerAttack
+      : pHit + extraHitsPerAttack);
+    const expectedWoundsFromRolls = woundRollHits * woundOutcome.success;
+    const expectedWounds = lethalWounds + expectedWoundsFromRolls;
+    const criticalWounds = mods.devw ? woundRollHits * woundOutcome.critical : 0;
+    const normalWounds = Math.max(0, expectedWounds - criticalWounds);
+    const unsavedNormal = normalWounds * (1 - pSave);
+    const mortals = criticalWounds;
     const dmgNormal = unsavedNormal * cappedEffD;
     const dmgMortal = mortals * effD;
     const pFnp = fnp > 0 ? ((7 - clamp(fnp, 2, 6)) / 6) : 0;
@@ -367,7 +482,7 @@
 
     return {
       inputs: { A, Aeff, D, effD, W, neededAfterMod, neededSave },
-      probabilities: { pHit, pCrit, pWound, pSave, portionDevastating, extraHitsPerAttack },
+      probabilities: { pHit, pCrit, pWound: woundOutcome.success, pSave, portionDevastating: woundOutcome.critical, extraHitsPerAttack },
       output: { hits: expectedHits, wounds: expectedWounds, fails: unsavedNormal, dmg: totalDamage, modelsKilled },
       damageFlow: {
         baseTotalDamage: Aeff * cappedEffD,

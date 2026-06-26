@@ -83,13 +83,15 @@
           Unit / Model
           <select x-model.number="selectedUnitIdx" @change="onUnitChanged()">
             <template x-for="(u, i) in units" :key="`unit-${i}`">
-              <option :value="i" x-text="u.label || `Unit ${i+1}`"></option>
+              <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
             </template>
             <template x-if="units.length === 0">
               <option value="0">No units found</option>
             </template>
           </select>
         </label>
+        <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
+        <button class="danger" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
       </div>
     </div>
 
@@ -609,6 +611,14 @@
             <span class="profilePointsText" x-show="unitPointsText(profileUnit)" x-text="unitPointsText(profileUnit)"></span>
           </div>
           <div class="muted" style="font-size:12px" x-text="matchupDefenseLabel(profileUnit)"></div>
+          <div class="profileScoreSummary">
+            <div x-text="profileOffensiveScoreText(profileUnit)"></div>
+            <div>
+              <span x-text="profileDefensiveScoreText(profileUnit)"></span>
+              <span class="profileScoreDivider"> | </span>
+              <span x-text="profileOverallScoreText(profileUnit)"></span>
+            </div>
+          </div>
         </div>
         <button class="secondary" type="button" @click="closeUnitProfile()">Close</button>
       </div>

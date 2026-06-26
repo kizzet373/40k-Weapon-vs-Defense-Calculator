@@ -356,6 +356,41 @@ function weaponVsDefenseApp(){
       this.selectedUnitIdx = 0;
     },
 
+    duplicateSelectedUnit(){
+      const unit = this.activeUnit;
+      const force = this.getForceByIdx(this.selectedForceIdx);
+      if(!unit || !force) return;
+
+      const duplicated = window.ArmyImportService?.duplicateUnit(force, unit);
+      if(!duplicated) return;
+
+      this.units = this.collectUnits(force);
+      const duplicateKey = String(duplicated._unitKey || duplicated.key || '');
+      const duplicateIndex = this.units.findIndex(candidate => String(candidate?._unitKey || '') === duplicateKey);
+      this.selectedUnitIdx = duplicateIndex >= 0 ? duplicateIndex : Math.max(0, this.units.length - 1);
+      this.onUnitChanged();
+      this.clearMatchupComputationCache();
+      if(this.matchupModalOpen) this.rebuildMatchup();
+    },
+
+    deleteSelectedUnit(){
+      const unit = this.activeUnit;
+      const force = this.getForceByIdx(this.selectedForceIdx);
+      if(!unit || !force) return;
+
+      const oldIndex = this.selectedUnitIdx;
+      const deleted = window.ArmyImportService?.removeUnit(force, unit);
+      if(!deleted) return;
+
+      this.units = this.collectUnits(force);
+      this.selectedUnitIdx = this.units.length
+        ? this.clamp(oldIndex, 0, this.units.length - 1)
+        : 0;
+      this.onUnitChanged();
+      this.clearMatchupComputationCache();
+      if(this.matchupModalOpen) this.rebuildMatchup();
+    },
+
     // ---------------- Matchup modal ----------------
     openMatchupModal(){
       if(!this.rosters || this.rosters.length === 0){ alert('Load at least one roster first.'); return; }
@@ -419,9 +454,10 @@ function weaponVsDefenseApp(){
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
       const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
+      const cover = d.cover ? 'Cover' : '';
       const models = d.models ?? u?.size ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, size].filter(Boolean).join(' - ');
+      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' - ');
     },
 
     matchupDefenseHeaderLabel(u){
@@ -439,6 +475,7 @@ function weaponVsDefenseApp(){
           d.Sv ?? '',
           d.Inv ?? '',
           d.Fnp ?? '',
+          d.cover ? 'cover' : '',
           d.W ?? '',
         ].join('|');
         const models = parseFloat(d.models ?? profileUnit?.size ?? 1);
@@ -464,9 +501,10 @@ function weaponVsDefenseApp(){
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
       const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
+      const cover = d.cover ? 'Cover' : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, size].filter(Boolean).join(' - ');
+      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' - ');
     },
 
     matchupWeaponSummary(u){
@@ -633,6 +671,87 @@ function weaponVsDefenseApp(){
     matchupHeaderMeta(unit, side){
       const points = this.unitPointsText(unit) || '(— pts)';
       return `${points} - Score: ${this.matchupHeaderScore(unit, side)}`;
+    },
+
+    profileScoreBaseUnit(unit){
+      return unit?._baseUnit || unit || null;
+    },
+
+    profileScoreDefenders(){
+      const visible = this.matchupVisibleDefenders?.() || [];
+      if(visible.length) return visible.map(col => col.unit).filter(Boolean);
+      return (this.matchupDefenderUnits || []).filter(Boolean);
+    },
+
+    profileScoreAttackers(){
+      const visible = this.matchupVisibleRows?.() || [];
+      if(visible.length) return visible.map(row => row.unit).filter(Boolean);
+      return (this.matchupAttackerUnits || []).filter(Boolean);
+    },
+
+    profileScoreCell(attackerUnit, defenderUnit, overrides={}){
+      if(!Object.keys(overrides || {}).length) return this.cachedMatchupCell(attackerUnit, defenderUnit);
+      return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
+        combineShootingProfiles: overrides.combineShootingProfiles ?? !!this.matchup.combineShootingProfiles,
+        conditionsMet: !!this.matchup.conditionsMet,
+        isWeaponEnabled: w => this.isWeaponEnabledByToggles(w),
+        isMeleeEnabled: () => !!this.matchup.showMelee,
+        effectiveWeaponModifiers: (w, unit, defender) => this.effectiveWeaponModifiers(w, unit, defender),
+        effectiveDefense: (unit, opposingUnit) => this.effectiveDefense(unit, opposingUnit),
+        isAbilityEnabled: (unit, ability) => this.isUnitAbilityEnabled(unit, ability),
+        isEnhancementEnabled: (unit, enhancement) => this.isUnitEnhancementEnabled(unit, enhancement),
+      });
+    },
+
+    profileOffensiveScoreRaw(unit, attackMode='all'){
+      const base = this.profileScoreBaseUnit(unit);
+      const defenders = this.profileScoreDefenders();
+      const points = this.unitPointValue(base);
+      if(!base || !points || !defenders.length) return null;
+      const attacker = attackMode && attackMode !== 'all' ? this.attackModeVariant(base, attackMode) : base;
+      if(!this.hasMatchupWeaponProfiles(attacker)) return null;
+      const avgMetric = this.averageFinite(defenders.map(defender => this.matchupCellMetric(
+        this.profileScoreCell(attacker, defender, attackMode && attackMode !== 'all' ? { combineShootingProfiles: true } : {})
+      )));
+      return avgMetric != null ? (avgMetric / points) * this.efficiencyScoreMultiplier('attacker') : null;
+    },
+
+    profileDefensiveScoreRaw(unit){
+      const base = this.profileScoreBaseUnit(unit);
+      const attackers = this.profileScoreAttackers();
+      const points = this.unitPointValue(base);
+      if(!base || !points || !attackers.length) return null;
+      const avgIncoming = this.averageFinite(attackers.map(attacker => this.matchupCellMetric(
+        this.profileScoreCell(attacker, base)
+      )));
+      if(avgIncoming == null || avgIncoming <= 0) return null;
+      if((this.matchup.metric || 'damage') === 'unitKill'){
+        const survivalRate = Math.max(0, 1 - Math.min(avgIncoming, 1));
+        return (survivalRate / points) * this.efficiencyScoreMultiplier('defender');
+      }
+      return (1 / (avgIncoming * points)) * this.efficiencyScoreMultiplier('defender');
+    },
+
+    profileOverallScoreRaw(unit){
+      return this.averageFinite([
+        this.profileOffensiveScoreRaw(unit),
+        this.profileDefensiveScoreRaw(unit),
+      ]);
+    },
+
+    profileOffensiveScoreText(unit){
+      const offense = this.formatEfficiencyScore(this.profileOffensiveScoreRaw(unit));
+      const melee = this.formatEfficiencyScore(this.profileOffensiveScoreRaw(unit, 'melee'));
+      const shooting = this.formatEfficiencyScore(this.profileOffensiveScoreRaw(unit, 'shooting'));
+      return `Offensive Score: ${offense} (Melee: ${melee} / Shooting: ${shooting})`;
+    },
+
+    profileDefensiveScoreText(unit){
+      return `Defensive Score: ${this.formatEfficiencyScore(this.profileDefensiveScoreRaw(unit))}`;
+    },
+
+    profileOverallScoreText(unit){
+      return `Overall Score: ${this.formatEfficiencyScore(this.profileOverallScoreRaw(unit))}`;
     },
 
     flattenMatchupUnits(units){
@@ -851,10 +970,14 @@ function weaponVsDefenseApp(){
       return side === 'attacker' ? (this.matchupAttackerBaseUnits || this.matchupAttackerUnits || []) : (this.matchupDefenderUnits || []);
     },
 
-    mergeOptionLabel(unit){
+    unitDropdownLabel(unit){
       const label = this.unitLabelText(unit);
       const models = parseInt(unit?.defense?.models ?? unit?.size, 10);
       return Number.isFinite(models) && models > 0 ? `${label} (${models})` : label;
+    },
+
+    mergeOptionLabel(unit){
+      return this.unitDropdownLabel(unit);
     },
 
     forceForMatchupSide(side){
@@ -1856,6 +1979,7 @@ function weaponVsDefenseApp(){
         Inv: defense.inv,
         W: defense.W,
         Fnp: defense.Fnp,
+        cover: defense.cover,
         models: 1,
       }, 1);
     },
@@ -1885,7 +2009,10 @@ function weaponVsDefenseApp(){
           lines.push(`${prefix}Hits: ${this.formulaNumber(f.attacks)} attacks x (${this.formulaPercent(probs.pHit)} hit + ${this.formulaNumber(f?.totals?.expectedHits / Math.max(f.attacks, 1) - (probs.pHit || 0), 3)} sustained extra) = ${this.formulaNumber(totals.expectedHits)} expected hits`);
         }
         if(totals.expectedWounds != null){
-          lines.push(`${prefix}Wounds: lethal ${this.formulaNumber(totals.lethalWounds)} + wound rolls ${this.formulaNumber(totals.expectedWoundsFromRolls)} = ${this.formulaNumber(totals.expectedWounds)} expected wounds`);
+          const woundStrategy = probs.woundRerollStrategy === 'crits'
+            ? 'fish for crits'
+            : (probs.woundRerollStrategy === 'failures' ? 'reroll failures' : '');
+          lines.push(`${prefix}Wounds${woundStrategy ? ` (${woundStrategy})` : ''}: lethal ${this.formulaNumber(totals.lethalWounds)} + wound rolls ${this.formulaNumber(totals.expectedWoundsFromRolls)} = ${this.formulaNumber(totals.expectedWounds)} expected wounds`);
         }
         if(totals.unsavedNormal != null){
           lines.push(`${prefix}Saves: ${this.formulaNumber(totals.normalWounds)} normal wounds x ${this.formulaPercent(1 - (probs.pSave || 0))} failed saves = ${this.formulaNumber(totals.unsavedNormal)} unsaved wounds`);
@@ -2078,6 +2205,7 @@ function weaponVsDefenseApp(){
     modifierSpecApplies(parsed, context={}){
       const meta = parsed?.meta || {};
       if(meta.conditional && !this.matchup.conditionsMet) return false;
+      if(!this.modifierSpecBenefitsOwner(parsed)) return false;
       if(meta.weapons?.length && !meta.weapons.some(scope => this.weaponNameMatchesScope(context.weapon, scope))) return false;
       if(meta.weaponKeywords?.length && !meta.weaponKeywords.some(keyword => this.weaponHasKeyword(context.weapon, keyword))) return false;
       if(meta.targets?.length && !meta.targets.some(keyword => this.unitHasKeyword(context.defender, keyword))) return false;
@@ -2088,6 +2216,34 @@ function weaponVsDefenseApp(){
         if(!Number.isFinite(strength) || !Number.isFinite(toughness) || strength <= toughness) return false;
       }
       return true;
+    },
+
+    modifierTextHasPenalty(text){
+      return [
+        /\b(?:Hit|Wound)\s+Rolls?\s*-\d+/i,
+        /\b(?:Attacks?|Strength|Damage|AP|Armou?r Penetration)\s*-\d+/i,
+        /\b(?:T|Toughness|W|Wounds?)\s*-\d+/i,
+      ].some(pattern => pattern.test(text));
+    },
+
+    modifierTextHasBonus(text){
+      return [
+        /\b(?:Hit|Wound)\s+Rolls?\s*\+\d+/i,
+        /\b(?:Attacks?|Strength|Damage|AP|Armou?r Penetration)\s*\+\d+/i,
+        /\b(?:T|Toughness|W|Wounds?)\s*\+\d+/i,
+        /\b(?:Cover|Invulnerable Save|Feel No Pain|FNP|Reroll|Lethal Hits|Sustained Hits|Devastating Wounds|Precision|Lance|Ignores Cover)\b/i,
+      ].some(pattern => pattern.test(text));
+    },
+
+    modifierSpecBenefitsOwner(parsed){
+      const meta = parsed?.meta || {};
+      const kind = meta.kind || 'weapon';
+      if(kind === 'special') return true;
+      const text = (parsed?.modifiers || []).join(', ');
+      const hasPenalty = this.modifierTextHasPenalty(text);
+      const hasBonus = this.modifierTextHasBonus(text);
+      if(kind === 'defenseAttack' || kind === 'targetDefense') return hasPenalty || !hasBonus;
+      return !hasPenalty;
     },
 
     modifiersFromRuleNames(ruleNames, context={}){
@@ -2155,7 +2311,8 @@ function weaponVsDefenseApp(){
     },
 
     ruleModifierNames(name){
-      return this.ruleModifierSpecs(name);
+      return this.ruleModifierSpecs(name)
+        .filter(spec => this.modifierSpecBenefitsOwner(this.parsedModifierSpec(spec)));
     },
 
     unitAbilityModifierNames(ability){
@@ -2247,6 +2404,11 @@ function weaponVsDefenseApp(){
         match = text.match(/\b(?:Feel No Pain|FNP)\s*(\d)\+/i);
         if(match){
           next.Fnp = bestSave(next.Fnp, parseFloat(match[1]));
+          return;
+        }
+
+        if(/\b(?:Benefit of )?Cover\b/i.test(text)){
+          next.cover = true;
         }
       });
       return next;

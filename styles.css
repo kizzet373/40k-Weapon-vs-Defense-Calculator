@@ -278,6 +278,14 @@ button.secondary{
   border:1px solid #2a3a4f
 }
 
+button.danger{
+  background:#7f1d1d;
+  color:#fff;
+  border:1px solid #ef4444
+}
+
+button.danger:hover:not(:disabled){background:#991b1b}
+
 .iconBtn.secondary,
 .sidebarHandle.secondary{
   background:linear-gradient(135deg,var(--accent2),var(--accent));
@@ -529,6 +537,8 @@ details summary{cursor:pointer}
 .profileNameText{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .profilePointsText{font-weight:400;color:var(--muted);white-space:nowrap;flex:0 0 auto}
 .profileTitle{display:flex;align-items:baseline;gap:5px;min-width:0}
+.profileScoreSummary{margin-top:5px;color:#cfd7e3;font-size:12px;line-height:1.35}
+.profileScoreDivider{color:var(--muted)}
 .profileBody{display:grid;grid-template-columns:1.4fr .8fr;gap:14px;max-height:70vh;overflow:auto}
 .profileWeapon{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.025)}
 .profileModel{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.02)}

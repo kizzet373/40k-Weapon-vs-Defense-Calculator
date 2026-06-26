@@ -152,6 +152,15 @@ const sustainedD3 = context.window.WeaponCalc.calcOneWeapon(
 );
 assert.ok(Math.abs(sustainedD3.dmg - 2.5) < 1e-9, 'Sustained Hits D3 uses the average D3 extra hits');
 
+const hammerDevReroll = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Daemon hammer', range: 'Melee', A: '5', skill: '3', S: '8', AP: '2', D: '2', modifiers: '' },
+  { T: 4, sv: 3, inv: 4, W: 4, Fnp: 0 },
+  'Devastating Wounds, Melee: Strength +1, Melee: Attacks +1, Melee: AP +1, Melee: Damage +1, Melee: Reroll Wounds, Sustained Hits 1',
+  { includeFormula: true }
+);
+assert.ok(Math.abs(hammerDevReroll.dmg - 8.75) < 1e-9, 'full wound rerolls choose one valid strategy instead of stacking failure rerolls and crit fishing');
+assert.notStrictEqual(hammerDevReroll.formula.defense.Fnp, 0, 'formula defense omits zero-value FNP');
+
 const hitPenalty = context.window.WeaponCalc.calcOneWeapon(
   { name: 'Penalty', A: '6', skill: '4', S: '8', AP: '6', D: '1', modifiers: '' },
   { T: 4, sv: 7, inv: 0, W: 2 },
@@ -210,6 +219,134 @@ assert.strictEqual(
   JSON.stringify(['Choose Best: Lethal Hits; Sustained Hits 1']),
   'profile modal can list mapped modifiers under abilities'
 );
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames("Disciples of Be'lakor")),
+  JSON.stringify(['Choose Best: Lethal Hits; Sustained Hits 1']),
+  "Disciples of Be'lakor maps to the same always-on best Dark Pacts modifier"
+);
+const disciplesImportApp = context.weaponVsDefenseApp();
+disciplesImportApp.addRoster({
+  roster: {
+    name: 'Disciples import check',
+    battleScribeVersion: 2.03,
+    forces: [{
+      name: 'Force',
+      selections: [{
+        id: 'disciples-unit',
+        type: 'unit',
+        name: "Be'lakor",
+        number: 1,
+        rules: [{ name: 'Dark Pacts' }],
+        profiles: [
+          {
+            typeName: 'Unit',
+            name: "Be'lakor",
+            characteristics: [
+              { name: 'T', $text: '10' },
+              { name: 'Sv', $text: '3+' },
+              { name: 'W', $text: '18' },
+            ],
+          },
+          { typeName: 'Abilities', name: "Disciples of Be'lakor", characteristics: [] },
+        ],
+      }],
+    }],
+  },
+}, 'Disciples import check');
+assert.strictEqual(
+  JSON.stringify(disciplesImportApp.units[0].abilities),
+  JSON.stringify(["Disciples of Be'lakor"]),
+  "imports Disciples of Be'lakor without also showing Dark Pacts"
+);
+const deleteUnitApp = context.weaponVsDefenseApp();
+deleteUnitApp.addRoster({
+  roster: {
+    name: 'Delete unit check',
+    battleScribeVersion: 2.03,
+    forces: [{
+      name: 'Force',
+      selections: [
+        {
+          id: 'unit-a',
+          type: 'unit',
+          name: 'Unit A',
+          number: 1,
+          profiles: [{
+            typeName: 'Unit',
+            name: 'Unit A',
+            characteristics: [
+              { name: 'T', $text: '4' },
+              { name: 'Sv', $text: '3+' },
+              { name: 'W', $text: '2' },
+            ],
+          }],
+        },
+        {
+          id: 'unit-b',
+          type: 'unit',
+          name: 'Unit B',
+          number: 1,
+          profiles: [{
+            typeName: 'Unit',
+            name: 'Unit B',
+            characteristics: [
+              { name: 'T', $text: '5' },
+              { name: 'Sv', $text: '4+' },
+              { name: 'W', $text: '3' },
+            ],
+          }],
+        },
+      ],
+    }],
+  },
+}, 'Delete unit check');
+assert.strictEqual(deleteUnitApp.unitDropdownLabel(deleteUnitApp.units[0]), 'Unit A (1)', 'main unit dropdown labels include model count');
+deleteUnitApp.selectedUnitIdx = 0;
+deleteUnitApp.duplicateSelectedUnit();
+assert.strictEqual(deleteUnitApp.units.length, 3, 'Duplicate adds a copy of the selected unit');
+assert.ok(/^Unit A Copy/.test(deleteUnitApp.activeUnit.label), 'Duplicate selects the copied unit');
+assert.notStrictEqual(deleteUnitApp.units[0]._unitKey, deleteUnitApp.activeUnit._unitKey, 'Duplicate assigns a distinct unit key');
+deleteUnitApp.deleteSelectedUnit();
+assert.strictEqual(deleteUnitApp.units.length, 2, 'Delete removes the duplicated unit safely');
+deleteUnitApp.selectedUnitIdx = 0;
+deleteUnitApp.deleteSelectedUnit();
+assert.strictEqual(deleteUnitApp.units.length, 1, 'Delete Unit removes the selected unit from the main unit list');
+assert.strictEqual(deleteUnitApp.units[0].label, 'Unit B', 'Delete Unit keeps the remaining unit selected safely');
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Shadow Lord (Aura, Psychic)')),
+  JSON.stringify(['Unit-wide | Reroll Hits 1']),
+  'imported Shadow Lord aura maps to an always-on unit-wide hit reroll modifier'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Daemon Lord of Khorne (Aura)')),
+  JSON.stringify(['Conditional | Unit-wide | Melee: Hit Rolls +1']),
+  'Daemon Lord aura aliases from Daemons Options map to their damage modifier'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Master of Magicks (Psychic)')),
+  JSON.stringify(['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3']),
+  'Psychic suffix aliases map to the same modifier choices'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Formidably Resilient')),
+  JSON.stringify(['Defense Attack: Damage /2']),
+  'Formidably Resilient maps to its incoming damage modifier'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Damaged: 1-5 wounds remaining')),
+  JSON.stringify([]),
+  'self-detrimental conditional modifiers are hidden from ability modifier lists'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Stealth')),
+  JSON.stringify(['Defense: Cover']),
+  'Stealth maps to a defensive Cover modifier'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Relentless Carnage')),
+  JSON.stringify(['Conditional | Fight Phase Mortals: 8D6 4+']),
+  'Bloodthirster Relentless Carnage maps to its conditional fight phase mortal wounds'
+);
 assert.strictEqual(JSON.stringify(app.weaponKeywordList({ modifiers: 'Torrent, Ignores Cover' })), JSON.stringify(['Torrent', 'Ignores Cover']), 'main page weapon keyword rows split imported modifiers');
 const mixedMainPageDefense = {
   label: 'Mixed defense unit',
@@ -237,6 +374,9 @@ const modifiedDefenseLine = app.matchupDefenseProfileLine(
   1
 );
 assert.strictEqual(modifiedDefenseLine, 'T5 - 2+ 5++ - W2 - FNP 5+ - 1 models', 'defensive modifiers and FNP are reflected in header formatting');
+const stealthTarget = { label: 'Stealth target', abilities: ['Stealth'], defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 }, _unitKey: 'stealth-target' };
+assert.strictEqual(app.effectiveDefense(stealthTarget).cover, true, 'Stealth gives the unit cover in its effective defensive profile');
+assert.strictEqual(app.matchupDefenseProfileLine(app.effectiveDefense(stealthTarget), 1), 'T4 - 4+ - W2 - Cover - 1 models', 'cover is reflected in defensive profile text');
 const unmodifiedTarget = { label: 'Base target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
 const tougherTarget = { label: 'Tougher target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
 const defenseModifierAttacker = {
@@ -259,6 +399,39 @@ const modifiedDefenseCell = context.window.MatchupEngine.computeCell(defenseModi
   isAbilityEnabled: () => true,
 });
 assert.ok(baseDefenseCell.dmg > modifiedDefenseCell.dmg, 'matchup calculations use effective defensive profiles when modifiers are active');
+const coverCheckAttacker = {
+  label: 'Cover check attacker',
+  weapons: [{ name: 'AP0 shots', range: '24', A: '6', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'ranged' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+};
+const coverCheckTarget = { label: 'Cover check target', defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 } };
+const uncoveredCell = context.window.MatchupEngine.computeCell(coverCheckAttacker, coverCheckTarget, {
+  isWeaponEnabled: () => true,
+  isMeleeEnabled: () => true,
+  effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+  effectiveDefense: unit => unit.defense || {},
+  isAbilityEnabled: () => true,
+});
+const coveredCell = context.window.MatchupEngine.computeCell(coverCheckAttacker, coverCheckTarget, {
+  isWeaponEnabled: () => true,
+  isMeleeEnabled: () => true,
+  effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+  effectiveDefense: unit => app.applyDefenseModifiers(unit.defense || {}, ['Defense: Cover']),
+  isAbilityEnabled: () => true,
+});
+const ignoresCoverCell = context.window.MatchupEngine.computeCell(
+  { ...coverCheckAttacker, weapons: [{ ...coverCheckAttacker.weapons[0], modifiers: 'Ignores Cover' }] },
+  coverCheckTarget,
+  {
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+    effectiveDefense: unit => app.applyDefenseModifiers(unit.defense || {}, ['Defense: Cover']),
+    isAbilityEnabled: () => true,
+  }
+);
+assert.ok(coveredCell.dmg < uncoveredCell.dmg, 'cover reduces incoming failed-save damage in matchup calculations');
+assert.ok(Math.abs(ignoresCoverCell.dmg - uncoveredCell.dmg) < 1e-9, 'Ignores Cover bypasses defensive cover in matchup calculations');
 
 const darkPactAttacker = {
   label: 'Dark Pact unit',
@@ -272,6 +445,48 @@ const darkPactEasy = app.computeMatchupCell(darkPactAttacker, easyTarget);
 const darkPactHard = app.computeMatchupCell(darkPactAttacker, hardTarget);
 assert.ok(Math.abs(darkPactEasy.dmg - (10 / 3)) < 1e-9, 'Dark Pacts chooses Sustained Hits when it beats Lethal Hits');
 assert.ok(Math.abs(darkPactHard.dmg - (4 / 3)) < 1e-9, 'Dark Pacts chooses Lethal Hits when it beats Sustained Hits');
+const disciplesAttacker = {
+  ...darkPactAttacker,
+  label: "Disciples of Be'lakor unit",
+  abilities: ["Disciples of Be'lakor"],
+};
+const disciplesEasy = app.computeMatchupCell(disciplesAttacker, easyTarget);
+const disciplesHard = app.computeMatchupCell(disciplesAttacker, hardTarget);
+assert.ok(Math.abs(disciplesEasy.dmg - darkPactEasy.dmg) < 1e-9, "Disciples of Be'lakor chooses Sustained Hits when it beats Lethal Hits");
+assert.ok(Math.abs(disciplesHard.dmg - darkPactHard.dmg) < 1e-9, "Disciples of Be'lakor chooses Lethal Hits when it beats Sustained Hits");
+app.matchup.conditionsMet = false;
+const shadowLordBase = {
+  label: 'Be-lakor without Shadow Lord',
+  abilities: [],
+  weapons: [{ name: 'Shadow strike', range: 'Melee', A: '6', skill: '4', S: '10', AP: '6', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'shadow-strike-base' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+};
+const shadowLordAttacker = {
+  ...shadowLordBase,
+  label: "Be'lakor with Shadow Lord",
+  abilities: ['Shadow Lord (Aura, Psychic)'],
+  weapons: [{ ...shadowLordBase.weapons[0], _weaponKey: 'shadow-strike-aura' }],
+};
+const shadowLordBaseCell = app.computeMatchupCell(shadowLordBase, easyTarget);
+const shadowLordAuraCell = app.computeMatchupCell(shadowLordAttacker, easyTarget);
+assert.ok(shadowLordAuraCell.dmg > shadowLordBaseCell.dmg, 'Shadow Lord applies to Be-lakor unit attacks without Conditions Met');
+const bloodthirster = {
+  label: 'Bloodthirster',
+  abilities: ['Relentless Carnage'],
+  weapons: [{ name: 'Axe of Khorne - sweep', range: 'Melee', A: '1', skill: 'auto', S: '10', AP: '6', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'bloodthirster-sweep' }],
+  defense: { T: 11, Sv: 3, Inv: 4, W: 18, models: 1 },
+  _unitKey: 'bloodthirster',
+};
+const carnageTarget = { label: 'Carnage target', defense: { T: 4, Sv: 7, W: 20, models: 1, totalWounds: 20 }, _unitKey: 'carnage-target' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+const carnageOff = app.computeMatchupCell(bloodthirster, carnageTarget);
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const carnageOn = app.computeMatchupCell(bloodthirster, carnageTarget);
+assert.ok(Math.abs((carnageOn.dmg - carnageOff.dmg) - 4) < 1e-9, 'Relentless Carnage adds the expected four mortal wounds when conditions are met');
+const carnageShootingOnly = app.computeMatchupCell({ ...bloodthirster, _attackMode: 'shooting' }, carnageTarget);
+assert.strictEqual(carnageShootingOnly.dmg, 0, 'Relentless Carnage is not applied to shooting-only evaluations');
 app.openMatchupFormula(darkPactHard, darkPactAttacker, hardTarget);
 assert.ok(app.formulaModalOpen, 'clicking a matchup value can open the formula modal state');
 assert.ok((app.formulaCell?.formulaItems || []).length > 0, 'formula modal recomputes detailed formula data on demand');
@@ -400,18 +615,29 @@ assert.ok(/Damage \+1/i.test(app.effectiveWeaponModifiers(braggartBlade, braggar
 
 const heroicDefender = { label: 'Resolved Character', abilities: ['Heroic Resolve'], defense: { T: 4, Sv: 7, W: 3, models: 1 }, _unitKey: 'heroic-resolve' };
 const damageTwo = { name: 'Damage two', range: '24', A: '1', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'ranged', _weaponKey: 'damage-two' };
+const damageTwoAttacker = { label: 'Damage two attacker', weapons: [damageTwo], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'damage-two-attacker' };
 app.matchup.conditionsMet = false;
 app.clearMatchupComputationCache();
 assert.ok(!/Damage -1/i.test(app.effectiveWeaponModifiers(damageTwo, darkPactAttacker, heroicDefender)), 'Heroic Resolve is off until conditions are met');
 app.matchup.conditionsMet = true;
 app.clearMatchupComputationCache();
-assert.ok(/Damage -1/i.test(app.effectiveWeaponModifiers(damageTwo, darkPactAttacker, heroicDefender)), 'Heroic Resolve adds defensive damage reduction when conditions are met');
+assert.ok(/Damage -1/i.test(app.effectiveWeaponModifiers(damageTwo, darkPactAttacker, heroicDefender)), 'conditional defensive attack penalties that benefit the owner apply when conditions are met');
+const resilientDefender = { label: 'Resilient Character', abilities: ['Formidably Resilient'], defense: { T: 4, Sv: 7, W: 3, models: 1 }, _unitKey: 'resilient' };
+const resilientCell = app.computeMatchupCell(damageTwoAttacker, resilientDefender);
+const normalDamageTwoCell = app.computeMatchupCell(damageTwoAttacker, { label: 'Normal Character', abilities: [], defense: { T: 4, Sv: 7, W: 3, models: 1 }, _unitKey: 'normal-damage-two' });
+assert.ok(resilientCell.dmg < normalDamageTwoCell.dmg, 'non-conditional incoming damage division still applies');
 
 const rotCaster = { label: 'Rot caster', abilities: ["Nurgle's Rot"], weapons: [], defense: { T: 5, Sv: 3, W: 5, models: 1 }, _unitKey: 'rot-caster' };
 const rotTarget = { label: 'Rot target', abilities: [], defense: { T: 6, Sv: 3, W: 4, models: 1 }, _unitKey: 'rot-target' };
-assert.strictEqual(app.effectiveDefense(rotTarget, rotCaster).T, 5, 'conditional target-defense debuffs apply when conditions are met');
+assert.strictEqual(app.effectiveDefense(rotTarget, rotCaster).T, 5, 'conditional target-defense debuffs that benefit the owner apply when conditions are met');
 app.matchup.conditionsMet = false;
 assert.strictEqual(app.effectiveDefense(rotTarget, rotCaster).T, 6, 'conditional target-defense debuffs are off by default');
+
+const damagedAttacker = { label: 'Damaged tank', abilities: ['Damaged: 1-5 wounds remaining'], weapons: [], defense: { T: 9, Sv: 3, W: 12, models: 1 }, _unitKey: 'damaged-tank' };
+const damagedGun = { name: 'Damaged gun', range: '24', A: '6', skill: '4', S: '8', AP: '2', D: '2', modifiers: '', mode: 'ranged', _weaponKey: 'damaged-gun' };
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+assert.ok(!/Hit Rolls -1/i.test(app.effectiveWeaponModifiers(damagedGun, damagedAttacker, hardTarget)), 'self-detrimental conditional modifiers do not apply to the owner attack calculation');
 
 const gloamTarget = { label: 'Gloam target', abilities: ['Gloam Rot'], defense: { T: 5, Sv: 3, W: 3, models: 1 }, _unitKey: 'gloam-target' };
 const highStrengthWeapon = { name: 'Big hit', range: '24', A: '1', skill: '3', S: '8', AP: '1', D: '2', modifiers: '', mode: 'ranged', _weaponKey: 'big-hit' };
@@ -452,5 +678,39 @@ app.cycleMatchupSideSort('defender');
 assert.strictEqual(app.matchupSideSortLabel('defender'), 'A-Z', 'defender sort cycles from ASC to A-Z');
 app.cycleMatchupSideSort('defender');
 assert.strictEqual(app.matchupSideSortLabel('defender'), 'DESC', 'defender sort cycles from A-Z back to DESC');
+
+const profileScoreAttacker = {
+  label: 'Profile score attacker',
+  _unitKey: 'profile-score-attacker',
+  _viewKey: 'profile-score-attacker',
+  _points: 100,
+  weapons: [
+    { name: 'Score rifle', range: '24', A: '6', skill: 'auto', S: '5', AP: '1', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'score-rifle' },
+    { name: 'Score blade', range: 'Melee', A: '4', skill: 'auto', S: '5', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'score-blade' },
+  ],
+  defense: { T: 4, Sv: 3, W: 2, models: 1, totalWounds: 2 },
+};
+const profileScoreDefender = {
+  label: 'Profile score defender',
+  _unitKey: 'profile-score-defender',
+  _viewKey: 'profile-score-defender',
+  _points: 80,
+  weapons: [],
+  defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 },
+};
+app.matchup.metric = 'damage';
+app.matchup.showMelee = true;
+app.matchup.showShooting = true;
+app.matchup.combineShootingProfiles = true;
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+app.matchupAttackerUnits = [profileScoreAttacker];
+app.matchupDefenderUnits = [profileScoreDefender];
+app.matchup.rows = [{ unit: profileScoreAttacker, cells: [app.computeMatchupCell(profileScoreAttacker, profileScoreDefender)] }];
+app.seedAggregateCellCache();
+app.refreshVisibleMatchup();
+assert.ok(/^Offensive Score: \d+ \(Melee: \d+ \/ Shooting: \d+\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line includes total, melee, and shooting scores');
+assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
+assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
 
 console.log('damage-cap tests passed');

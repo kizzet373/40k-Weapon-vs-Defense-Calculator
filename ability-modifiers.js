@@ -1,39 +1,59 @@
 (function(){
   const ABILITY_MODIFIERS = {
     'Dark Pacts': ['Choose Best: Lethal Hits; Sustained Hits 1'],
+    "Disciples of Be'lakor": ['Choose Best: Lethal Hits; Sustained Hits 1'],
+    'Stealth': ['Defense: Cover'],
+    'Cover': ['Defense: Cover'],
+    'Benefit of Cover': ['Defense: Cover'],
     'Oath of Moment': ['Reroll Hits'],
     'Heroes All': ['Conditional | Reroll Hits 1', 'Conditional | Reroll Wounds 1'],
     'Saga of The Bold': ['Conditional | Reroll Hits 1', 'Conditional | Reroll Wounds 1'],
 
-    'Shadow Lord': ['Conditional | Unit-wide | Reroll Hits 1'],
-    'The Shadow Lord': ['Conditional | Unit-wide | Reroll Hits 1'],
-    'Damaged: 1-5 wounds remaining': ['Conditional | Hit Rolls -1'],
-    'Damaged: 1-6 wounds remaining': ['Conditional | Hit Rolls -1'],
-    'Damaged: 1-7 wounds remaining': ['Conditional | Hit Rolls -1'],
+    'Shadow Lord': ['Unit-wide | Reroll Hits 1'],
+    'The Shadow Lord': ['Unit-wide | Reroll Hits 1'],
+    'Shadow Lord (Aura, Psychic)': ['Unit-wide | Reroll Hits 1'],
 
     'Daemon Lord of Khorne': ['Conditional | Unit-wide | Melee: Hit Rolls +1'],
+    'Daemon Lord of Khorne (Aura)': ['Conditional | Unit-wide | Melee: Hit Rolls +1'],
     'Changecaster': ['Unit-wide | Ranged: Sustained Hits 1'],
     'Penumbral Puppetry': ['Defense Attack: Hit Rolls -1'],
     'Fateskimmer': ['Unit-wide | Melee: Lethal Hits'],
     'Daemon Lord of Nurgle': ['Conditional | Unit-wide | Defense: Toughness +1'],
+    'Daemon Lord of Nurgle (Aura)': ['Conditional | Unit-wide | Defense: Toughness +1'],
     "Nurgle's Rot": ['Conditional | Target Defense: Toughness -1'],
+    "Nurgle's Rot (Psychic)": ['Conditional | Target Defense: Toughness -1'],
+    'Nurgle’s Rot (Psychic)': ['Conditional | Target Defense: Toughness -1'],
     'Gloam Rot': ['Defense Attack: Wound Rolls -1 | If Strength > Toughness'],
     'Daemon Lord of Slaanesh': ['Conditional | Unit-wide | Melee: AP +1'],
+    'Daemon Lord of Slaanesh (Aura)': ['Conditional | Unit-wide | Melee: AP +1'],
     'Mesmerising Form': ['Defense Attack: Hit Rolls -1'],
     'Daemon Lord of Tzeentch': ['Conditional | Unit-wide | Ranged: Strength +1'],
+    'Daemon Lord of Tzeentch (Aura)': ['Conditional | Unit-wide | Ranged: Strength +1'],
     'Master of Magicks': ['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
+    'Master of Magicks (Psychic)': ['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
     'Poxbringer': ['Unit-wide | Critical Hits 5+'],
+    'Bloodmaster': ['Unit-wide | Wound Rolls +1'],
     'Blood Throne': ['Conditional | Unit-wide | Strength +1 | AP +1 | Damage +1'],
+    'Relentless Carnage': ['Conditional | Fight Phase Mortals: 8D6 4+'],
     'Champion Slayer': ['Melee: Reroll Wounds | Target: Character | Target: Monster'],
     "Skullmaster's Fury": ['Conditional | Unit-wide | Weapon: Juggernaut bladed horns | Melee: Devastating Wounds'],
     'Keep Counting!': ['Unit-wide | Melee: Sustained Hits 1'],
+    'Tormentbringer (Aura)': ['Unit-wide | Melee: Sustained Hits 1'],
     'Mischief Makers': ['Conditional | Defense Attack: Melee: Hit Rolls -1'],
+    'Mischief Makers (Aura)': ['Conditional | Defense Attack: Melee: Hit Rolls -1'],
     'Brass Stampede': ['Conditional | Unit-wide | Mortal Wounds On Charge'],
     'Cutting Down the Foe': ['Conditional | Unit-wide | Melee: Strength +1 | Melee: Damage +1'],
     "Death's Heads": ['Conditional | Unit-wide | Reroll Wounds'],
     'Chance for Glory': ['Conditional | Melee: Strength +1 | Melee: Attacks +1 | Melee: AP +1 | Melee: Damage +1'],
+    'Dark Ritual': ['Conditional | Unit-wide | Hit Rolls +1 | Wound Rolls +1'],
+    'Dark Zealotry': ['Unit-wide | Melee: Wound Rolls +1'],
+    'Eldritch Flames (Psychic)': ['Conditional | Ranged: Ignores Cover'],
+    'Unholy Bloodshed': ['Conditional | Unit-wide | Devastating Wounds'],
     'Sacrificial Dagger': ['Conditional | Weapon Keyword: Psychic | Hit Rolls +1 | Wound Rolls +1'],
     'Prescience': ['Unit-wide | Defense Attack: Hit Rolls -1'],
+    'Prescience (Psychic)': ['Unit-wide | Defense Attack: Hit Rolls -1'],
+    'Faithful Flock': ['Unit-wide | Defense: Invulnerable Save 5+'],
+    'Formidably Resilient': ['Defense Attack: Damage /2'],
     'Veterans of the Long War': ['Melee: Reroll Wounds 1', 'Conditional | Target On Objective | Melee: Reroll Wounds'],
     'Despoilers': ['Conditional | Reroll Hits'],
     'Stabilisation Talons': ['Ranged: Ignore Hit Penalties'],
@@ -121,6 +141,14 @@
       if((match = part.match(/^Defense Attack:\s*(.+)$/i))){ meta.kind = 'defenseAttack'; modifiers.push(match[1]); return; }
       if((match = part.match(/^Target Defense:\s*(.+)$/i))){ meta.kind = 'targetDefense'; modifiers.push(match[1]); return; }
       if((match = part.match(/^Defense:\s*(.+)$/i))){ meta.kind = 'defenseProfile'; modifiers.push(match[1]); return; }
+      if((match = part.match(/^Fight Phase Mortals:\s*(\d+)D6\s*(\d)\+$/i))){
+        meta.kind = 'special';
+        meta.special = 'fightPhaseMortals';
+        meta.diceCount = parseInt(match[1], 10) || 0;
+        meta.rollTarget = parseInt(match[2], 10) || 0;
+        modifiers.push(part);
+        return;
+      }
       if(/^Mortal Wounds On Charge$/i.test(part)){ meta.kind = 'special'; modifiers.push(part); return; }
       modifiers.push(part);
     });
