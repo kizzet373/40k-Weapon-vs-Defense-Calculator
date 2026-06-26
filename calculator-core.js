@@ -379,6 +379,8 @@
           pCriticalWound: woundOutcome.critical,
           pSave,
           pFnp,
+          hitRerollMode: kw.rerollHits || 'none',
+          woundRerollMode: kw.rerollWounds || 'none',
           hitRerollStrategy: hitOutcome.strategy,
           woundRerollStrategy: woundOutcome.strategy,
         },

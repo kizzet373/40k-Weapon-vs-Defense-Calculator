@@ -2256,6 +2256,17 @@ function weaponVsDefenseApp(){
       return (item?.lines || []).reduce((sum, line) => sum + (Number(line?.appliedDamage) || 0), 0);
     },
 
+    formulaRerollLabel(kind, mode, strategy){
+      const rollName = kind === 'hit' ? 'Hits' : 'Wounds';
+      const rerollMode = String(mode || 'none').toLowerCase();
+      if(rerollMode === 'ones') return `Reroll ${rollName} of 1`;
+      if(rerollMode !== 'all') return '';
+      const strategyText = strategy === 'crits'
+        ? 'fish for crits'
+        : (strategy === 'failures' ? 'reroll failures' : '');
+      return [`Reroll ${rollName}`, strategyText].filter(Boolean).join(', ');
+    },
+
     formulaItemLines(item, index=0){
       const lines = [];
       (item?.lines || []).forEach((line, lineIndex) => {
@@ -2268,13 +2279,12 @@ function weaponVsDefenseApp(){
           lines.push(`${prefix}Remaining allocation: ${this.formulaPercent(line.damageFraction)}`);
         }
         if(f.attacks != null){
-          lines.push(`${prefix}Hits: ${this.formulaNumber(f.attacks)} attacks x (${this.formulaPercent(probs.pHit)} hit + ${this.formulaNumber(f?.totals?.expectedHits / Math.max(f.attacks, 1) - (probs.pHit || 0), 3)} sustained extra) = ${this.formulaNumber(totals.expectedHits)} expected hits`);
+          const hitReroll = this.formulaRerollLabel('hit', probs.hitRerollMode, probs.hitRerollStrategy);
+          lines.push(`${prefix}Hits${hitReroll ? ` (${hitReroll})` : ''}: ${this.formulaNumber(f.attacks)} attacks x (${this.formulaPercent(probs.pHit)} hit + ${this.formulaNumber(f?.totals?.expectedHits / Math.max(f.attacks, 1) - (probs.pHit || 0), 3)} sustained extra) = ${this.formulaNumber(totals.expectedHits)} expected hits`);
         }
         if(totals.expectedWounds != null){
-          const woundStrategy = probs.woundRerollStrategy === 'crits'
-            ? 'fish for crits'
-            : (probs.woundRerollStrategy === 'failures' ? 'reroll failures' : '');
-          lines.push(`${prefix}Wounds${woundStrategy ? ` (${woundStrategy})` : ''}: lethal ${this.formulaNumber(totals.lethalWounds)} + wound rolls ${this.formulaNumber(totals.expectedWoundsFromRolls)} = ${this.formulaNumber(totals.expectedWounds)} expected wounds`);
+          const woundReroll = this.formulaRerollLabel('wound', probs.woundRerollMode, probs.woundRerollStrategy);
+          lines.push(`${prefix}Wounds${woundReroll ? ` (${woundReroll})` : ''}: lethal ${this.formulaNumber(totals.lethalWounds)} + wound rolls ${this.formulaNumber(totals.expectedWoundsFromRolls)} = ${this.formulaNumber(totals.expectedWounds)} expected wounds`);
         }
         if(totals.unsavedNormal != null){
           lines.push(`${prefix}Saves: ${this.formulaNumber(totals.normalWounds)} normal wounds x ${this.formulaPercent(1 - (probs.pSave || 0))} failed saves = ${this.formulaNumber(totals.unsavedNormal)} unsaved wounds`);

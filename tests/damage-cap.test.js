@@ -272,7 +272,7 @@ assert.strictEqual(
   "Disciples of Be'lakor maps to the same always-on best Dark Pacts modifier"
 );
 const veteransModifierList = app.unitAbilityModifierNames('Veterans of the Long War');
-assert.ok(veteransModifierList.includes('Conditional | Melee: Reroll Wounds'), 'Veterans of the Long War uses the generic conditional gate for full wound rerolls');
+assert.ok(veteransModifierList.includes('Conditional | Unit-wide | Melee: Reroll Wounds'), 'Veterans of the Long War uses the generic conditional gate for full wound rerolls');
 assert.ok(!veteransModifierList.some(mod => /Target On Objective/i.test(mod)), 'Veterans of the Long War does not expose bespoke objective-condition wording');
 const disciplesImportApp = context.weaponVsDefenseApp();
 disciplesImportApp.addRoster({
@@ -754,14 +754,24 @@ app.matchup.conditionsMet = false;
 app.clearMatchupComputationCache();
 assert.ok(/Reroll Wounds 1/i.test(app.effectiveWeaponModifiers(veteransSword, veterans, veteransTarget)), 'Veterans of the Long War applies melee wound rerolls of 1 by default');
 assert.ok(!/Reroll Wounds/i.test(app.effectiveWeaponModifiers(veteransGun, veterans, veteransTarget)), 'Veterans of the Long War melee rerolls do not apply to ranged weapons');
+const veteransChild = { label: 'Legionary model', abilities: [], weapons: [veteransSword], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'veterans-child' };
+const veteransParent = { ...veterans, _children: [veteransChild] };
+Object.defineProperty(veteransChild, '_parentUnit', { value: veteransParent, enumerable: false, configurable: true });
+assert.ok(/Reroll Wounds 1/i.test(app.effectiveWeaponModifiers(veteransSword, veteransChild, veteransTarget)), 'unit-wide Veterans wound rerolls apply to child model melee attacks');
 const veteransBaseDamage = app.computeMatchupCell({ ...veterans, abilities: [], weapons: [veteransSword], _unitKey: 'veterans-base' }, veteransTarget).dmg;
 const veteransRerollOnesDamage = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget).dmg;
 assert.ok(veteransRerollOnesDamage > veteransBaseDamage, 'Veterans of the Long War wound rerolls increase melee damage');
+const veteransFormulaCell = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget, { includeFormula: true });
+app.formulaCell = veteransFormulaCell;
+assert.ok(app.matchupFormulaLines().some(line => /Wounds \(Reroll Wounds of 1\)/i.test(line)), 'formula modal explicitly names Veterans wound rerolls of 1');
 app.matchup.conditionsMet = true;
 app.clearMatchupComputationCache();
 assert.ok(/Reroll Wounds\b/i.test(app.effectiveWeaponModifiers(veteransSword, veterans, veteransTarget)), 'Veterans of the Long War applies full melee wound rerolls when Conditions Met is enabled');
 const veteransFullRerollDamage = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget).dmg;
 assert.ok(veteransFullRerollDamage > veteransRerollOnesDamage, 'Veterans of the Long War full conditional wound rerolls increase melee damage beyond rerolling ones');
+const veteransConditionalFormulaCell = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget, { includeFormula: true });
+app.formulaCell = veteransConditionalFormulaCell;
+assert.ok(app.matchupFormulaLines().some(line => /Wounds \(Reroll Wounds/i.test(line)), 'formula modal explicitly names full Veterans wound rerolls when Conditions Met is enabled');
 
 const braggart = { label: 'Battle Leader', abilities: ['Braggart’s Steel'], weapons: [], defense: { T: 4, Sv: 3, W: 4, models: 1 }, _unitKey: 'braggart' };
 const braggartBlade = { name: 'Master-crafted power weapon', range: 'Melee', A: '4', skill: '3', S: '5', AP: '2', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'braggart-blade' };
