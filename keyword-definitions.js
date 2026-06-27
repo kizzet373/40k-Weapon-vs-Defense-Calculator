@@ -63,6 +63,89 @@
     return normalized[normalizeKeyword(text)] || null;
   }
 
+  function installMatchupUiPatches(){
+    if(document.getElementById('matchup-ui-patches')) return;
+
+    const style = document.createElement('style');
+    style.id = 'matchup-ui-patches';
+    style.textContent = `
+      .matchupCornerHeader{
+        min-height:62px;
+        padding-left:4px;
+        padding-right:4px;
+      }
+
+      .cornerSortLabel{
+        font-size:11px;
+        letter-spacing:.02em;
+      }
+
+      .attackerCornerLabel{left:2px;bottom:6px}
+      .defenderCornerLabel{right:2px;top:6px}
+
+      @media (max-width: 800px) {
+        .modalWide[aria-label="Unit matchups"]{
+          overflow:hidden;
+        }
+
+        .modalWide[aria-label="Unit matchups"] .modalBody{
+          display:flex;
+          flex-direction:column;
+          min-height:0;
+          height:100%;
+          overflow:hidden;
+        }
+
+        .modalWide[aria-label="Unit matchups"] .matchupGridWrap{
+          flex:1 1 auto;
+          min-height:0;
+          height:auto;
+          max-height:none;
+          overflow-x:auto;
+          overflow-y:auto;
+          -webkit-overflow-scrolling:touch;
+          touch-action:pan-x pan-y;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .matchupCornerHeader{
+          min-height:58px;
+          padding-left:2px;
+          padding-right:2px;
+        }
+
+        .cornerSortLabel{font-size:10px}
+        .attackerSortSelect{left:32px;width:58px}
+        .attackerSortButton{left:94px}
+        .defenderSortSelect{right:64px;width:58px}
+        .defenderSortButton{right:32px}
+      }
+    `;
+    document.head.appendChild(style);
+
+    const cleanCornerLabels = () => {
+      document.querySelectorAll('.attackerCornerLabel,.defenderCornerLabel').forEach(label => {
+        const clean = String(label.textContent || '').replace(/[←→↑↓↔↕]/g, '').trim();
+        if(clean && label.textContent !== clean) label.textContent = clean;
+      });
+    };
+
+    const observeCornerLabels = () => {
+      cleanCornerLabels();
+      if(!document.body) return;
+      new MutationObserver(cleanCornerLabels).observe(document.body, { childList:true, subtree:true, characterData:true });
+    };
+
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', observeCornerLabels, { once:true });
+    }else{
+      observeCornerLabels();
+    }
+  }
+
+  installMatchupUiPatches();
+
   window.KeywordDefinitionMap = KEYWORD_DEFINITIONS;
   window.KeywordDefinitionService = {
     definitionForKeyword,
