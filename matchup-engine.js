@@ -88,6 +88,17 @@
     return { name, count: weaponProfileCount(w) };
   }
 
+  function multipliedWeaponProfile(weapon, count){
+    const profileCount = Math.max(1, parseInt(count, 10) || 1);
+    if(profileCount <= 1) return { ...weapon };
+    const attacks = window.WeaponCalc.parseNdX(weapon?.A).mean * profileCount;
+    return {
+      ...weapon,
+      A: Number.isInteger(attacks) ? String(attacks) : String(attacks),
+      _profileCount: weaponProfileCount(weapon) * profileCount,
+    };
+  }
+
   function aggregateProfiles(items){
     const order = [];
     const totals = new Map();
@@ -798,9 +809,70 @@
     return groups;
   }
 
+  function weaponChoiceSignature(item, defenderUnit, options){
+    const weapon = item?.weapon || {};
+    const modifierText = options.effectiveWeaponModifiers
+      ? options.effectiveWeaponModifiers(weapon, item.sourceUnit, defenderUnit)
+      : (weapon?.modifiers || '');
+    return JSON.stringify({
+      name: String(weapon.name || ''),
+      range: String(weapon.range ?? weapon.R ?? weapon.Range ?? ''),
+      A: String(weapon.A ?? ''),
+      skill: String(weapon.skill ?? ''),
+      S: String(weapon.S ?? ''),
+      AP: String(weapon.AP ?? ''),
+      D: String(weapon.D ?? ''),
+      mode: String(weapon.mode ?? weapon.type ?? ''),
+      modifiers: String(modifierText || ''),
+      melee: isMeleeWeapon(weapon),
+      extra: !!window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon).extraAttacks,
+    });
+  }
+
+  function aggregateWeaponChoiceGroups(groups, defenderUnit, options){
+    const output = [];
+    const grouped = new Map();
+    const order = [];
+    (groups || []).forEach(group => {
+      if(group.type !== 'weaponChoice'){
+        output.push(group);
+        return;
+      }
+      const altSignatures = (group.alternatives || []).map(item => weaponChoiceSignature(item, defenderUnit, options));
+      const key = altSignatures.slice().sort().join('||');
+      if(!grouped.has(key)){
+        grouped.set(key, { template: group, alternativesBySignature: new Map(), altOrder: altSignatures });
+        order.push(key);
+      }
+      const bucket = grouped.get(key);
+      (group.alternatives || []).forEach((item, index) => {
+        const signature = altSignatures[index];
+        if(!bucket.alternativesBySignature.has(signature)) bucket.alternativesBySignature.set(signature, []);
+        bucket.alternativesBySignature.get(signature).push(item);
+      });
+    });
+
+    order.forEach(key => {
+      const bucket = grouped.get(key);
+      const alternatives = bucket.altOrder.map(signature => {
+        const items = bucket.alternativesBySignature.get(signature) || [];
+        const first = items[0] || {};
+        return {
+          weapon: multipliedWeaponProfile(first.weapon || {}, items.length),
+          sourceUnit: first.sourceUnit,
+        };
+      }).filter(item => item.weapon);
+      output.push({ ...bucket.template, alternatives });
+    });
+    return output;
+  }
+
   function attackGroupsForUnit(unit, defenderUnit, attackMode, options){
-    const groups = leafAttackUnits(unit)
-      .flatMap(leaf => attackGroupsForLeaf(leaf, defenderUnit, options));
+    const groups = aggregateWeaponChoiceGroups(
+      leafAttackUnits(unit).flatMap(leaf => attackGroupsForLeaf(leaf, defenderUnit, options)),
+      defenderUnit,
+      options
+    );
     additionalMortalDamage(unit, attackMode, options).forEach(item => {
       groups.push({ type:'mortal', sourceUnit: unit, item });
     });

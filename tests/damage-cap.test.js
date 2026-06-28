@@ -792,6 +792,24 @@ const groupedDefenseLines = app.matchupFormulaSections()[0].lines.map(line => li
 assert.strictEqual(groupedDefenseFormulaCell.formulaItems[0].lines.length, 1, 'identical defending models are grouped into one unique defensive-profile formula section');
 assert.ok(groupedDefenseLines.some(line => /T4 .* W2 .* 3 models left/i.test(line)), 'formula defensive profile says models left for grouped profiles');
 
+const groupedWeaponFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Four melee models',
+    defense: { T: 4, Sv: 3, W: 1, models: 4 },
+    _children: [1, 2, 3, 4].map(index => ({
+      label: `Heavy model ${index}`,
+      weapons: [{ name: 'Heavy melee weapon', range: 'Melee', A: '2', skill: '3', S: '8', AP: '2', D: '2', modifiers: '', mode: 'melee' }],
+      defense: { T: 4, Sv: 3, W: 1, models: 1 },
+    })),
+  },
+  { label: 'Grouped weapon target', defense: { T: 5, Sv: 7, W: 2, models: 5, totalWounds: 10 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = groupedWeaponFormulaCell;
+const groupedWeaponSections = app.matchupFormulaSections();
+assert.strictEqual(groupedWeaponSections.length, 1, 'identical attacking weapon profiles are grouped into one formula section');
+assert.ok(/Heavy melee weapon \(x4\).*A:8 Skill:3 S:8 AP:2 D:2/.test(groupedWeaponSections[0].title), 'grouped weapon formula title shows combined profile count and multiplied attacks');
+
 const overkillFormulaCell = app.computeMatchupCell(
   {
     label: 'Overkill attacker',
