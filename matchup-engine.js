@@ -174,6 +174,15 @@
     return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
+  function canonicalModifierKey(value){
+    const tokens = (window.ArmyImportService?.splitModifiers
+      ? window.ArmyImportService.splitModifiers(value)
+      : String(value || '').split(','))
+      .map(token => String(token || '').trim().replace(/\s+/g, ' '))
+      .filter(Boolean);
+    return [...new Set(tokens.map(token => token.toLowerCase()))].sort().join(', ');
+  }
+
   function shootingChoiceKey(w){
     const name = String(w?.name || '').trim();
     const match = name.match(/\s[-\u2013\u2014]\s/);
@@ -859,7 +868,7 @@
       AP: String(weapon.AP ?? ''),
       D: String(weapon.D ?? ''),
       mode: String(weapon.mode ?? weapon.type ?? ''),
-      modifiers: String(modifierText || ''),
+      modifiers: canonicalModifierKey(modifierText),
       melee: isMeleeWeapon(weapon),
       extra: !!window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon).extraAttacks,
     });

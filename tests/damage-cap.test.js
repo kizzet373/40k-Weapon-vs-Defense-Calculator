@@ -833,6 +833,34 @@ const groupedWeaponSections = app.matchupFormulaSections();
 assert.strictEqual(groupedWeaponSections.length, 1, 'identical attacking weapon profiles are grouped into one formula section');
 assert.ok(/Heavy melee weapon \(x4\).*A:8 Skill:3 S:8 AP:2 D:2/.test(groupedWeaponSections[0].title), 'grouped weapon formula title shows combined profile count and multiplied attacks');
 
+const reorderedModifierWeapon = { name: 'Slashing claws', range: 'Melee', A: '8', skill: '3', S: '5', AP: '1', D: '1', modifiers: '', mode: 'melee' };
+const reorderedModifierCell = context.window.MatchupEngine.computeCell(
+  {
+    label: 'Reordered modifier unit',
+    defense: { T: 4, Sv: 3, W: 1, models: 2 },
+    _children: [
+      { label: 'Claw model A', weapons: [reorderedModifierWeapon], defense: { T: 4, Sv: 3, W: 1, models: 1 }, _unitKey: 'claw-a' },
+      { label: 'Claw model B', weapons: [{ ...reorderedModifierWeapon }], defense: { T: 4, Sv: 3, W: 1, models: 1 }, _unitKey: 'claw-b' },
+    ],
+  },
+  { label: 'Claw target', defense: { T: 4, Sv: 3, W: 2, models: 5, totalWounds: 10 } },
+  {
+    includeFormula: true,
+    combineShootingProfiles: true,
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: (weapon, sourceUnit) => sourceUnit?.label === 'Claw model A'
+      ? 'Devastating Wounds, Melee: Strength +1, Melee: Damage +1, Melee: Sustained Hits 1'
+      : 'Devastating Wounds, Melee: Sustained Hits 1, Melee: Strength +1, Melee: Damage +1',
+    effectiveDefense: unit => unit.defense || {},
+    isAbilityEnabled: () => true,
+  }
+);
+app.formulaCell = reorderedModifierCell;
+const reorderedModifierSections = app.matchupFormulaSections();
+assert.strictEqual(reorderedModifierSections.length, 1, 'identical weapon profiles with reordered modifiers are grouped into one formula section');
+assert.ok(/Slashing claws \(x2\).*A:16 Skill:3 S:6 AP:1 D:1 \+ 1/.test(reorderedModifierSections[0].title), 'grouped reordered modifier profile shows combined model count and effective statline');
+
 const overkillFormulaCell = app.computeMatchupCell(
   {
     label: 'Overkill attacker',
