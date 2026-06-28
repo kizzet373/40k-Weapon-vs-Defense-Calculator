@@ -247,6 +247,7 @@
     return {
       dmg: models,
       profile: { name: 'Brass Stampede mortal wounds', count: models },
+      phase: 'preDamage',
     };
   }
 
@@ -271,6 +272,7 @@
           dmg,
           profile: { name: `${ability} mortal wounds`, count: 1 },
           modifierText: parsed.modifiers?.[0] || 'Fight phase mortal wounds',
+          phase: 'preDamage',
         });
       });
     });
@@ -280,7 +282,7 @@
   function additionalMortalDamage(unit, attackMode, options){
     const items = [];
     const chargeMortals = chargeMortalDamage(unit, attackMode, options);
-    if(chargeMortals.profile) items.push({ ...chargeMortals, modifierText: 'Mortal wounds on charge' });
+    if(chargeMortals.profile) items.push({ ...chargeMortals, modifierText: 'Mortal wounds on charge', phase: chargeMortals.phase || 'preDamage' });
     items.push(...specialMortalSpecs(unit, attackMode, options));
     return items;
   }
@@ -296,6 +298,7 @@
     return {
       weaponName: item.profile.name,
       modifierText: item.modifierText || 'Mortal wounds',
+      phase: item.phase || 'preDamage',
       totalDamage: item.allocated?.dmg || 0,
       totalKills: item.allocated?.kills || 0,
       lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: item.allocated?.dmg || 0 }],
@@ -910,7 +913,24 @@
     const selectedProfiles = [];
     const selectedFormulaItems = [];
     const selectedProfileModifiers = [];
-    const remainingGroups = groups.map((group, index) => ({ ...group, index }));
+    const preDamageGroups = groups.filter(group => group.type === 'mortal' && (group.item?.phase || group.phase) === 'preDamage');
+    const remainingGroups = groups
+      .filter(group => !(group.type === 'mortal' && (group.item?.phase || group.phase) === 'preDamage'))
+      .map((group, index) => ({ ...group, index }));
+
+    preDamageGroups.forEach(group => {
+      const allocated = applyFlatDamageToState(group.item?.dmg, state, false);
+      dmg += allocated.dmg;
+      kills += allocated.kills;
+      selectedProfiles.push(group.item.profile);
+      if(options.includeFormula){
+        selectedFormulaItems.push({
+          ...mortalFormulaItem({ ...group.item, allocated, phase: 'preDamage' }, defenderUnit),
+          totalDamage: allocated.dmg,
+          totalKills: allocated.kills,
+        });
+      }
+    });
 
     while(remainingGroups.length){
       const choices = remainingGroups.map((group, index) => {

@@ -2435,6 +2435,9 @@ function weaponVsDefenseApp(){
     },
 
     formulaItemTitle(item, index=0){
+      if(item?.phase === 'preDamage'){
+        return `${index + 1}. Pre-Damage - ${item?.weaponName || `Effect ${index + 1}`}`;
+      }
       const firstFormula = (item?.lines || []).find(line => line?.formula)?.formula || {};
       const skillText = Number(firstFormula.skill) === 0 ? 'auto' : this.formulaNumber(firstFormula.skill);
       const statText = firstFormula.attacks != null

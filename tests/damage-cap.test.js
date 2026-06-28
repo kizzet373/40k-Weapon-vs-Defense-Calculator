@@ -926,6 +926,13 @@ assert.ok(!/Devastating Wounds/i.test(app.effectiveWeaponModifiers(bloodcrusher.
 app.matchup.conditionsMet = true;
 assert.ok(/Devastating Wounds/i.test(app.effectiveWeaponModifiers(bloodcrusher.weapons[0], bloodcrusher, hardTarget)), 'conditional unit-wide weapon modifiers apply when conditions are met');
 assert.ok(!/Devastating Wounds/i.test(app.effectiveWeaponModifiers(bloodcrusher.weapons[1], bloodcrusher, hardTarget)), 'weapon-scoped modifiers only apply to matching weapons');
+const brassStampedeUnit = { ...skullmasterUnit, abilities: ['Brass Stampede'] };
+const brassStampedeCell = app.computeMatchupCell(brassStampedeUnit, hardTarget, { includeFormula: true });
+app.formulaCell = brassStampedeCell;
+const brassStampedeSections = app.matchupFormulaSections();
+assert.ok(brassStampedeCell.dmg > 1, 'Brass Stampede pre-damage is added before normal weapon damage');
+assert.ok(/^1\. Pre-Damage - Brass Stampede mortal wounds/i.test(brassStampedeSections[0]?.title || ''), 'Brass Stampede appears as the first Pre-Damage formula section');
+assert.strictEqual(brassStampedeCell.formulaItems[0]?.phase, 'preDamage', 'Brass Stampede formula item is tagged as pre-damage');
 
 const conditionalAttacker = {
   label: 'Conditional attacker',
