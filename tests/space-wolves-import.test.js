@@ -83,8 +83,8 @@ assert.ok(app.cachedMatchupCell(wolfScouts, arjac).dmg > 0, 'Wolf Scout parent m
 assert.ok(app.cachedMatchupCell(assaultTerminatorsWithWeapons, arjac).dmg > 0, 'Assault Terminator parent matchup uses child model weapons');
 assert.ok(headtakers.every(unit => app.cachedMatchupCell(unit, arjac).dmg > 0), 'Headtaker parent matchups use child model weapons');
 assert.ok(wolfTerminators.every(unit => app.cachedMatchupCell(unit, arjac).dmg > 0), 'Wolf Guard Terminator parent matchups use child model weapons');
-assert.ok(/^\(\d+ pts\) - Score: \d+$/.test(app.matchupHeaderMeta(wolfScouts, 'attacker')), 'attacker header meta includes points and whole-number calibrated score');
-assert.ok(/^\(\d+ pts\) - Score: \d+$/.test(app.matchupHeaderMeta(arjac, 'defender')), 'defender header meta includes points and whole-number calibrated score');
+assert.ok(/^\(\d+ pts\) - Atk Score: \d+$/.test(app.matchupHeaderMeta(wolfScouts, 'attacker')), 'attacker header meta includes points and whole-number calibrated score');
+assert.ok(/^\(\d+ pts\) - Def Score: \d+$/.test(app.matchupHeaderMeta(arjac, 'defender')), 'defender header meta includes points and whole-number calibrated score');
 const wolfScoutRow = app.matchupVisibleRows().find(row => row.unit.label === 'Wolf Scouts');
 const wolfScoutAvgMetric = wolfScoutRow.cells.reduce((sum, cell) => sum + app.matchupCellMetric(cell), 0) / wolfScoutRow.cells.length;
 const expectedWolfScoutScore = Math.round((wolfScoutAvgMetric / 95) * app.efficiencyScoreMultiplier('attacker'));
@@ -102,7 +102,7 @@ assert.ok(tsvLines.length > 1, 'copy grid TSV includes a header and body rows');
 assert.ok(tsvLines[0].startsWith('Attacker \\ Defender\t'), 'copy grid TSV starts with the top-left header and tab-delimited defender headers');
 assert.strictEqual(tsvLines[0].split('\t').length, app.matchupVisibleDefenders().length + 1, 'copy grid TSV has one column per visible defender plus row header');
 assert.ok(tsvLines.some(line => /Wolf Scouts/.test(line) && /Plasma/.test(line)), 'copy grid TSV includes visible unit rows and weapon profile text');
-assert.ok(/Score: \d+/.test(tsvLines[0]) && /Score: \d+/.test(tsvLines.find(line => /Wolf Scouts/.test(line)) || ''), 'copy grid TSV includes score values in row and column headers');
+assert.ok(/Def Score: \d+/.test(tsvLines[0]) && /Atk Score: \d+/.test(tsvLines.find(line => /Wolf Scouts/.test(line)) || ''), 'copy grid TSV includes score values in row and column headers');
 assert.ok(tsvLines.some(line => /\d+(?:\.\d+)?%? - [^\t]+/.test(line)), 'copy grid TSV separates display values from weapon profile details');
 assert.ok(tsvLines.every(line => line.split('\t').every(cell => !/\r|\n/.test(cell))), 'copy grid TSV keeps individual cells single-line for Excel paste');
 
@@ -119,7 +119,7 @@ assert.strictEqual(fullExport, visibleExport, 'legacy full grid export aliases t
 const excelHtml = app.matchupGridHtml('excel');
 assert.ok(/<table/i.test(excelHtml), 'Excel detailed export emits an HTML table');
 assert.ok(/Wolf Scout Pack Leader/.test(excelHtml), 'Excel detailed export includes expanded visible inner model rows');
-assert.ok(/Score: \d+/.test(excelHtml), 'Excel detailed export includes score values in unit headers');
+assert.ok(/(?:Atk|Def) Score: \d+/.test(excelHtml), 'Excel detailed export includes score values in unit headers');
 assert.ok(/cellNote"> - /i.test(excelHtml), 'Excel detailed export separates display values from weapon profile details');
 assert.ok(/background-color:#[0-9a-f]{6}/i.test(excelHtml), 'Excel detailed export includes inline hex cell background colors');
 assert.ok(/<col[^>]*mso-outline-level:2/i.test(excelHtml), 'Excel detailed export includes outline hints for expanded child columns');

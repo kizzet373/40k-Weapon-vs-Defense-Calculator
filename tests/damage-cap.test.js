@@ -342,11 +342,11 @@ baseScoreApp.selectedForceIdx = 0;
 baseScoreApp.openMatchupModal();
 const baseDefender = baseScoreApp.matchupDefenderUnits.find(unit => unit.label === 'Power Armour');
 assert.ok(baseDefender, 'base profiles can be selected as matchup defenders');
-assert.ok(/^\(90 pts\) - Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseDefender, 'defender')), 'base profiles display calibrated defensive scores from their point values');
+assert.ok(/^\(90 pts\) - Def Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseDefender, 'defender')), 'base profiles display calibrated defensive scores from their point values');
 baseScoreApp.swapMatchupSides();
 const baseAttacker = baseScoreApp.matchupAttackerUnits.find(unit => unit.label === 'Power Armour');
 assert.ok(baseAttacker, 'base profiles can be selected as matchup attackers');
-assert.ok(/^\(90 pts\) - Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseAttacker, 'attacker')), 'base profiles display calibrated offensive scores from their point values and weapon profiles');
+assert.ok(/^\(90 pts\) - Atk Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseAttacker, 'attacker')), 'base profiles display calibrated offensive scores from their point values and weapon profiles');
 assert.ok(baseScoreApp.cachedMatchupCell(baseAttacker, baseScoreApp.matchupDefenderUnits[0]).dmg > 0, 'base profile weapon packages produce matchup damage');
 
 assert.strictEqual(

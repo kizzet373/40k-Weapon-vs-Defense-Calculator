@@ -936,7 +936,8 @@ function weaponVsDefenseApp(){
 
     matchupHeaderMeta(unit, side){
       const points = this.unitPointsText(unit) || '(— pts)';
-      return `${points} - Score: ${this.matchupHeaderScore(unit, side)}`;
+      const label = side === 'defender' ? 'Def Score' : 'Atk Score';
+      return `${points} - ${label}: ${this.matchupHeaderScore(unit, side)}`;
     },
 
     profileScoreBaseUnit(unit){
