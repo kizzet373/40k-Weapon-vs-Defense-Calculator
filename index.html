@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=sidebar-arrow-high-contrast">
+  <link rel="stylesheet" href="styles.css?v=matchup-layout-polish">
   <script defer src="calculator-core.js"></script>
   <script defer src="ability-modifiers.js"></script>
   <script defer src="keyword-definitions.js"></script>
@@ -548,13 +548,15 @@
                     <th class="stickyCol">
                       <div class="unitHeaderCell attackerHeaderCell">
                         <button type="button" class="profileLink attackerProfileLink matchupHeaderProfileLink" @click="openUnitProfile(row.unit, row.isChild ? 'Model' : 'Attacker')">
-                          <span class="profileNameText">
+                          <span class="profileNameRow">
+                            <span class="profileNameText">
                             <template x-if="row.isChild"><span class="childBranchInline">↳</span></template><span x-text="unitLabelText(row.unit, `Atk ${ri+1}`)"></span>
+                            </span>
                           </span>
                           <span class="profileMetaText" x-text="matchupHeaderMeta(row.unit, 'attacker')"></span>
                           <span class="muted matchupWeaponTypeText" x-text="matchupWeaponTypeSummary(row.unit)"></span>
                         </button>
-                        <button type="button" class="expandButton eyeButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" :title="isUnitExpanded(row.unit) ? 'Hide models' : 'Show models'">
+                        <button type="button" class="expandButton eyeButton attackerEyeButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" :title="isUnitExpanded(row.unit) ? 'Hide models' : 'Show models'">
                           <svg class="eyeIcon" x-show="!isUnitExpanded(row.unit)" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
                             <circle cx="12" cy="12" r="2.5"></circle>
