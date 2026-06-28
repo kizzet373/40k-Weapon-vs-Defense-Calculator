@@ -601,7 +601,6 @@
         state._lastTargetLine = line;
       }
       const countedDamage = (Number(allocated.appliedDamage) || 0)
-        + (Number(allocated.rawSpillLoss) || 0)
         + (Number(allocated.overkillDamage) || 0);
       dmg += countedDamage;
       kills += W > 0 ? countedDamage / W : allocated.kills;

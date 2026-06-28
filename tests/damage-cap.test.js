@@ -773,7 +773,8 @@ assert.ok(/Power Fist \(x3\).*A:3 Skill:auto S:8 AP:2 D:2/.test(noSpillSection.t
 assert.ok(noSpillLines.some(line => /Wound: .* x .* wound rate = .* wounds/i.test(line)), 'wound step shows wound rate');
 assert.ok(noSpillLines.some(line => /Damage: .* x 2 damage = .* damage/i.test(line)), 'damage step shows generated damage before allocation loss');
 assert.ok(noSpillLines.some(line => /^Spill Loss: .* = .* spill loss$/i.test(line)), 'spill loss is split into its own calculation step');
-assert.ok(noSpillLines.some(line => /^Profile total: .* total damage \(.* wounds \+ .* spill loss\)$/i.test(line)), 'profile total summarizes wounds and spill loss');
+assert.ok(noSpillLines.some(line => /^Total: .* damage \(.* wounds\)$/i.test(line)), 'target total summarizes damage after spill loss');
+assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\)$/i.test(line)), 'profile total summarizes all target totals');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
@@ -878,7 +879,8 @@ const overkillLines = app.matchupFormulaLines();
 assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
-assert.ok(overkillLines.some(line => /^Profile total: .* total damage \(.*overkill\)$/i.test(line)), 'overkill profile totals summarize overkill damage instead of models killed');
+assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models killed');
+assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\)$/i.test(line)), 'profile totals summarize overkill damage instead of models killed');
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');
 assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
 
@@ -900,9 +902,11 @@ const remainingAllocationFormulaCell = app.computeMatchupCell(
 );
 app.formulaCell = remainingAllocationFormulaCell;
 const remainingAllocationLines = app.matchupFormulaSections()[0].lines.map(line => line.text ?? line);
-assert.ok(remainingAllocationLines.some(line => /^Damage: .*remaining allocation\)$/i.test(line)), 'remaining allocation appears on the prior damage step when another defensive profile is available');
+assert.ok(!remainingAllocationLines.some(line => /^Damage: .*remaining allocation\)$/i.test(line)), 'remaining allocation is no longer shown on the damage step');
+assert.ok(remainingAllocationLines.some(line => /^Total: .*overkill \/ .*remaining allocation\)$/i.test(line)), 'remaining allocation appears in the target total when another defensive profile is available');
 assert.ok(!remainingAllocationLines.some(line => /^Remaining allocation:/i.test(line)), 'remaining allocation is not rendered as a separate line for split defensive profiles');
 assert.ok(remainingAllocationLines.some((line, index) => line === '' && /^~ T5/i.test(remainingAllocationLines[index + 1] || '')), 'formula keeps a blank line before the next real defensive profile block');
+assert.ok(remainingAllocationLines.some((line, index) => /^Total:/i.test(line) && remainingAllocationLines[index + 1] === '' && /^Profile Total:/i.test(remainingAllocationLines[index + 2] || '')), 'formula keeps a blank line between the last target total and profile total');
 
 app.formulaCell = {
   dmg: 3.75,

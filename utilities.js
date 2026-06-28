@@ -2430,6 +2430,12 @@ function weaponVsDefenseApp(){
       return { text, html };
     },
 
+    formulaResultLine(label, result=''){
+      const text = `${label}: ${result}`;
+      const html = `<span class="formulaStepName">${this.escapeFormulaHtml(label)}</span>: <span class="formulaStepResult">${this.escapeFormulaHtml(result)}</span>`;
+      return { text, html };
+    },
+
     formulaLineHtml(line){
       if(line && typeof line === 'object' && line.spacer) return '&nbsp;';
       if(line && typeof line === 'object' && line.html) return line.html;
@@ -2457,7 +2463,7 @@ function weaponVsDefenseApp(){
     formulaItemDamage(item){
       if((item?.lines || []).some(line => line?.allocation)){
         const parts = this.formulaProfileDamageParts(item);
-        const total = parts.wounds + parts.spill + parts.overkill;
+        const total = parts.wounds + parts.overkill;
         if(total > 1e-9) return total;
       }
       const value = Number(item?.totalDamage);
@@ -2544,6 +2550,37 @@ function weaponVsDefenseApp(){
       }, { wounds: 0, spill: 0, overkill: 0 });
     },
 
+    formulaLineDamageParts(line){
+      const allocation = line?.allocation || {};
+      if(allocation.overkill){
+        const overkill = Number(line?.appliedDamage ?? allocation.appliedDamage) || 0;
+        return { wounds: 0, spill: 0, overkill, remaining: 0, remainingFraction: 0, total: overkill };
+      }
+      const wounds = Number(line?.appliedDamage ?? allocation.appliedDamage) || 0;
+      const spill = Number(allocation.rawSpillLoss) || 0;
+      const overkill = Number(allocation.overkillDamage) || 0;
+      const remaining = Number(allocation.rawDamageRemaining) || 0;
+      return {
+        wounds,
+        spill,
+        overkill,
+        remaining,
+        remainingFraction: Number(allocation.remainingFraction) || 0,
+        total: wounds + overkill + remaining,
+      };
+    },
+
+    formulaDamageComponentText(parts, { includeRemaining=false }={}){
+      const components = [
+        parts.wounds > 1e-9 ? `${this.formulaNumber(parts.wounds)} wounds` : '',
+        parts.overkill > 1e-9 ? `${this.formulaNumber(parts.overkill)} overkill` : '',
+        includeRemaining && parts.remaining > 1e-9
+          ? `${this.formulaNumber(parts.remaining)} overkill / ${this.formulaPercent(parts.remainingFraction)} remaining allocation`
+          : '',
+      ].filter(Boolean);
+      return components.length ? ` (${components.join(' + ')})` : '';
+    },
+
     formulaItemLines(item, index=0){
       const lines = [];
       if((item?.phase === 'preDamage' || item?.phase === 'postDamage') && item?.effect){
@@ -2610,9 +2647,7 @@ function weaponVsDefenseApp(){
           const damageInstances = unsaved + mortals;
           const parts = [`${this.formulaNumber(damageInstances)} x ${this.formulaDamageText(damageText)} damage`];
           if((Number(probs.pFnp) || 0) > 1e-9) parts.push(`x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP`);
-          const remainingAllocation = Number(allocation.remainingFraction) || 0;
-          const remainingText = remainingAllocation > 1e-9 ? ` (${this.formulaPercent(remainingAllocation)} remaining allocation)` : '';
-          const damageResult = `${this.formulaNumber(allocation.rawDamageTotal ?? line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage${remainingText}`;
+          const damageResult = `${this.formulaNumber(allocation.rawDamageTotal ?? line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage`;
           lines.push(this.formulaLineEntry('Damage', parts.join(' '), damageResult));
           if((Number(allocation.rawSpillLoss) || 0) > 1e-9){
             const modelCount = Math.max(0, Number(allocation.killedModels) || 0);
@@ -2623,24 +2658,21 @@ function weaponVsDefenseApp(){
               : '';
             lines.push(this.formulaLineEntry('Spill Loss', spillBody, `${this.formulaNumber(allocation.rawSpillLoss)} spill loss`));
           }
+          const lineParts = this.formulaLineDamageParts(line);
+          lines.push(this.formulaResultLine(
+            'Total',
+            `${this.formulaNumber(lineParts.total)} damage${this.formulaDamageComponentText(lineParts, { includeRemaining: true })}`
+          ));
         }else if(line.appliedDamage != null){
           lines.push(this.formulaLineEntry('Applied damage', '', this.formulaNumber(line.appliedDamage)));
         }
       });
       if(item?.totalDamage != null){
-        const hasOverkill = (item?.lines || []).some(line => line?.allocation?.overkill);
         const parts = this.formulaProfileDamageParts(item);
-        const total = parts.wounds + parts.spill + parts.overkill;
-        const componentText = [
-          parts.wounds > 1e-9 ? `${this.formulaNumber(parts.wounds)} wounds` : '',
-          parts.spill > 1e-9 ? `${this.formulaNumber(parts.spill)} spill loss` : '',
-          parts.overkill > 1e-9 ? `${this.formulaNumber(parts.overkill)} overkill` : '',
-        ].filter(Boolean).join(' + ');
-        const result = `${this.formulaNumber(total || item.totalDamage)} total damage${componentText ? ` (${componentText})` : ''}`;
-        lines.push({
-          text: `Profile total: ${result}`,
-          html: `<span class="formulaStepName">Profile total</span>: <span class="formulaStepResult">${this.escapeFormulaHtml(result)}</span>`,
-        });
+        const total = parts.wounds + parts.overkill;
+        const result = `${this.formulaNumber(total || item.totalDamage)} damage${this.formulaDamageComponentText(parts)}`;
+        if(lines.length) lines.push({ text: '', html: '&nbsp;', spacer: true });
+        lines.push(this.formulaResultLine('Profile Total', result));
       }
       return lines;
     },
