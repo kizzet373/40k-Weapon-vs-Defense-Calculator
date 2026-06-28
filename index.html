@@ -499,6 +499,7 @@
                       <div class="cornerSortLabel attackerCornerLabel">ATK</div>
                       <select class="cornerSortSelect attackerSortSelect" :value="matchup.sortAttackers" @change="setMatchupSideSortMode('attacker', $event.target.value)" title="Sort attackers by">
                         <option value="score">Score</option>
+                        <option value="overallScore">Overall Score</option>
                         <option value="overallDamage">Total</option>
                         <option value="alpha">Name</option>
                       </select>
@@ -506,6 +507,7 @@
                       <div class="cornerSortLabel defenderCornerLabel">DEF</div>
                       <select class="cornerSortSelect defenderSortSelect" :value="matchup.sortDefenders" @change="setMatchupSideSortMode('defender', $event.target.value)" title="Sort defenders by">
                         <option value="score">Score</option>
+                        <option value="overallScore">Overall Score</option>
                         <option value="overallDamage">Total</option>
                         <option value="alpha">Name</option>
                       </select>

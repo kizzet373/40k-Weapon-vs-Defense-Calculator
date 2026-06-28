@@ -1067,8 +1067,8 @@ assert.strictEqual(JSON.stringify(app.matchupDefenseProfileLines(mixedDefender))
   'T5 | 2+ 4++ | W3 | 1 models',
 ]), 'mixed defender headers show each unique defensive profile on its own line');
 
-assert.strictEqual(app.matchup.sortAttackers, 'score', 'attacker sort defaults to Score');
-assert.strictEqual(app.matchup.sortDefenders, 'score', 'defender sort defaults to Score');
+assert.strictEqual(app.matchup.sortAttackers, 'overallDamage', 'attacker sort defaults to Total');
+assert.strictEqual(app.matchup.sortDefenders, 'overallDamage', 'defender sort defaults to Total');
 assert.strictEqual(app.matchupSideSortLabel('attacker'), '↓', 'attacker sort button defaults to descending arrow');
 assert.strictEqual(app.matchupSideSortLabel('defender'), '↓', 'defender sort button defaults to descending arrow');
 app.cycleMatchupSideSort('attacker');
@@ -1077,6 +1077,9 @@ app.cycleMatchupSideSort('attacker');
 assert.strictEqual(app.matchupSideSortLabel('attacker'), '↓', 'attacker sort button toggles from asc back to desc');
 app.setMatchupSideSortMode('attacker', 'overallDamage');
 assert.strictEqual(app.matchup.sortAttackers, 'overallDamage', 'attacker dropdown can sort by Total');
+app.setMatchupSideSortMode('attacker', 'overallScore');
+assert.strictEqual(app.matchup.sortAttackers, 'overallScore', 'attacker dropdown can sort by Overall Score');
+assert.strictEqual(app.matchupSideSortModeLabel('overallScore'), 'Overall Score', 'Overall Score sort mode has a readable label');
 app.setMatchupSideSortMode('attacker', 'alpha');
 assert.strictEqual(app.matchup.sortAttackers, 'alpha', 'attacker dropdown can sort by Name');
 app.cycleMatchupSideSort('defender');
@@ -1085,6 +1088,8 @@ app.cycleMatchupSideSort('defender');
 assert.strictEqual(app.matchupSideSortLabel('defender'), '↓', 'defender sort button toggles from asc back to desc');
 app.setMatchupSideSortMode('defender', 'overallDamage');
 assert.strictEqual(app.matchup.sortDefenders, 'overallDamage', 'defender dropdown can sort by Total');
+app.setMatchupSideSortMode('defender', 'overallScore');
+assert.strictEqual(app.matchup.sortDefenders, 'overallScore', 'defender dropdown can sort by Overall Score');
 app.setMatchupSideSortMode('defender', 'alpha');
 assert.strictEqual(app.matchup.sortDefenders, 'alpha', 'defender dropdown can sort by Name');
 app.setMatchupSideSortMode('attacker', 'score');

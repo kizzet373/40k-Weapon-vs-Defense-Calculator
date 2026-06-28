@@ -14,10 +14,10 @@ function weaponVsDefenseApp(){
       attackerForceIdx: 0,
       defenderRosterIdx: 0,
       defenderForceIdx: 0,
-      sortAttackers: 'score',
+      sortAttackers: 'overallDamage',
       sortAttackersDirection: 'desc',
       sortAttackersColumnKey: '',
-      sortDefenders: 'score',
+      sortDefenders: 'overallDamage',
       sortDefendersDirection: 'desc',
       sortDefendersRowKey: '',
       combineShootingProfiles: true,
@@ -1439,13 +1439,14 @@ function weaponVsDefenseApp(){
         }
         return (1 / (avgIncoming * points)) * this.efficiencyScoreMultiplier('defender');
       };
+      const overallScore = unit => this.averageFinite([rowScore(unit), colScore(unit)]);
       const maxRow = attacker => Math.max(0, ...defenders.map(defender => metricFor(attacker, defender)).filter(Number.isFinite));
       const maxCol = defender => Math.max(0, ...attackers.map(attacker => metricFor(attacker, defender)).filter(Number.isFinite));
 
       const rowDirection = this.matchup.sortAttackersDirection || 'desc';
       const colDirection = this.matchup.sortDefendersDirection || 'desc';
-      const rowMode = this.matchup.sortAttackers || 'score';
-      const colMode = this.matchup.sortDefenders || 'score';
+      const rowMode = this.matchup.sortAttackers || 'overallDamage';
+      const colMode = this.matchup.sortDefenders || 'overallDamage';
       const rowAnchor = this.sortAnchorDefender();
       const colAnchor = this.sortAnchorAttacker();
 
@@ -1456,6 +1457,9 @@ function weaponVsDefenseApp(){
         }
         if(rowMode === 'score'){
           return this.compareSortValues(rowScore(a), rowScore(b), rowDirection) || alpha('asc')(a, b);
+        }
+        if(rowMode === 'overallScore'){
+          return this.compareSortValues(overallScore(a), overallScore(b), rowDirection) || alpha('asc')(a, b);
         }
         if(rowMode === 'dmg' || rowMode === 'pkill'){
           return this.compareSortValues(maxRow(a), maxRow(b), rowDirection) || alpha('asc')(a, b);
@@ -1471,6 +1475,9 @@ function weaponVsDefenseApp(){
         }
         if(colMode === 'score'){
           return this.compareSortValues(colScore(a), colScore(b), colDirection) || alpha('asc')(a, b);
+        }
+        if(colMode === 'overallScore'){
+          return this.compareSortValues(overallScore(a), overallScore(b), colDirection) || alpha('asc')(a, b);
         }
         if(colMode === 'overallDamage'){
           return this.compareSortValues(colTotal(a), colTotal(b), colDirection) || alpha('asc')(a, b);
@@ -1497,18 +1504,18 @@ function weaponVsDefenseApp(){
 
     setMatchupSort(side){
       if(side === 'attacker'){
-        this.matchup.sortAttackers = this.matchup.sortAttackers || 'score';
+        this.matchup.sortAttackers = this.matchup.sortAttackers || 'overallDamage';
         this.matchup.sortAttackersDirection = this.matchup.sortAttackersDirection || 'desc';
       }else if(side === 'defender'){
-        this.matchup.sortDefenders = this.matchup.sortDefenders || 'score';
+        this.matchup.sortDefenders = this.matchup.sortDefenders || 'overallDamage';
         this.matchup.sortDefendersDirection = this.matchup.sortDefendersDirection || 'desc';
       }
       this.refreshMatchupPresentation();
     },
 
     normalizeMatchupSideSortMode(mode){
-      if(mode === 'alpha' || mode === 'overallDamage' || mode === 'score') return mode;
-      return 'score';
+      if(mode === 'alpha' || mode === 'overallDamage' || mode === 'overallScore' || mode === 'score') return mode;
+      return 'overallDamage';
     },
 
     setMatchupSideSortMode(side, mode){
@@ -1546,6 +1553,7 @@ function weaponVsDefenseApp(){
     matchupSideSortModeLabel(mode){
       const normalized = this.normalizeMatchupSideSortMode(mode);
       if(normalized === 'overallDamage') return 'Total';
+      if(normalized === 'overallScore') return 'Overall Score';
       if(normalized === 'alpha') return 'Name';
       return 'Score';
     },
