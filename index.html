@@ -448,8 +448,8 @@
             <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">
               Shooting
             </button>
-            <button type="button" class="seg" :class="!matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')" title="Split shooting and melee into separate rows/columns">
-              &lt; Split &gt;
+            <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')" title="Combine shooting and melee into one row/column">
+              &lt; Combined &gt;
             </button>
             <button type="button" class="seg" :class="matchup.showMelee ? 'active' : ''" @click="toggleMatchupRecomputeOption('showMelee')">
               Melee
