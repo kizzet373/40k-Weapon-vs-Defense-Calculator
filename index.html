@@ -496,14 +496,14 @@
                   <th class="stickyCol">
                     <div class="matchupCornerHeader">
                       <div>Attacker ↓<br><span class="muted">Defender →</span></div>
-                      <div class="cornerSortLabel attackerCornerLabel">&darr;ATK</div>
+                      <div class="cornerSortLabel attackerCornerLabel">ATK</div>
                       <select class="cornerSortSelect attackerSortSelect" :value="matchup.sortAttackers" @change="setMatchupSideSortMode('attacker', $event.target.value)" title="Sort attackers by">
                         <option value="score">Score</option>
                         <option value="overallDamage">Total</option>
                         <option value="alpha">Name</option>
                       </select>
                       <button type="button" class="sortIconButton cornerSortButton attackerSortButton" @click="cycleMatchupSideSort('attacker')" :title="matchupSideSortTitle('attacker')" x-text="matchupSideSortLabel('attacker')"></button>
-                      <div class="cornerSortLabel defenderCornerLabel">DEF&rarr;</div>
+                      <div class="cornerSortLabel defenderCornerLabel">DEF</div>
                       <select class="cornerSortSelect defenderSortSelect" :value="matchup.sortDefenders" @change="setMatchupSideSortMode('defender', $event.target.value)" title="Sort defenders by">
                         <option value="score">Score</option>
                         <option value="overallDamage">Total</option>
