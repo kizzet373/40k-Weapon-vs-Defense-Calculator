@@ -584,15 +584,18 @@
       const capacity = Math.max(0, line.remainingPool || 0);
       const W = parseFloat(line.def?.W) || 0;
       const modelsLeft = aliveModelCount(capacity, W);
-      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction, !!line.overkill);
+      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction, !!line.overkill, !line.overkill && aliveStateLines(state).length <= 1);
       const applied = allocated.appliedDamage;
       if(applied <= 0) continue;
       if(!line.overkill){
         line.remainingPool = allocated.remainingPool;
         state._lastTargetLine = line;
       }
-      dmg += applied;
-      kills += allocated.kills;
+      const countedDamage = (Number(allocated.appliedDamage) || 0)
+        + (Number(allocated.rawSpillLoss) || 0)
+        + (Number(allocated.overkillDamage) || 0);
+      dmg += countedDamage;
+      kills += W > 0 ? countedDamage / W : allocated.kills;
       if(options.includeFormula){
         formulaLines.push({
           targetName: line.unit?.label || 'Defender',
@@ -636,7 +639,7 @@
     return Math.ceil(remaining / wounds);
   }
 
-  function allocateWeaponProfileDamage(weapon, modifierText, line, formula={}, scale=1, overkill=false){
+  function allocateWeaponProfileDamage(weapon, modifierText, line, formula={}, scale=1, overkill=false, finalTarget=false){
     const totals = formula?.totals || {};
     const probs = formula?.probabilities || {};
     const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
@@ -645,9 +648,14 @@
     const scaleFactor = Math.max(0, Math.min(1, Number(scale) || 0));
     const fnpMultiplier = 1 - (Number(probs.pFnp) || 0);
     const normalAttacksTotal = Math.max(0, (Number(totals.unsavedNormal) || 0) * scaleFactor);
-    const mortalDamageTotal = Math.max(0, (Number(totals.mortals) || 0) * (Number(formula.damage) || 0) * fnpMultiplier * scaleFactor);
     const cappedDamage = Math.max(0, Number(formula.cappedDamage) || 0);
-    const rawDamagePerHit = Math.max(0, Number(formula.damage) || 0) * fnpMultiplier;
+    const rawDamagePerHit = window.WeaponCalc.expectedCappedDamage(
+      weapon?.D,
+      null,
+      kw.damageAdd || 0,
+      kw.damageDivisor || 1
+    ) * fnpMultiplier;
+    const mortalDamageTotal = Math.max(0, (Number(totals.mortals) || 0) * rawDamagePerHit * scaleFactor);
     const rawNormalDamageTotal = Math.max(0, normalAttacksTotal * rawDamagePerHit);
     const rawDamageTotal = Math.max(0, rawNormalDamageTotal + mortalDamageTotal);
     const preAllocationDamage = Math.max(0, (normalAttacksTotal * cappedDamage * fnpMultiplier) + mortalDamageTotal);
@@ -704,8 +712,10 @@
     const mortalFractionRemaining = mortalDamageTotal > 1e-9 ? Math.max(0, mortalDamageTotal - mortalApplied) / mortalDamageTotal : 0;
     const rawNormalDamageRemaining = Math.max(0, normalAttacksRemaining * rawDamagePerHit);
     const rawMortalDamageRemaining = Math.max(0, mortalDamageTotal - mortalApplied);
-    const rawDamageRemaining = Math.max(0, rawNormalDamageRemaining + rawMortalDamageRemaining);
-    const rawSpillLoss = Math.max(0, rawDamageTotal - appliedDamage - rawDamageRemaining);
+    const rawRemainder = Math.max(0, rawNormalDamageRemaining + rawMortalDamageRemaining);
+    const rawDamageRemaining = finalTarget ? 0 : rawRemainder;
+    const rawOverkillDamage = finalTarget ? rawRemainder : 0;
+    const rawSpillLoss = Math.max(0, rawDamageTotal - appliedDamage - rawDamageRemaining - rawOverkillDamage);
     const remainingLocalFraction = rawDamageTotal > 1e-9
       ? Math.max(0, Math.min(1, rawDamageRemaining / rawDamageTotal))
       : Math.max(normalFractionRemaining, mortalFractionRemaining);
@@ -719,7 +729,7 @@
       rawDamageTotal,
       rawDamageRemaining,
       rawSpillLoss,
-      overkillDamage: 0,
+      overkillDamage: rawOverkillDamage,
       allocationLoss,
       killedModels,
       remainingPool,

@@ -849,10 +849,32 @@ app.formulaCell = overkillFormulaCell;
 const overkillLines = app.matchupFormulaLines();
 assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
-assert.ok(overkillLines.some(line => /Overkill - ~ T4/i.test(line)), 'formula labels damage after the final model as Overkill');
+assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
 assert.ok(overkillLines.some(line => /^Profile total: .* total damage \(.*overkill\)$/i.test(line)), 'overkill profile totals summarize overkill damage instead of models killed');
-assert.ok(overkillLines.some((line, index) => line === '' && /Overkill - ~ T4/i.test(overkillLines[index + 1] || '')), 'formula inserts a blank line before the next defensive profile block');
+assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');
 assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
+
+const remainingAllocationFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Remaining allocation attacker',
+    weapons: [{ name: 'High damage blade', range: 'Melee', A: '7', skill: '2', S: '14', AP: '4', D: '1d6+1', modifiers: 'Devastating Wounds, Reroll Hits 1, Sustained Hits 1', mode: 'melee' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  {
+    label: 'Split defender',
+    defense: { T: 5, Sv: 3, Inv: 0, W: 3, models: 4, totalWounds: 12 },
+    _children: [
+      { label: 'Bodyguard', defense: { T: 5, Sv: 3, Inv: 0, W: 3, models: 3, totalWounds: 9 } },
+      { label: 'Leader', defense: { T: 5, Sv: 3, Inv: 0, W: 3, models: 1, totalWounds: 3 }, _isCharacterModel: true },
+    ],
+  },
+  { includeFormula: true }
+);
+app.formulaCell = remainingAllocationFormulaCell;
+const remainingAllocationLines = app.matchupFormulaSections()[0].lines.map(line => line.text ?? line);
+assert.ok(remainingAllocationLines.some(line => /^Damage: .*remaining allocation\)$/i.test(line)), 'remaining allocation appears on the prior damage step when another defensive profile is available');
+assert.ok(!remainingAllocationLines.some(line => /^Remaining allocation:/i.test(line)), 'remaining allocation is not rendered as a separate line for split defensive profiles');
+assert.ok(remainingAllocationLines.some((line, index) => line === '' && /^~ T5/i.test(remainingAllocationLines[index + 1] || '')), 'formula keeps a blank line before the next real defensive profile block');
 
 app.formulaCell = {
   dmg: 3.75,
