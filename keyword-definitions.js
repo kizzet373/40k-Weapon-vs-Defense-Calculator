@@ -64,6 +64,7 @@
   }
 
   function installMatchupUiPatches(){
+    if(typeof document === 'undefined') return;
     if(document.getElementById('matchup-ui-patches')) return;
 
     const style = document.createElement('style');
