@@ -770,9 +770,10 @@ app.formulaCell = noSpillFormulaCell;
 const noSpillSection = app.matchupFormulaSections()[0];
 const noSpillLines = noSpillSection.lines.map(line => line.text || line);
 assert.ok(/Power Fist \(x3\).*A:3 Skill:auto S:8 AP:2 D:2/.test(noSpillSection.title), 'formula title includes profile count and effective statline');
-assert.ok(noSpillLines.some(line => /Wounds: .* x .* wound rate = .* wounds/i.test(line)), 'wound step shows wound rate');
-assert.ok(noSpillLines.some(line => /Damage: .* allocation spill loss = .* damage/i.test(line)), 'damage step includes no-spill allocation loss');
-assert.ok(noSpillLines.some(line => /^Profile total: .* damage$/i.test(line)), 'profile total omits model kill counts');
+assert.ok(noSpillLines.some(line => /Wound: .* x .* wound rate = .* wounds/i.test(line)), 'wound step shows wound rate');
+assert.ok(noSpillLines.some(line => /Damage: .* x 2 damage = .* damage/i.test(line)), 'damage step shows generated damage before allocation loss');
+assert.ok(noSpillLines.some(line => /^Spill Loss: .* = .* spill loss$/i.test(line)), 'spill loss is split into its own calculation step');
+assert.ok(noSpillLines.some(line => /^Profile total: .* total damage \(.* wounds \+ .* spill loss\)$/i.test(line)), 'profile total summarizes wounds and spill loss');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
@@ -789,7 +790,7 @@ app.formulaCell = diceFormulaCell;
 const diceSection = app.matchupFormulaSections()[0];
 const diceLines = diceSection.lines.map(line => line.text || line);
 assert.ok(/Dice cannon \(x1\).*D:1d6/.test(diceSection.title), 'formula title keeps dice damage as dice text');
-assert.ok(diceLines.some(line => /Damage: .* x 1d6 capped damage/i.test(line)), 'damage step keeps dice damage in the equation');
+assert.ok(diceLines.some(line => /Damage: .* x \(1d6\) damage/i.test(line)), 'damage step keeps dice damage in the equation');
 assert.ok(diceLines.some(line => /Hits: .*66\.7% base \+ 11\.1% Reroll Hits of 1 \+ 38\.9% sustained hits \(1d3\) = 116\.7% hit/i), 'hit formula shows base, reroll, sustained, and final hit-rate percentages as one equation');
 
 const groupedDefenseFormulaCell = app.computeMatchupCell(
@@ -849,7 +850,8 @@ const overkillLines = app.matchupFormulaLines();
 assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(overkillLines.some(line => /Overkill - ~ T4/i.test(line)), 'formula labels damage after the final model as Overkill');
-assert.ok(overkillLines.some(line => /^Profile total: .* damage \(Overkill\)$/i.test(line)), 'overkill profile totals are labeled as Overkill instead of models killed');
+assert.ok(overkillLines.some(line => /^Profile total: .* total damage \(.*overkill\)$/i.test(line)), 'overkill profile totals summarize overkill damage instead of models killed');
+assert.ok(overkillLines.some((line, index) => line === '' && /Overkill - ~ T4/i.test(overkillLines[index + 1] || '')), 'formula inserts a blank line before the next defensive profile block');
 assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
 
 app.formulaCell = {
@@ -1013,7 +1015,7 @@ const veteransRerollOnesDamage = app.computeMatchupCell({ ...veterans, weapons: 
 assert.ok(veteransRerollOnesDamage > veteransBaseDamage, 'Veterans of the Long War wound rerolls increase melee damage');
 const veteransFormulaCell = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget, { includeFormula: true });
 app.formulaCell = veteransFormulaCell;
-assert.ok(app.matchupFormulaLines().some(line => /^Wounds: .*Reroll Wounds of 1/i.test(line)), 'formula modal names Veterans wound rerolls of 1 in the wound calculation');
+assert.ok(app.matchupFormulaLines().some(line => /^Wound: .*Reroll Wounds of 1/i.test(line)), 'formula modal names Veterans wound rerolls of 1 in the wound calculation');
 app.matchup.conditionsMet = true;
 app.clearMatchupComputationCache();
 assert.ok(/Reroll Wounds\b/i.test(app.effectiveWeaponModifiers(veteransSword, veterans, veteransTarget)), 'Veterans of the Long War applies full melee wound rerolls when Conditions Met is enabled');
@@ -1021,7 +1023,7 @@ const veteransFullRerollDamage = app.computeMatchupCell({ ...veterans, weapons: 
 assert.ok(veteransFullRerollDamage > veteransRerollOnesDamage, 'Veterans of the Long War full conditional wound rerolls increase melee damage beyond rerolling ones');
 const veteransConditionalFormulaCell = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget, { includeFormula: true });
 app.formulaCell = veteransConditionalFormulaCell;
-assert.ok(app.matchupFormulaLines().some(line => /^Wounds: .*Reroll Wounds/i.test(line)), 'formula modal names full Veterans wound rerolls in the wound calculation when Conditions Met is enabled');
+assert.ok(app.matchupFormulaLines().some(line => /^Wound: .*Reroll Wounds/i.test(line)), 'formula modal names full Veterans wound rerolls in the wound calculation when Conditions Met is enabled');
 
 const braggart = { label: 'Battle Leader', abilities: ['Braggart’s Steel'], weapons: [], defense: { T: 4, Sv: 3, W: 4, models: 1 }, _unitKey: 'braggart' };
 const braggartBlade = { name: 'Master-crafted power weapon', range: 'Melee', A: '4', skill: '3', S: '5', AP: '2', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'braggart-blade' };
