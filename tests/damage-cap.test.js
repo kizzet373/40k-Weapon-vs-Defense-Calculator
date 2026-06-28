@@ -243,7 +243,7 @@ const sharedStateCell = context.window.MatchupEngine.computeCell(
     combineShootingProfiles: true,
   }
 );
-assert.ok(sharedStateCell.dmg < 6 && sharedStateCell.dmg > 4, 'unit attacks share defender wound state instead of every model hitting a fresh bodyguard pool');
+assert.ok(sharedStateCell.dmg < 6 && sharedStateCell.dmg > 3, 'unit attacks share defender wound state instead of every model hitting a fresh bodyguard pool');
 
 const precisionAfterCharacterCell = context.window.MatchupEngine.computeCell(
   {
@@ -750,6 +750,25 @@ assert.ok(app.matchupFormulaLines().some(line => /Total average damage/i.test(li
 assert.strictEqual(app.matchupFormulaSections().length, app.formulaCell.formulaItems.length, 'formula modal groups each weapon profile into its own section');
 assert.ok(!app.matchupFormulaLines().some(line => /NaN|undefined/i.test(line)), 'formula modal lines do not expose invalid numeric text');
 app.closeMatchupFormula();
+
+const noSpillFormulaCell = app.computeMatchupCell(
+  {
+    label: 'No spill attacker',
+    weapons: [{ name: 'Power Fist', range: 'Melee', A: '3', skill: 'auto', S: '8', AP: '2', D: '2', modifiers: '', mode: 'melee', _profileCount: 3 }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'No spill defender', defense: { T: 4, Sv: 7, W: 3, models: 2, totalWounds: 6 } },
+  { includeFormula: true }
+);
+app.formulaCell = noSpillFormulaCell;
+const noSpillSection = app.matchupFormulaSections()[0];
+const noSpillLines = noSpillSection.lines.map(line => line.text || line);
+assert.ok(/Power Fist \(x3\).*A:3 Skill:auto S:8 AP:2 D:2/.test(noSpillSection.title), 'formula title includes profile count and effective statline');
+assert.ok(noSpillLines.some(line => /Wounds: .* x .* wound rate = .* wounds/i.test(line)), 'wound step shows wound rate');
+assert.ok(noSpillLines.some(line => /Damage: .* allocation spill loss = .* damage/i.test(line)), 'damage step includes no-spill allocation loss');
+assert.ok(noSpillLines.some(line => /^Profile total: .* damage \(\d+ models killed\)$/i.test(line)), 'profile total includes model kills');
+assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
+assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
 app.formulaCell = {
   dmg: 3.75,

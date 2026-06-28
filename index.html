@@ -611,7 +611,7 @@
               <div class="formulaSectionModifiers" x-text="section.modifiers"></div>
             </template>
             <template x-for="(line, li) in section.lines" :key="`formula-section-${si}-line-${li}`">
-              <div class="formulaLine" x-text="line"></div>
+              <div class="formulaLine" x-html="formulaLineHtml(line)"></div>
             </template>
           </section>
         </template>

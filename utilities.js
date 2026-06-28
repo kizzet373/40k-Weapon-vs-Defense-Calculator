@@ -2400,8 +2400,39 @@ function weaponVsDefenseApp(){
       }, 1);
     },
 
+    escapeFormulaHtml(value){
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[ch]));
+    },
+
+    formulaLineEntry(label, body='', result=''){
+      const text = `${label}${body ? `: ${body}` : ''}${result ? ` = ${result}` : ''}`;
+      const html = [
+        `<span class="formulaStepName">${this.escapeFormulaHtml(label)}</span>`,
+        body ? `: ${this.escapeFormulaHtml(body)}` : '',
+        result ? ` = <span class="formulaStepResult">${this.escapeFormulaHtml(result)}</span>` : '',
+      ].join('');
+      return { text, html };
+    },
+
+    formulaLineHtml(line){
+      if(line && typeof line === 'object' && line.html) return line.html;
+      return this.escapeFormulaHtml(line?.text ?? line ?? '');
+    },
+
     formulaItemTitle(item, index=0){
-      return `${index + 1}. ${item?.weaponName || `Profile ${index + 1}`}`;
+      const firstFormula = (item?.lines || []).find(line => line?.formula)?.formula || {};
+      const skillText = Number(firstFormula.skill) === 0 ? 'auto' : this.formulaNumber(firstFormula.skill);
+      const statText = firstFormula.attacks != null
+        ? ` - A:${this.formulaNumber(firstFormula.attacks)} Skill:${skillText} S:${this.formulaNumber(firstFormula.strength)} AP:${this.formulaNumber(firstFormula.ap)} D:${this.formulaNumber(firstFormula.damage)}`
+        : '';
+      const count = Math.max(1, parseInt(item?.profileCount ?? 1, 10) || 1);
+      return `${index + 1}. ${item?.weaponName || `Profile ${index + 1}`} (x${count})${statText}`;
     },
 
     formulaItemDamage(item){
@@ -2427,35 +2458,74 @@ function weaponVsDefenseApp(){
         const f = line?.formula || {};
         const probs = f.probabilities || {};
         const totals = f.totals || {};
+        const scale = Number(line.damageFraction) > 0 ? Number(line.damageFraction) : 1;
         const prefix = (item.lines || []).length > 1 ? `Target ${lineIndex + 1}: ${line.targetName || 'Defender'} - ` : '';
-        if(f.defense) lines.push(`${prefix}${this.formulaDefenseText(f.defense)}`);
+        if(f.defense) lines.push({
+          text: `${prefix}~ ${this.formulaDefenseText(f.defense)} ~`,
+          html: `${this.escapeFormulaHtml(prefix)}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense))} ~`,
+        });
         if(line.damageFraction != null && Math.abs(line.damageFraction - 1) > 1e-9){
-          lines.push(`${prefix}Remaining allocation: ${this.formulaPercent(line.damageFraction)}`);
+          lines.push(this.formulaLineEntry(`${prefix}Remaining allocation`, this.formulaPercent(line.damageFraction)));
         }
         if(f.attacks != null){
           const hitReroll = this.formulaRerollLabel('hit', probs.hitRerollMode, probs.hitRerollStrategy);
-          lines.push(`${prefix}Hits${hitReroll ? ` (${hitReroll})` : ''}: ${this.formulaNumber(f.attacks)} attacks x (${this.formulaPercent(probs.pHit)} hit + ${this.formulaNumber(f?.totals?.expectedHits / Math.max(f.attacks, 1) - (probs.pHit || 0), 3)} sustained extra) = ${this.formulaNumber(totals.expectedHits)} expected hits`);
+          const attacks = (Number(f.attacks) || 0) * scale;
+          const hits = (Number(totals.expectedHits) || 0) * scale;
+          const sustainedExtra = (Number(f?.totals?.expectedHits) || 0) / Math.max(Number(f.attacks) || 1, 1) - (Number(probs.pHit) || 0);
+          const hitParts = [`${this.formulaPercent(probs.pHit)} hit`];
+          if(sustainedExtra > 1e-9) hitParts.push(`${this.formulaNumber(sustainedExtra, 3)} sustained extra`);
+          lines.push(this.formulaLineEntry(
+            `${prefix}Hits${hitReroll ? ` (${hitReroll})` : ''}`,
+            `${this.formulaNumber(attacks)} attacks x (${hitParts.join(' + ')})`,
+            `${this.formulaNumber(hits)} hits`
+          ));
         }
         if(totals.expectedWounds != null){
           const woundReroll = this.formulaRerollLabel('wound', probs.woundRerollMode, probs.woundRerollStrategy);
-          lines.push(`${prefix}Wounds${woundReroll ? ` (${woundReroll})` : ''}: lethal ${this.formulaNumber(totals.lethalWounds)} + wound rolls ${this.formulaNumber(totals.expectedWoundsFromRolls)} = ${this.formulaNumber(totals.expectedWounds)} expected wounds`);
+          const woundRate = Number(probs.pWound) || 0;
+          const lethal = (Number(totals.lethalWounds) || 0) * scale;
+          const woundRollHits = woundRate > 1e-9 ? ((Number(totals.expectedWoundsFromRolls) || 0) / woundRate) * scale : 0;
+          const wounds = (Number(totals.expectedWounds) || 0) * scale;
+          const woundBody = lethal > 1e-9
+            ? `${this.formulaNumber(lethal)} lethal + ${this.formulaNumber(woundRollHits)} hits x ${this.formulaPercent(woundRate)} wound rate`
+            : `${this.formulaNumber(woundRollHits)} hits x ${this.formulaPercent(woundRate)} wound rate`;
+          lines.push(this.formulaLineEntry(
+            `${prefix}Wounds${woundReroll ? ` (${woundReroll})` : ''}`,
+            woundBody,
+            `${this.formulaNumber(wounds)} wounds`
+          ));
         }
         if(totals.unsavedNormal != null){
-          lines.push(`${prefix}Saves: ${this.formulaNumber(totals.normalWounds)} normal wounds x ${this.formulaPercent(1 - (probs.pSave || 0))} failed saves = ${this.formulaNumber(totals.unsavedNormal)} unsaved wounds`);
-        }
-        if(totals.criticalWounds > 0){
-          lines.push(`${prefix}Critical wound damage: ${this.formulaNumber(totals.criticalWounds)} mortal/devastating wounds x ${this.formulaNumber(f.damage)} damage`);
+          const normalWounds = (Number(totals.normalWounds) || 0) * scale;
+          const unsaved = (Number(totals.unsavedNormal) || 0) * scale;
+          lines.push(this.formulaLineEntry(
+            `${prefix}Saves`,
+            `${this.formulaNumber(normalWounds)} normal wounds x ${this.formulaPercent(1 - (probs.pSave || 0))} failed saves`,
+            `${this.formulaNumber(unsaved)} unsaved`
+          ));
         }
         if(f.cappedDamage != null){
-          lines.push(`${prefix}Damage: (${this.formulaNumber(totals.unsavedNormal)} x ${this.formulaNumber(f.cappedDamage)} capped damage + ${this.formulaNumber(totals.mortals)} x ${this.formulaNumber(f.damage)} spill damage) x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP = ${this.formulaNumber(totals.totalDamage)} damage`);
+          const allocation = line.allocation || {};
+          const unsaved = (Number(totals.unsavedNormal) || 0) * scale;
+          const mortals = (Number(totals.mortals) || 0) * scale;
+          const parts = [`${this.formulaNumber(unsaved)} x ${this.formulaNumber(f.cappedDamage)} capped damage`];
+          if(mortals > 1e-9) parts.push(`${this.formulaNumber(mortals)} x ${this.formulaNumber(f.damage)} spill damage`);
+          if((Number(probs.pFnp) || 0) > 1e-9) parts.push(`x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP`);
+          if((Number(allocation.allocationLoss) || 0) > 1e-9) parts.push(`- ${this.formulaNumber(allocation.allocationLoss)} allocation spill loss`);
+          const damageResult = `${this.formulaNumber(line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage`;
+          lines.push(this.formulaLineEntry(`${prefix}Damage`, parts.join(' '), damageResult));
         }else if(line.appliedDamage != null){
-          lines.push(`${prefix}Applied damage: ${this.formulaNumber(line.appliedDamage)}`);
-        }
-        if(line.woundPool != null && line.availableDamage != null){
-          lines.push(`${prefix}Allocated: min(${this.formulaNumber(line.availableDamage)}, ${this.formulaNumber(line.woundPool)} wound pool) = ${this.formulaNumber(line.appliedDamage)}`);
+          lines.push(this.formulaLineEntry(`${prefix}Applied damage`, '', this.formulaNumber(line.appliedDamage)));
         }
       });
-      if(item?.totalDamage != null) lines.push(`Profile total: ${this.formulaNumber(item.totalDamage)} damage`);
+      if(item?.totalDamage != null){
+        const killed = (item?.lines || []).reduce((sum, line) => sum + (Number(line?.allocation?.killedModels) || 0), 0);
+        const result = `${this.formulaNumber(item.totalDamage)} damage (${this.formulaNumber(killed, 0)} models killed)`;
+        lines.push({
+          text: `Profile total: ${result}`,
+          html: `<span class="formulaStepName">Profile total</span>: <span class="formulaStepResult">${this.escapeFormulaHtml(result)}</span>`,
+        });
+      }
       return lines;
     },
 
@@ -2495,7 +2565,7 @@ function weaponVsDefenseApp(){
       const sectionLines = this.matchupFormulaSections().flatMap(section => [
         section.title,
         ...(section.modifiers ? [section.modifiers] : []),
-        ...section.lines,
+        ...section.lines.map(line => line?.text ?? line),
       ]);
       return [...this.formulaSummaryLines(), ...sectionLines, `Total result: ${this.formulaTotalEquation()}`];
     },

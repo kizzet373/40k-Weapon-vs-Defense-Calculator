@@ -509,38 +509,113 @@
         weapon,
         defensePayloadForLine(line),
         choice.text,
-        { includeFormula: !!options.includeFormula }
+        { includeFormula: true }
       );
-      const lineDamage = (result.dmg || 0) * remainingFraction;
-      if(lineDamage <= 0) continue;
       const capacity = Math.max(0, line.remainingPool || 0);
-      const applied = Math.min(lineDamage, capacity);
-      const W = parseFloat(line.def?.W) || 0;
-      line.remainingPool = Math.max(0, capacity - applied);
+      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction);
+      const applied = allocated.appliedDamage;
+      if(applied <= 0) continue;
+      line.remainingPool = allocated.remainingPool;
       dmg += applied;
-      kills += W > 0 ? (applied / W) : 0;
+      kills += allocated.kills;
       if(options.includeFormula){
         formulaLines.push({
           targetName: line.unit?.label || 'Defender',
           damageFraction: remainingFraction,
-          availableDamage: lineDamage,
+          availableDamage: allocated.preAllocationDamage,
           woundPool: capacity,
           appliedDamage: applied,
+          allocation: allocated,
           formula: result.formula,
         });
       }
-      remainingFraction *= Math.max(0, lineDamage - capacity) / lineDamage;
+      remainingFraction = allocated.remainingFraction;
     }
     return {
       dmg,
       kills,
       formula: options.includeFormula ? {
         weaponName: weapon?.name || 'Weapon',
+        profileCount: weaponProfileCount(weapon),
         modifierText: choice.text,
         totalDamage: dmg,
         totalKills: kills,
         lines: formulaLines,
       } : null,
+    };
+  }
+
+  function currentModelRemaining(remainingPool, modelWounds){
+    const remaining = Math.max(0, Number(remainingPool) || 0);
+    const wounds = Number(modelWounds) || 0;
+    if(wounds <= 0) return remaining;
+    const mod = remaining % wounds;
+    return mod > 1e-9 ? mod : Math.min(wounds, remaining);
+  }
+
+  function aliveModelCount(remainingPool, modelWounds){
+    const remaining = Math.max(0, Number(remainingPool) || 0);
+    const wounds = Number(modelWounds) || 0;
+    if(wounds <= 0) return remaining > 1e-9 ? 1 : 0;
+    return Math.ceil(remaining / wounds);
+  }
+
+  function allocateWeaponProfileDamage(weapon, modifierText, line, formula={}, scale=1){
+    const totals = formula?.totals || {};
+    const probs = formula?.probabilities || {};
+    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
+    const modelWounds = parseFloat(line?.def?.W) || parseFloat(formula?.defense?.W) || 0;
+    const startPool = Math.max(0, Number(line?.remainingPool) || 0);
+    const scaleFactor = Math.max(0, Math.min(1, Number(scale) || 0));
+    const fnpMultiplier = 1 - (Number(probs.pFnp) || 0);
+    const normalAttacksTotal = Math.max(0, (Number(totals.unsavedNormal) || 0) * scaleFactor);
+    const mortalDamageTotal = Math.max(0, (Number(totals.mortals) || 0) * (Number(formula.damage) || 0) * fnpMultiplier * scaleFactor);
+    const cappedDamage = Math.max(0, Number(formula.cappedDamage) || 0);
+    const preAllocationDamage = Math.max(0, (normalAttacksTotal * cappedDamage * fnpMultiplier) + mortalDamageTotal);
+
+    let remainingPool = startPool;
+    let normalAttacksRemaining = normalAttacksTotal;
+    let normalApplied = 0;
+
+    while(normalAttacksRemaining > 1e-9 && remainingPool > 1e-9){
+      const attackPortion = Math.min(1, normalAttacksRemaining);
+      const modelRemaining = currentModelRemaining(remainingPool, modelWounds);
+      const attackDamage = window.WeaponCalc.expectedCappedDamage(
+        weapon?.D,
+        modelWounds > 0 ? modelWounds : modelRemaining,
+        kw.damageAdd || 0,
+        kw.damageDivisor || 1
+      ) * fnpMultiplier;
+      const applied = Math.min(modelRemaining, attackDamage * attackPortion, remainingPool);
+      if(applied <= 1e-9) break;
+      normalApplied += applied;
+      remainingPool = Math.max(0, remainingPool - applied);
+      normalAttacksRemaining -= attackPortion;
+    }
+
+    const mortalApplied = Math.min(mortalDamageTotal, remainingPool);
+    remainingPool = Math.max(0, remainingPool - mortalApplied);
+    const appliedDamage = normalApplied + mortalApplied;
+    const allocationLoss = Math.max(0, preAllocationDamage - appliedDamage);
+    const killedModels = Math.max(0, aliveModelCount(startPool, modelWounds) - aliveModelCount(remainingPool, modelWounds));
+    const normalFractionRemaining = normalAttacksTotal > 1e-9 ? normalAttacksRemaining / normalAttacksTotal : 0;
+    const mortalFractionRemaining = mortalDamageTotal > 1e-9 ? Math.max(0, mortalDamageTotal - mortalApplied) / mortalDamageTotal : 0;
+    const remainingLocalFraction = Math.max(normalFractionRemaining, mortalFractionRemaining);
+
+    return {
+      appliedDamage,
+      kills: modelWounds > 0 ? appliedDamage / modelWounds : 0,
+      normalApplied,
+      mortalApplied,
+      preAllocationDamage,
+      allocationLoss,
+      killedModels,
+      remainingPool,
+      normalAttacks: normalAttacksTotal,
+      normalAttacksRemaining,
+      mortalDamage: mortalDamageTotal,
+      remainingFraction: scaleFactor * remainingLocalFraction,
+      fnpMultiplier,
     };
   }
 
