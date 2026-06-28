@@ -790,8 +790,7 @@ const diceSection = app.matchupFormulaSections()[0];
 const diceLines = diceSection.lines.map(line => line.text || line);
 assert.ok(/Dice cannon \(x1\).*D:1d6/.test(diceSection.title), 'formula title keeps dice damage as dice text');
 assert.ok(diceLines.some(line => /Damage: .* x 1d6 capped damage/i.test(line)), 'damage step keeps dice damage in the equation');
-assert.ok(diceLines.some(line => /Hits: .*Reroll Hits of 1.*\d+\.\d% reroll 1s x \d+\.\d% hit/i), 'hit reroll formula includes the reroll percentage math');
-assert.ok(diceLines.some(line => /Hits: .*\d+\.\d% crit x 1d3 sustained extra/i), 'sustained hits formula includes crit percent and dice extra hits');
+assert.ok(diceLines.some(line => /Hits: .*66\.7% base \+ 11\.1% Reroll Hits of 1 \+ 38\.9% sustained hits \(1d3\) = 116\.7% hit/i), 'hit formula shows base, reroll, sustained, and final hit-rate percentages as one equation');
 
 const groupedDefenseFormulaCell = app.computeMatchupCell(
   {

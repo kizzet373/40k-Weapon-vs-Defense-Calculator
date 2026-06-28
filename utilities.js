@@ -2502,6 +2502,23 @@ function weaponVsDefenseApp(){
       return `${this.formulaPercent(total)} ${noun} (${this.formulaPercent(baseRate)} base + ${reroll})`;
     },
 
+    formulaHitRateEquation(probs={}){
+      const baseHit = Math.max(0, Number(probs.pBaseHit ?? probs.pHit) || 0);
+      const hitRate = Math.max(0, Number(probs.pHit) || 0);
+      const sustained = Math.max(0, Number(probs.sustained) || 0);
+      const sustainedRate = sustained * Math.max(0, Number(probs.pCrit) || 0);
+      const finalRate = hitRate + sustainedRate;
+      const parts = [`${this.formulaPercent(baseHit)} base`];
+      const rerollAdd = Math.max(0, hitRate - baseHit);
+      const rerollLabel = this.formulaRerollLabel('hit', probs.hitRerollMode, probs.hitRerollStrategy);
+      if(rerollAdd > 1e-9 && rerollLabel) parts.push(`${this.formulaPercent(rerollAdd)} ${rerollLabel}`);
+      if(sustainedRate > 1e-9){
+        const sustainedText = probs.sustainedText && String(probs.sustainedText) !== '1' ? ` (${probs.sustainedText})` : '';
+        parts.push(`${this.formulaPercent(sustainedRate)} sustained hits${sustainedText}`);
+      }
+      return `${parts.join(' + ')} = ${this.formulaPercent(finalRate)} hit`;
+    },
+
     formulaItemLines(item, index=0){
       const lines = [];
       if((item?.phase === 'preDamage' || item?.phase === 'postDamage') && item?.effect){
@@ -2528,15 +2545,9 @@ function weaponVsDefenseApp(){
         if(f.attacks != null){
           const attacks = (Number(f.attacks) || 0) * scale;
           const hits = (Number(totals.expectedHits) || 0) * scale;
-          const sustained = Number(probs.sustained) || 0;
-          const hitParts = [this.formulaRollRateText('hit', probs.pHit, probs.pBaseHit ?? probs.pHit, probs.pBaseCrit ?? probs.pCrit, probs.hitRerollMode, probs.hitRerollStrategy)];
-          if(sustained > 1e-9){
-            const sustainedText = probs.sustainedText || this.formulaNumber(sustained, 3);
-            hitParts.push(`${this.formulaPercent(probs.pCrit)} crit x ${sustainedText} sustained extra`);
-          }
           lines.push(this.formulaLineEntry(
             'Hits',
-            `${this.formulaNumber(attacks)} attacks x (${hitParts.join(' + ')})`,
+            `${this.formulaNumber(attacks)} attacks x (${this.formulaHitRateEquation(probs)})`,
             `${this.formulaNumber(hits)} hits`
           ));
         }
