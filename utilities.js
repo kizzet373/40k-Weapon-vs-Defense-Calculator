@@ -2468,14 +2468,13 @@ function weaponVsDefenseApp(){
         const probs = f.probabilities || {};
         const totals = f.totals || {};
         const scale = Number(line.damageFraction) > 0 ? Number(line.damageFraction) : 1;
-        const prefix = (item.lines || []).length > 1 ? `Target ${lineIndex + 1}: ${line.targetName || 'Defender'} - ` : '';
         const overkillText = line?.allocation?.overkill ? 'Overkill - ' : '';
         if(f.defense) lines.push({
-          text: `${prefix}${overkillText}~ ${this.formulaDefenseText(f.defense, line.modelsLeft)} ~`,
-          html: `${this.escapeFormulaHtml(prefix)}${overkillText ? '<span class="formulaStepResult">Overkill</span> - ' : ''}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense, line.modelsLeft))} ~`,
+          text: `${overkillText}~ ${this.formulaDefenseText(f.defense, line.modelsLeft)} ~`,
+          html: `${overkillText ? '<span class="formulaStepResult">Overkill</span> - ' : ''}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense, line.modelsLeft))} ~`,
         });
         if(line.damageFraction != null && Math.abs(line.damageFraction - 1) > 1e-9){
-          lines.push(this.formulaLineEntry(`${prefix}Remaining allocation`, this.formulaPercent(line.damageFraction)));
+          lines.push(this.formulaLineEntry('Remaining allocation', this.formulaPercent(line.damageFraction)));
         }
         if(f.attacks != null){
           const hitReroll = this.formulaRerollLabel('hit', probs.hitRerollMode, probs.hitRerollStrategy);
@@ -2483,9 +2482,10 @@ function weaponVsDefenseApp(){
           const hits = (Number(totals.expectedHits) || 0) * scale;
           const sustainedExtra = (Number(f?.totals?.expectedHits) || 0) / Math.max(Number(f.attacks) || 1, 1) - (Number(probs.pHit) || 0);
           const hitParts = [`${this.formulaPercent(probs.pHit)} hit`];
+          if(hitReroll) hitParts.push(hitReroll);
           if(sustainedExtra > 1e-9) hitParts.push(`${this.formulaNumber(sustainedExtra, 3)} sustained extra`);
           lines.push(this.formulaLineEntry(
-            `${prefix}Hits${hitReroll ? ` (${hitReroll})` : ''}`,
+            'Hits',
             `${this.formulaNumber(attacks)} attacks x (${hitParts.join(' + ')})`,
             `${this.formulaNumber(hits)} hits`
           ));
@@ -2496,11 +2496,12 @@ function weaponVsDefenseApp(){
           const lethal = (Number(totals.lethalWounds) || 0) * scale;
           const woundRollHits = woundRate > 1e-9 ? ((Number(totals.expectedWoundsFromRolls) || 0) / woundRate) * scale : 0;
           const wounds = (Number(totals.expectedWounds) || 0) * scale;
+          const woundRateText = `${this.formulaPercent(woundRate)} wound rate${woundReroll ? ` + ${woundReroll}` : ''}`;
           const woundBody = lethal > 1e-9
-            ? `${this.formulaNumber(lethal)} lethal + ${this.formulaNumber(woundRollHits)} hits x ${this.formulaPercent(woundRate)} wound rate`
-            : `${this.formulaNumber(woundRollHits)} hits x ${this.formulaPercent(woundRate)} wound rate`;
+            ? `${this.formulaNumber(lethal)} lethal + ${this.formulaNumber(woundRollHits)} hits x ${woundRateText}`
+            : `${this.formulaNumber(woundRollHits)} hits x ${woundRateText}`;
           lines.push(this.formulaLineEntry(
-            `${prefix}Wounds${woundReroll ? ` (${woundReroll})` : ''}`,
+            'Wounds',
             woundBody,
             `${this.formulaNumber(wounds)} wounds`
           ));
@@ -2509,7 +2510,7 @@ function weaponVsDefenseApp(){
           const normalWounds = (Number(totals.normalWounds) || 0) * scale;
           const unsaved = (Number(totals.unsavedNormal) || 0) * scale;
           lines.push(this.formulaLineEntry(
-            `${prefix}Saves`,
+            'Saves',
             `${this.formulaNumber(normalWounds)} normal wounds x ${this.formulaPercent(1 - (probs.pSave || 0))} failed saves`,
             `${this.formulaNumber(unsaved)} unsaved`
           ));
@@ -2523,9 +2524,9 @@ function weaponVsDefenseApp(){
           if((Number(probs.pFnp) || 0) > 1e-9) parts.push(`x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP`);
           if((Number(allocation.allocationLoss) || 0) > 1e-9) parts.push(`- ${this.formulaNumber(allocation.allocationLoss)} allocation spill loss`);
           const damageResult = `${this.formulaNumber(line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage`;
-          lines.push(this.formulaLineEntry(`${prefix}Damage`, parts.join(' '), damageResult));
+          lines.push(this.formulaLineEntry('Damage', parts.join(' '), damageResult));
         }else if(line.appliedDamage != null){
-          lines.push(this.formulaLineEntry(`${prefix}Applied damage`, '', this.formulaNumber(line.appliedDamage)));
+          lines.push(this.formulaLineEntry('Applied damage', '', this.formulaNumber(line.appliedDamage)));
         }
       });
       if(item?.totalDamage != null){

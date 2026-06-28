@@ -828,6 +828,7 @@ assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon out
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(overkillLines.some(line => /Overkill - ~ T4/i.test(line)), 'formula labels damage after the final model as Overkill');
 assert.ok(overkillLines.some(line => /^Profile total: .* damage \(Overkill\)$/i.test(line)), 'overkill profile totals are labeled as Overkill instead of models killed');
+assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
 
 app.formulaCell = {
   dmg: 3.75,
@@ -982,7 +983,7 @@ const veteransRerollOnesDamage = app.computeMatchupCell({ ...veterans, weapons: 
 assert.ok(veteransRerollOnesDamage > veteransBaseDamage, 'Veterans of the Long War wound rerolls increase melee damage');
 const veteransFormulaCell = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget, { includeFormula: true });
 app.formulaCell = veteransFormulaCell;
-assert.ok(app.matchupFormulaLines().some(line => /Wounds \(Reroll Wounds of 1\)/i.test(line)), 'formula modal explicitly names Veterans wound rerolls of 1');
+assert.ok(app.matchupFormulaLines().some(line => /^Wounds: .*Reroll Wounds of 1/i.test(line)), 'formula modal names Veterans wound rerolls of 1 in the wound calculation');
 app.matchup.conditionsMet = true;
 app.clearMatchupComputationCache();
 assert.ok(/Reroll Wounds\b/i.test(app.effectiveWeaponModifiers(veteransSword, veterans, veteransTarget)), 'Veterans of the Long War applies full melee wound rerolls when Conditions Met is enabled');
@@ -990,7 +991,7 @@ const veteransFullRerollDamage = app.computeMatchupCell({ ...veterans, weapons: 
 assert.ok(veteransFullRerollDamage > veteransRerollOnesDamage, 'Veterans of the Long War full conditional wound rerolls increase melee damage beyond rerolling ones');
 const veteransConditionalFormulaCell = app.computeMatchupCell({ ...veterans, weapons: [veteransSword] }, veteransTarget, { includeFormula: true });
 app.formulaCell = veteransConditionalFormulaCell;
-assert.ok(app.matchupFormulaLines().some(line => /Wounds \(Reroll Wounds/i.test(line)), 'formula modal explicitly names full Veterans wound rerolls when Conditions Met is enabled');
+assert.ok(app.matchupFormulaLines().some(line => /^Wounds: .*Reroll Wounds/i.test(line)), 'formula modal names full Veterans wound rerolls in the wound calculation when Conditions Met is enabled');
 
 const braggart = { label: 'Battle Leader', abilities: ['Braggart’s Steel'], weapons: [], defense: { T: 4, Sv: 3, W: 4, models: 1 }, _unitKey: 'braggart' };
 const braggartBlade = { name: 'Master-crafted power weapon', range: 'Melee', A: '4', skill: '3', S: '5', AP: '2', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'braggart-blade' };
