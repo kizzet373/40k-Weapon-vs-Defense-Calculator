@@ -244,9 +244,13 @@
     if(!isAbilityEnabled(abilityUnit, 'Brass Stampede', options)) return { dmg: 0, profile: null };
     const models = bloodcrusherChargeModelCount(unit);
     if(models <= 0) return { dmg: 0, profile: null };
+    const chance = 0.5;
+    const dice = '1d3';
+    const expectedPerModel = chance * window.WeaponCalc.parseNdX(dice).mean;
     return {
-      dmg: models,
-      profile: { name: 'Brass Stampede mortal wounds', count: models },
+      dmg: models * expectedPerModel,
+      profile: { name: 'Brass Stampede mortal wounds', count: models, D: dice },
+      effect: { count: models, chance, dice, label: models === 1 ? 'model' : 'models' },
       phase: 'preDamage',
     };
   }
@@ -299,6 +303,7 @@
       weaponName: item.profile.name,
       modifierText: item.modifierText || 'Mortal wounds',
       phase: item.phase || 'preDamage',
+      effect: item.effect || null,
       totalDamage: item.allocated?.dmg || 0,
       totalKills: item.allocated?.kills || 0,
       lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: item.allocated?.dmg || 0 }],

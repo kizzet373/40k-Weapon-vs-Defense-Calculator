@@ -770,6 +770,23 @@ assert.ok(noSpillLines.some(line => /^Profile total: .* damage$/i.test(line)), '
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
+const diceFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Dice attacker',
+    weapons: [{ name: 'Dice cannon', range: '24', A: '4', skill: '3', S: '8', AP: '6', D: 'D6', modifiers: 'Sustained Hits D3, Reroll Hits 1', mode: 'ranged' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Dice target', defense: { T: 4, Sv: 7, W: 3, models: 2, totalWounds: 6 } },
+  { includeFormula: true }
+);
+app.formulaCell = diceFormulaCell;
+const diceSection = app.matchupFormulaSections()[0];
+const diceLines = diceSection.lines.map(line => line.text || line);
+assert.ok(/Dice cannon \(x1\).*D:1d6/.test(diceSection.title), 'formula title keeps dice damage as dice text');
+assert.ok(diceLines.some(line => /Damage: .* x 1d6 capped damage/i.test(line)), 'damage step keeps dice damage in the equation');
+assert.ok(diceLines.some(line => /Hits: .*Reroll Hits of 1.*\d+\.\d% reroll 1s x \d+\.\d% hit/i), 'hit reroll formula includes the reroll percentage math');
+assert.ok(diceLines.some(line => /Hits: .*\d+\.\d% crit x 1d3 sustained extra/i), 'sustained hits formula includes crit percent and dice extra hits');
+
 const groupedDefenseFormulaCell = app.computeMatchupCell(
   {
     label: 'Grouped profile attacker',
@@ -933,6 +950,7 @@ const brassStampedeSections = app.matchupFormulaSections();
 assert.ok(brassStampedeCell.dmg > 1, 'Brass Stampede pre-damage is added before normal weapon damage');
 assert.ok(/^1\. Pre-Damage - Brass Stampede mortal wounds/i.test(brassStampedeSections[0]?.title || ''), 'Brass Stampede appears as the first Pre-Damage formula section');
 assert.strictEqual(brassStampedeCell.formulaItems[0]?.phase, 'preDamage', 'Brass Stampede formula item is tagged as pre-damage');
+assert.ok(brassStampedeSections[0].lines.some(line => /Damage: 50\.0% x 1d3 damage = 1 damage/i.test(line.text || line)), 'Brass Stampede formula shows the charge chance and dice damage expression');
 
 const conditionalAttacker = {
   label: 'Conditional attacker',

@@ -2437,12 +2437,16 @@ function weaponVsDefenseApp(){
 
     formulaItemTitle(item, index=0){
       if(item?.phase === 'preDamage'){
-        return `${index + 1}. Pre-Damage - ${item?.weaponName || `Effect ${index + 1}`}`;
+        const count = Math.max(1, parseInt(item?.effect?.count ?? 1, 10) || 1);
+        const countText = count > 1 ? ` (x${count})` : '';
+        const damageText = item?.effect?.dice ? ` - D:${item.effect.dice}` : '';
+        return `${index + 1}. Pre-Damage - ${item?.weaponName || `Effect ${index + 1}`}${countText}${damageText}`;
       }
       const firstFormula = (item?.lines || []).find(line => line?.formula)?.formula || {};
       const skillText = Number(firstFormula.skill) === 0 ? 'auto' : this.formulaNumber(firstFormula.skill);
+      const damageText = firstFormula.damageText || this.formulaNumber(firstFormula.damage);
       const statText = firstFormula.attacks != null
-        ? ` - A:${this.formulaNumber(firstFormula.attacks)} Skill:${skillText} S:${this.formulaNumber(firstFormula.strength)} AP:${this.formulaNumber(firstFormula.ap)} D:${this.formulaNumber(firstFormula.damage)}`
+        ? ` - A:${this.formulaNumber(firstFormula.attacks)} Skill:${skillText} S:${this.formulaNumber(firstFormula.strength)} AP:${this.formulaNumber(firstFormula.ap)} D:${damageText}`
         : '';
       const count = Math.max(1, parseInt(item?.profileCount ?? 1, 10) || 1);
       return `${index + 1}. ${item?.weaponName || `Profile ${index + 1}`} (x${count})${statText}`;
@@ -2465,9 +2469,49 @@ function weaponVsDefenseApp(){
       return [`Reroll ${rollName}`, strategyText].filter(Boolean).join(' - ');
     },
 
+    formulaRerollDetail(kind, mode, strategy, baseSuccess, baseCritical){
+      const label = this.formulaRerollLabel(kind, mode, strategy);
+      if(!label) return '';
+      const rerollMode = String(mode || 'none').toLowerCase();
+      const base = Math.max(0, Number(baseSuccess) || 0);
+      const crit = Math.max(0, Number(baseCritical) || 0);
+      const isCritFishing = String(strategy || '').toLowerCase() === 'crits';
+      const targetRate = isCritFishing ? crit : base;
+      const targetLabel = isCritFishing
+        ? 'crit'
+        : (kind === 'hit' ? 'hit' : 'wound rate');
+      let rerollPool = 0;
+      let poolLabel = 'reroll';
+      if(rerollMode === 'ones'){
+        rerollPool = 1 / 6;
+        poolLabel = 'reroll 1s';
+      }else if(rerollMode === 'all'){
+        rerollPool = isCritFishing ? Math.max(0, 1 - crit) : Math.max(0, 1 - base);
+        poolLabel = isCritFishing ? 'reroll non-crits' : 'reroll failures';
+      }
+      if(rerollPool <= 1e-9 || targetRate <= 1e-9) return label;
+      return `${label} (${this.formulaPercent(rerollPool)} ${poolLabel} x ${this.formulaPercent(targetRate)} ${targetLabel})`;
+    },
+
+    formulaRollRateText(kind, totalRate, baseRate, baseCritical, rerollMode, rerollStrategy){
+      const total = Number(totalRate) || 0;
+      const reroll = this.formulaRerollDetail(kind, rerollMode, rerollStrategy, baseRate, baseCritical);
+      const noun = kind === 'hit' ? 'hit' : 'wound rate';
+      if(!reroll) return `${this.formulaPercent(total)} ${noun}`;
+      return `${this.formulaPercent(total)} ${noun} (${this.formulaPercent(baseRate)} base + ${reroll})`;
+    },
+
     formulaItemLines(item, index=0){
       const lines = [];
-      (item?.lines || []).forEach((line, lineIndex) => {
+      if(item?.phase === 'preDamage' && item?.effect){
+        const count = Math.max(1, Number(item.effect.count) || 1);
+        const countText = count > 1 ? `${this.formulaNumber(count)} ${item.effect.label || 'models'} x ` : '';
+        lines.push(this.formulaLineEntry(
+          'Damage',
+          `${countText}${this.formulaPercent(item.effect.chance)} x ${item.effect.dice || this.formulaNumber(item.totalDamage)} damage`,
+          `${this.formulaNumber(item.totalDamage)} damage`
+        ));
+      }else (item?.lines || []).forEach((line, lineIndex) => {
         const f = line?.formula || {};
         const probs = f.probabilities || {};
         const totals = f.totals || {};
@@ -2481,13 +2525,14 @@ function weaponVsDefenseApp(){
           lines.push(this.formulaLineEntry('Remaining allocation', this.formulaPercent(line.damageFraction)));
         }
         if(f.attacks != null){
-          const hitReroll = this.formulaRerollLabel('hit', probs.hitRerollMode, probs.hitRerollStrategy);
           const attacks = (Number(f.attacks) || 0) * scale;
           const hits = (Number(totals.expectedHits) || 0) * scale;
-          const sustainedExtra = (Number(f?.totals?.expectedHits) || 0) / Math.max(Number(f.attacks) || 1, 1) - (Number(probs.pHit) || 0);
-          const hitParts = [`${this.formulaPercent(probs.pHit)} hit`];
-          if(hitReroll) hitParts.push(hitReroll);
-          if(sustainedExtra > 1e-9) hitParts.push(`${this.formulaNumber(sustainedExtra, 3)} sustained extra`);
+          const sustained = Number(probs.sustained) || 0;
+          const hitParts = [this.formulaRollRateText('hit', probs.pHit, probs.pBaseHit ?? probs.pHit, probs.pBaseCrit ?? probs.pCrit, probs.hitRerollMode, probs.hitRerollStrategy)];
+          if(sustained > 1e-9){
+            const sustainedText = probs.sustainedText || this.formulaNumber(sustained, 3);
+            hitParts.push(`${this.formulaPercent(probs.pCrit)} crit x ${sustainedText} sustained extra`);
+          }
           lines.push(this.formulaLineEntry(
             'Hits',
             `${this.formulaNumber(attacks)} attacks x (${hitParts.join(' + ')})`,
@@ -2495,12 +2540,11 @@ function weaponVsDefenseApp(){
           ));
         }
         if(totals.expectedWounds != null){
-          const woundReroll = this.formulaRerollLabel('wound', probs.woundRerollMode, probs.woundRerollStrategy);
           const woundRate = Number(probs.pWound) || 0;
           const lethal = (Number(totals.lethalWounds) || 0) * scale;
           const woundRollHits = woundRate > 1e-9 ? ((Number(totals.expectedWoundsFromRolls) || 0) / woundRate) * scale : 0;
           const wounds = (Number(totals.expectedWounds) || 0) * scale;
-          const woundRateText = `${this.formulaPercent(woundRate)} wound rate${woundReroll ? ` + ${woundReroll}` : ''}`;
+          const woundRateText = this.formulaRollRateText('wound', woundRate, probs.pBaseWound ?? woundRate, probs.pBaseCriticalWound ?? probs.pCriticalWound, probs.woundRerollMode, probs.woundRerollStrategy);
           const woundBody = lethal > 1e-9
             ? `${this.formulaNumber(lethal)} lethal + ${this.formulaNumber(woundRollHits)} hits x ${woundRateText}`
             : `${this.formulaNumber(woundRollHits)} hits x ${woundRateText}`;
@@ -2523,8 +2567,10 @@ function weaponVsDefenseApp(){
           const allocation = line.allocation || {};
           const unsaved = (Number(totals.unsavedNormal) || 0) * scale;
           const mortals = (Number(totals.mortals) || 0) * scale;
-          const parts = [`${this.formulaNumber(unsaved)} x ${this.formulaNumber(f.cappedDamage)} capped damage`];
-          if(mortals > 1e-9) parts.push(`${this.formulaNumber(mortals)} x ${this.formulaNumber(f.damage)} spill damage`);
+          const cappedDamageText = f.cappedDamageText || this.formulaNumber(f.cappedDamage);
+          const damageText = f.damageText || this.formulaNumber(f.damage);
+          const parts = [`${this.formulaNumber(unsaved)} x ${cappedDamageText} capped damage`];
+          if(mortals > 1e-9) parts.push(`${this.formulaNumber(mortals)} x ${damageText} spill damage`);
           if((Number(probs.pFnp) || 0) > 1e-9) parts.push(`x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP`);
           if((Number(allocation.allocationLoss) || 0) > 1e-9) parts.push(`- ${this.formulaNumber(allocation.allocationLoss)} allocation spill loss`);
           const damageResult = `${this.formulaNumber(line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage`;

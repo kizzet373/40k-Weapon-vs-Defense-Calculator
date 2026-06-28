@@ -12,7 +12,19 @@
     const n = parseInt(m[1] || '1', 10);
     const faces = parseInt(m[2], 10);
     const k = m[3] ? parseInt(m[3], 10) : 0;
-    return { mean: (n * ((1 + faces) / 2)) + k, text:s };
+    const modText = k > 0 ? `+${k}` : (k < 0 ? `${k}` : '');
+    return { mean: (n * ((1 + faces) / 2)) + k, text:`${n}d${faces}${modText}` };
+  }
+
+  function modifiedDiceText(expr, flatMod=0, divisor=1){
+    const parsed = parseNdX(expr);
+    const parts = [parsed.text || '0'];
+    const mod = Number(flatMod) || 0;
+    if(mod > 0) parts.push(`+ ${mod}`);
+    if(mod < 0) parts.push(`- ${Math.abs(mod)}`);
+    const div = Number(divisor) || 1;
+    if(div > 1) parts.push(`/ ${div}`);
+    return parts.join(' ');
   }
 
   function diceDistribution(expr, flatMod=0){
@@ -178,6 +190,7 @@
     };
 
     let sustained = 0;
+    let sustainedText = '';
     let anti = 0;
     const antiRules = [];
     let hitPositive = 0;
@@ -199,7 +212,14 @@
     tokens.forEach(token => {
       const text = String(token || '');
       const sustainedMatch = text.match(/\bSustained\s+Hits\s*([Dd]\d+|\d+)\b/i);
-      if(sustainedMatch) sustained = Math.max(sustained, parseNdX(sustainedMatch[1]).mean || 0);
+      if(sustainedMatch){
+        const parsed = parseNdX(sustainedMatch[1]);
+        const value = parsed.mean || 0;
+        if(value >= sustained){
+          sustained = value;
+          sustainedText = parsed.text || String(sustainedMatch[1] || value);
+        }
+      }
       const antiMatch = text.match(/\bAnti(?:[-\s]+([A-Za-z][A-Za-z0-9\s-]*?))?\s*(\d)\+/i);
       if(antiMatch){
         const target = (antiMatch[1] || '').trim();
@@ -250,6 +270,7 @@
       lethal: has(/\bLethal\s+Hits\b/i),
       devw: has(/\bDevastating\s+Wounds\b/i) || has(/\bDev\s*Wounds\b/i),
       sustained,
+      sustainedText,
       anti,
       antiRules,
       extraAttacks: has(/\bExtra\s+Attacks\b/i),
@@ -280,6 +301,8 @@
     const AP = Math.max(0, Math.abs(apRaw) + (kw.apAdd || 0));
     const D = Math.max(0, parseNdX(weapon?.D).mean + (kw.damageAdd || 0));
     const cappedD = expectedCappedDamage(weapon?.D, def.W, kw.damageAdd || 0, kw.damageDivisor || 1);
+    const damageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, 1);
+    const cappedDamageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, kw.damageDivisor || 1);
     const fnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
     const critMin = kw.critMin || 6;
     const applicableAnti = (kw.antiRules || [])
@@ -320,11 +343,15 @@
     const woundOutcome = chooseWoundOutcome();
 
     let hitOutcome = { success: 0, critical: 0, strategy: 'none' };
+    let baseHit = 0;
+    let baseCrit = 0;
     if(skill === 0 || skill === 1 || String(weapon?.skill || '').trim().toLowerCase() === 'auto' || kw.torrent){
       hitOutcome = { success: 1, critical: 0, strategy: 'auto' };
+      baseHit = 1;
+      baseCrit = 0;
     }else{
-      const baseHit = probAtLeast(skill, kw.hitRollMod || 0, null);
-      const baseCrit = (7 - critMin) / 6;
+      baseHit = probAtLeast(skill, kw.hitRollMod || 0, null);
+      baseCrit = (7 - critMin) / 6;
       const hitCandidates = (kw.rerollHits === 'all')
         ? [rollOutcome(Math.max(baseHit, baseCrit), baseCrit, 'all', 'failures'), rollOutcome(Math.max(baseHit, baseCrit), baseCrit, 'all', 'crits')]
         : [rollOutcome(Math.max(baseHit, baseCrit), baseCrit, kw.rerollHits || 'none', 'failures')];
@@ -368,12 +395,18 @@
         strength: S,
         ap: AP,
         damage: D,
+        damageText,
         cappedDamage: cappedD,
+        cappedDamageText,
         defense: { T: def.T, sv: def.sv, inv: def.inv, W: def.W, Fnp: fnp > 0 ? fnp : null, cover: !!def.cover, keywords: [...(def?.keywords || []), ...(def?._keywords || [])] },
         probabilities: {
           pHit,
           pCrit,
+          pBaseHit: baseHit,
+          pBaseCrit: baseCrit,
           pWound: woundOutcome.success,
+          pBaseWound: baseWoundSuccess,
+          pBaseCriticalWound: baseCriticalWound,
           pAntiWound: bestAnti > 0 ? woundOutcome.success : 0,
           pWoundRollSuccess: woundOutcome.success,
           pCriticalWound: woundOutcome.critical,
@@ -383,6 +416,8 @@
           woundRerollMode: kw.rerollWounds || 'none',
           hitRerollStrategy: hitOutcome.strategy,
           woundRerollStrategy: woundOutcome.strategy,
+          sustained: kw.sustained || 0,
+          sustainedText: kw.sustainedText || '',
         },
         totals: { expectedHits, lethalWounds, expectedWoundsFromRolls, expectedWounds, normalWounds, criticalWounds, unsavedNormal, mortals, totalDamage },
       };
