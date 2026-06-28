@@ -2460,9 +2460,10 @@ function weaponVsDefenseApp(){
         const totals = f.totals || {};
         const scale = Number(line.damageFraction) > 0 ? Number(line.damageFraction) : 1;
         const prefix = (item.lines || []).length > 1 ? `Target ${lineIndex + 1}: ${line.targetName || 'Defender'} - ` : '';
+        const overkillText = line?.allocation?.overkill ? 'Overkill - ' : '';
         if(f.defense) lines.push({
-          text: `${prefix}~ ${this.formulaDefenseText(f.defense)} ~`,
-          html: `${this.escapeFormulaHtml(prefix)}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense))} ~`,
+          text: `${prefix}${overkillText}~ ${this.formulaDefenseText(f.defense)} ~`,
+          html: `${this.escapeFormulaHtml(prefix)}${overkillText ? '<span class="formulaStepResult">Overkill</span> - ' : ''}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense))} ~`,
         });
         if(line.damageFraction != null && Math.abs(line.damageFraction - 1) > 1e-9){
           lines.push(this.formulaLineEntry(`${prefix}Remaining allocation`, this.formulaPercent(line.damageFraction)));
@@ -2519,8 +2520,8 @@ function weaponVsDefenseApp(){
         }
       });
       if(item?.totalDamage != null){
-        const killed = (item?.lines || []).reduce((sum, line) => sum + (Number(line?.allocation?.killedModels) || 0), 0);
-        const result = `${this.formulaNumber(item.totalDamage)} damage (${this.formulaNumber(killed, 0)} models killed)`;
+        const hasOverkill = (item?.lines || []).some(line => line?.allocation?.overkill);
+        const result = `${this.formulaNumber(item.totalDamage)} damage${hasOverkill ? ' (Overkill)' : ''}`;
         lines.push({
           text: `Profile total: ${result}`,
           html: `<span class="formulaStepName">Profile total</span>: <span class="formulaStepResult">${this.escapeFormulaHtml(result)}</span>`,

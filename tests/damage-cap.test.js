@@ -766,9 +766,28 @@ const noSpillLines = noSpillSection.lines.map(line => line.text || line);
 assert.ok(/Power Fist \(x3\).*A:3 Skill:auto S:8 AP:2 D:2/.test(noSpillSection.title), 'formula title includes profile count and effective statline');
 assert.ok(noSpillLines.some(line => /Wounds: .* x .* wound rate = .* wounds/i.test(line)), 'wound step shows wound rate');
 assert.ok(noSpillLines.some(line => /Damage: .* allocation spill loss = .* damage/i.test(line)), 'damage step includes no-spill allocation loss');
-assert.ok(noSpillLines.some(line => /^Profile total: .* damage \(\d+ models killed\)$/i.test(line)), 'profile total includes model kills');
+assert.ok(noSpillLines.some(line => /^Profile total: .* damage$/i.test(line)), 'profile total omits model kill counts');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
+
+const overkillFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Overkill attacker',
+    weapons: [
+      { name: 'First cannon', range: '24', A: '2', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'ranged' },
+      { name: 'Second cannon', range: '24', A: '2', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'ranged' },
+    ],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Single model defender', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = overkillFormulaCell;
+const overkillLines = app.matchupFormulaLines();
+assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
+assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
+assert.ok(overkillLines.some(line => /Overkill - ~ T4/i.test(line)), 'formula labels damage after the final model as Overkill');
+assert.ok(overkillLines.some(line => /^Profile total: .* damage \(Overkill\)$/i.test(line)), 'overkill profile totals are labeled as Overkill instead of models killed');
 
 app.formulaCell = {
   dmg: 3.75,

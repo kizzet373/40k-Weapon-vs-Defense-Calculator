@@ -447,6 +447,17 @@
     return (state || []).filter(line => (line.remainingPool || 0) > 1e-9);
   }
 
+  function overkillStateLine(state){
+    const base = state?._lastTargetLine || (Array.isArray(state) ? state[state.length - 1] : null);
+    if(!base) return null;
+    const W = parseFloat(base.def?.W) || parseFloat(base.pool) || 0;
+    return {
+      ...base,
+      remainingPool: W > 0 ? W : (parseFloat(base.pool) || 0),
+      overkill: true,
+    };
+  }
+
   function lineDamageValue(weapon, line, modifierText, options={}){
     if(!line) return 0;
     return window.WeaponCalc.calcOneWeapon(
@@ -460,6 +471,10 @@
   function orderedStateLinesForWeapon(state, weapon, modifierText, options={}, attackerUnit=null){
     const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
     const alive = aliveStateLines(state);
+    if(!alive.length){
+      const overkill = overkillStateLine(state);
+      return overkill ? [overkill] : [];
+    }
     const characters = alive.filter(line => line.isCharacter);
     const nonCharacters = alive.filter(line => !line.isCharacter);
     const primary = kw.precision ? characters : nonCharacters;
@@ -502,9 +517,11 @@
     let dmg = 0;
     let kills = 0;
     const formulaLines = [];
-    for(const line of orderedStateLinesForWeapon(state, weapon, choice.text, options, choice.sourceUnit)){
+    while(remainingFraction > 1e-9){
+      const line = orderedStateLinesForWeapon(state, weapon, choice.text, options, choice.sourceUnit)[0];
+      if(!line) break;
       if(remainingFraction <= 1e-9) break;
-      if((line.remainingPool || 0) <= 1e-9) continue;
+      if((line.remainingPool || 0) <= 1e-9) break;
       const result = window.WeaponCalc.calcOneWeapon(
         weapon,
         defensePayloadForLine(line),
@@ -512,10 +529,13 @@
         { includeFormula: true }
       );
       const capacity = Math.max(0, line.remainingPool || 0);
-      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction);
+      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction, !!line.overkill);
       const applied = allocated.appliedDamage;
       if(applied <= 0) continue;
-      line.remainingPool = allocated.remainingPool;
+      if(!line.overkill){
+        line.remainingPool = allocated.remainingPool;
+        state._lastTargetLine = line;
+      }
       dmg += applied;
       kills += allocated.kills;
       if(options.includeFormula){
@@ -560,7 +580,7 @@
     return Math.ceil(remaining / wounds);
   }
 
-  function allocateWeaponProfileDamage(weapon, modifierText, line, formula={}, scale=1){
+  function allocateWeaponProfileDamage(weapon, modifierText, line, formula={}, scale=1, overkill=false){
     const totals = formula?.totals || {};
     const probs = formula?.probabilities || {};
     const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
@@ -572,6 +592,25 @@
     const mortalDamageTotal = Math.max(0, (Number(totals.mortals) || 0) * (Number(formula.damage) || 0) * fnpMultiplier * scaleFactor);
     const cappedDamage = Math.max(0, Number(formula.cappedDamage) || 0);
     const preAllocationDamage = Math.max(0, (normalAttacksTotal * cappedDamage * fnpMultiplier) + mortalDamageTotal);
+
+    if(overkill){
+      return {
+        appliedDamage: preAllocationDamage,
+        kills: modelWounds > 0 ? preAllocationDamage / modelWounds : 0,
+        normalApplied: Math.max(0, normalAttacksTotal * cappedDamage * fnpMultiplier),
+        mortalApplied: mortalDamageTotal,
+        preAllocationDamage,
+        allocationLoss: 0,
+        killedModels: 0,
+        remainingPool: startPool,
+        normalAttacks: normalAttacksTotal,
+        normalAttacksRemaining: 0,
+        mortalDamage: mortalDamageTotal,
+        remainingFraction: 0,
+        fnpMultiplier,
+        overkill: true,
+      };
+    }
 
     let remainingPool = startPool;
     let normalAttacksRemaining = normalAttacksTotal;
@@ -624,6 +663,13 @@
     let dmg = 0;
     let kills = 0;
     const alive = aliveStateLines(state);
+    if(!alive.length){
+      const line = overkillStateLine(state);
+      const mult = fnpDamageMultiplier(line?.def || {});
+      const applied = remainingRaw * mult;
+      const W = parseFloat(line?.def?.W) || 0;
+      return { dmg: applied, kills: W > 0 ? applied / W : 0, overkill: true };
+    }
     const ordered = [
       ...(precision ? alive.filter(line => line.isCharacter) : alive.filter(line => !line.isCharacter)),
       ...(precision ? alive.filter(line => !line.isCharacter) : alive.filter(line => line.isCharacter)),
@@ -636,6 +682,7 @@
       const applied = Math.min(effectiveAvailable, capacity);
       const W = parseFloat(line.def?.W) || 0;
       line.remainingPool = Math.max(0, capacity - applied);
+      state._lastTargetLine = line;
       dmg += applied;
       kills += W > 0 ? (applied / W) : 0;
       remainingRaw = mult > 0 ? Math.max(0, remainingRaw - (applied / mult)) : 0;
@@ -757,7 +804,7 @@
     const selectedProfileModifiers = [];
     const remainingGroups = groups.map((group, index) => ({ ...group, index }));
 
-    while(remainingGroups.length && aliveStateLines(state).length){
+    while(remainingGroups.length){
       const choices = remainingGroups.map((group, index) => {
         if(group.type === 'mortal'){
           return {
