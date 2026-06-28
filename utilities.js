@@ -2388,16 +2388,17 @@ function weaponVsDefenseApp(){
       return `${(n * 100).toFixed(1)}%`;
     },
 
-    formulaDefenseText(defense={}){
-      return this.matchupDefenseProfileLine({
+    formulaDefenseText(defense={}, modelsLeft=null){
+      const text = this.matchupDefenseProfileLine({
         T: defense.T,
         Sv: defense.sv,
         Inv: defense.inv,
         W: defense.W,
         Fnp: defense.Fnp,
         cover: defense.cover,
-        models: 1,
-      }, 1);
+        models: modelsLeft ?? defense.models ?? 1,
+      }, modelsLeft ?? defense.models ?? 1);
+      return text.replace(/\|\s*([^|]+?)\s+models$/, '| $1 models left');
     },
 
     escapeFormulaHtml(value){
@@ -2462,8 +2463,8 @@ function weaponVsDefenseApp(){
         const prefix = (item.lines || []).length > 1 ? `Target ${lineIndex + 1}: ${line.targetName || 'Defender'} - ` : '';
         const overkillText = line?.allocation?.overkill ? 'Overkill - ' : '';
         if(f.defense) lines.push({
-          text: `${prefix}${overkillText}~ ${this.formulaDefenseText(f.defense)} ~`,
-          html: `${this.escapeFormulaHtml(prefix)}${overkillText ? '<span class="formulaStepResult">Overkill</span> - ' : ''}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense))} ~`,
+          text: `${prefix}${overkillText}~ ${this.formulaDefenseText(f.defense, line.modelsLeft)} ~`,
+          html: `${this.escapeFormulaHtml(prefix)}${overkillText ? '<span class="formulaStepResult">Overkill</span> - ' : ''}~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense, line.modelsLeft))} ~`,
         });
         if(line.damageFraction != null && Math.abs(line.damageFraction - 1) > 1e-9){
           lines.push(this.formulaLineEntry(`${prefix}Remaining allocation`, this.formulaPercent(line.damageFraction)));

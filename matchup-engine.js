@@ -323,25 +323,58 @@
   function defenderTargetLines(defenderUnit, precision=false, options={}, attackerUnit=null){
     const children = Array.isArray(defenderUnit?._children) ? defenderUnit._children : [];
     const units = children.length ? children : [defenderUnit];
-    const lines = units
+    const rawLines = units
       .map((unit, index) => {
         const def = effectiveDefense(unit, options, attackerUnit);
         const pool = defenderWoundPool(def, unit);
+        const W = parseFloat(def?.W) || 0;
         return {
           unit,
           index,
           def,
           pool: Number.isFinite(pool) && pool > 0 ? pool : null,
+          models: W > 0 && Number.isFinite(pool) && pool > 0 ? pool / W : (parseFloat(def?.models) || 1),
           isCharacter: isCharacterTarget(unit),
         };
       })
       .filter(line => line.def && line.pool != null);
+    const grouped = new Map();
+    const order = [];
+    rawLines.forEach(line => {
+      const keywords = [
+        ...(line.unit?._keywords || []),
+        ...(line.def?.keywords || []),
+        ...(line.def?._keywords || []),
+      ].map(value => String(value || '').toLowerCase()).sort();
+      const key = JSON.stringify({
+        isCharacter: line.isCharacter,
+        T: line.def?.T ?? '',
+        Sv: line.def?.Sv ?? '',
+        Inv: line.def?.Inv ?? '',
+        W: line.def?.W ?? '',
+        Fnp: line.def?.Fnp ?? '',
+        cover: !!line.def?.cover,
+        keywords,
+      });
+      if(!grouped.has(key)){
+        grouped.set(key, { ...line, units: [line.unit] });
+        order.push(key);
+        return;
+      }
+      const existing = grouped.get(key);
+      existing.pool += line.pool;
+      existing.models += line.models || 0;
+      existing.units.push(line.unit);
+      existing.index = Math.min(existing.index, line.index);
+    });
+    const lines = order.map(key => grouped.get(key));
 
     if(!lines.length) return [{
       unit: defenderUnit,
       index: 0,
       def: effectiveDefense(defenderUnit, options, attackerUnit),
       pool: defenderWoundPool(effectiveDefense(defenderUnit, options, attackerUnit), defenderUnit),
+      models: parseFloat(effectiveDefense(defenderUnit, options, attackerUnit)?.models) || 1,
       isCharacter: isCharacterTarget(defenderUnit),
     }];
 
@@ -529,6 +562,8 @@
         { includeFormula: true }
       );
       const capacity = Math.max(0, line.remainingPool || 0);
+      const W = parseFloat(line.def?.W) || 0;
+      const modelsLeft = aliveModelCount(capacity, W);
       const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction, !!line.overkill);
       const applied = allocated.appliedDamage;
       if(applied <= 0) continue;
@@ -544,6 +579,7 @@
           damageFraction: remainingFraction,
           availableDamage: allocated.preAllocationDamage,
           woundPool: capacity,
+          modelsLeft,
           appliedDamage: applied,
           allocation: allocated,
           formula: result.formula,

@@ -770,6 +770,28 @@ assert.ok(noSpillLines.some(line => /^Profile total: .* damage$/i.test(line)), '
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
+const groupedDefenseFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Grouped profile attacker',
+    weapons: [{ name: 'Light shots', range: '24', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'ranged' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  {
+    label: 'Three identical defenders',
+    defense: { T: 4, Sv: 7, W: 2, models: 3, totalWounds: 6 },
+    _children: [
+      { label: 'Defender 1', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+      { label: 'Defender 2', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+      { label: 'Defender 3', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+    ],
+  },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = groupedDefenseFormulaCell;
+const groupedDefenseLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.strictEqual(groupedDefenseFormulaCell.formulaItems[0].lines.length, 1, 'identical defending models are grouped into one unique defensive-profile formula section');
+assert.ok(groupedDefenseLines.some(line => /T4 .* W2 .* 3 models left/i.test(line)), 'formula defensive profile says models left for grouped profiles');
+
 const overkillFormulaCell = app.computeMatchupCell(
   {
     label: 'Overkill attacker',
