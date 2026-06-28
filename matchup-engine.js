@@ -430,6 +430,144 @@
     };
   }
 
+  function defenderState(defenderUnit, options={}, attackerUnit=null){
+    return defenderTargetLines(defenderUnit, false, options, attackerUnit)
+      .map(line => ({
+        ...line,
+        remainingPool: Number.isFinite(line.pool) && line.pool > 0 ? line.pool : 0,
+      }))
+      .filter(line => line.remainingPool > 0);
+  }
+
+  function totalStateWounds(state){
+    return (state || []).reduce((sum, line) => sum + (Number(line.pool) || 0), 0);
+  }
+
+  function aliveStateLines(state){
+    return (state || []).filter(line => (line.remainingPool || 0) > 1e-9);
+  }
+
+  function lineDamageValue(weapon, line, modifierText, options={}){
+    if(!line) return 0;
+    return window.WeaponCalc.calcOneWeapon(
+      weapon,
+      defensePayloadForLine(line),
+      modifierText,
+      { includeFormula: false }
+    ).dmg || 0;
+  }
+
+  function orderedStateLinesForWeapon(state, weapon, modifierText, options={}, attackerUnit=null){
+    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
+    const alive = aliveStateLines(state);
+    const characters = alive.filter(line => line.isCharacter);
+    const nonCharacters = alive.filter(line => !line.isCharacter);
+    const primary = kw.precision ? characters : nonCharacters;
+    const secondary = kw.precision ? nonCharacters : characters;
+    const sortWorstFirst = lines => [...lines].sort((a, b) => {
+      const aDamage = lineDamageValue(weapon, a, modifierText, options);
+      const bDamage = lineDamageValue(weapon, b, modifierText, options);
+      if(Math.abs(aDamage - bDamage) > 1e-9) return aDamage - bDamage;
+      return (a.index || 0) - (b.index || 0);
+    });
+    return [...sortWorstFirst(primary), ...sortWorstFirst(secondary)];
+  }
+
+  function bestWeaponVariantForState(weapon, sourceUnit, defenderUnit, state, options={}){
+    const baseModifierText = options.effectiveWeaponModifiers
+      ? options.effectiveWeaponModifiers(weapon, sourceUnit, defenderUnit)
+      : (weapon?.modifiers || '');
+    const variants = window.AbilityModifierService?.modifierTextVariants
+      ? window.AbilityModifierService.modifierTextVariants(baseModifierText)
+      : [baseModifierText];
+    return variants
+      .map(text => {
+        const firstLine = orderedStateLinesForWeapon(state, weapon, text, options, sourceUnit)[0];
+        return {
+          weapon,
+          sourceUnit,
+          text,
+          kw: window.WeaponCalc.parseWeaponKeywords(text, weapon),
+          firstLine,
+          firstTargetDamage: firstLine ? lineDamageValue(weapon, firstLine, text, options) : 0,
+        };
+      })
+      .reduce((winner, candidate) => candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1) ? candidate : winner, null);
+  }
+
+  function applyWeaponToState(choice, defenderUnit, state, options={}){
+    const weapon = choice?.weapon;
+    if(!weapon) return { dmg:0, kills:0, formula:null };
+    let remainingFraction = 1;
+    let dmg = 0;
+    let kills = 0;
+    const formulaLines = [];
+    for(const line of orderedStateLinesForWeapon(state, weapon, choice.text, options, choice.sourceUnit)){
+      if(remainingFraction <= 1e-9) break;
+      if((line.remainingPool || 0) <= 1e-9) continue;
+      const result = window.WeaponCalc.calcOneWeapon(
+        weapon,
+        defensePayloadForLine(line),
+        choice.text,
+        { includeFormula: !!options.includeFormula }
+      );
+      const lineDamage = (result.dmg || 0) * remainingFraction;
+      if(lineDamage <= 0) continue;
+      const capacity = Math.max(0, line.remainingPool || 0);
+      const applied = Math.min(lineDamage, capacity);
+      const W = parseFloat(line.def?.W) || 0;
+      line.remainingPool = Math.max(0, capacity - applied);
+      dmg += applied;
+      kills += W > 0 ? (applied / W) : 0;
+      if(options.includeFormula){
+        formulaLines.push({
+          targetName: line.unit?.label || 'Defender',
+          damageFraction: remainingFraction,
+          availableDamage: lineDamage,
+          woundPool: capacity,
+          appliedDamage: applied,
+          formula: result.formula,
+        });
+      }
+      remainingFraction *= Math.max(0, lineDamage - capacity) / lineDamage;
+    }
+    return {
+      dmg,
+      kills,
+      formula: options.includeFormula ? {
+        weaponName: weapon?.name || 'Weapon',
+        modifierText: choice.text,
+        totalDamage: dmg,
+        totalKills: kills,
+        lines: formulaLines,
+      } : null,
+    };
+  }
+
+  function applyFlatDamageToState(rawDamage, state, precision=false){
+    let remainingRaw = Math.max(0, parseFloat(rawDamage) || 0);
+    let dmg = 0;
+    let kills = 0;
+    const alive = aliveStateLines(state);
+    const ordered = [
+      ...(precision ? alive.filter(line => line.isCharacter) : alive.filter(line => !line.isCharacter)),
+      ...(precision ? alive.filter(line => !line.isCharacter) : alive.filter(line => line.isCharacter)),
+    ];
+    for(const line of ordered){
+      if(remainingRaw <= 1e-9) break;
+      const mult = fnpDamageMultiplier(line.def);
+      const effectiveAvailable = remainingRaw * mult;
+      const capacity = Math.max(0, line.remainingPool || 0);
+      const applied = Math.min(effectiveAvailable, capacity);
+      const W = parseFloat(line.def?.W) || 0;
+      line.remainingPool = Math.max(0, capacity - applied);
+      dmg += applied;
+      kills += W > 0 ? (applied / W) : 0;
+      remainingRaw = mult > 0 ? Math.max(0, remainingRaw - (applied / mult)) : 0;
+    }
+    return { dmg, kills };
+  }
+
   function allocateFlatDamageIntoDefender(rawDamage, defenderUnit, precision=false, options={}, attackerUnit=null){
     let remainingRaw = Math.max(0, parseFloat(rawDamage) || 0);
     let dmg = 0;
@@ -446,6 +584,69 @@
       remainingRaw = mult > 0 ? Math.max(0, remainingRaw - (applied / mult)) : 0;
     }
     return { dmg, kills };
+  }
+
+  function leafAttackUnits(unit){
+    const children = Array.isArray(unit?._children) ? unit._children : [];
+    if(!children.length) return [unit];
+    return children.flatMap(child => leafAttackUnits(child));
+  }
+
+  function attackGroupsForLeaf(unit, defenderUnit, options){
+    const attackMode = unit?._attackMode || 'all';
+    const enabled = (unit?.weapons || [])
+      .filter(w => !options.isWeaponEnabled || options.isWeaponEnabled(w))
+      .filter(w => weaponMatchesAttackMode(w, attackMode));
+    if(enabled.length === 0) return [];
+
+    const groups = [];
+    const shooting = enabled.filter(w => !isMeleeWeapon(w));
+    const melee = enabled.filter(w => isMeleeWeapon(w));
+
+    const addShootingGroups = () => {
+      const grouped = new Map();
+      const order = [];
+      shooting.forEach(weapon => {
+        const key = shootingChoiceKey(weapon);
+        if(!grouped.has(key)){
+          grouped.set(key, []);
+          order.push(key);
+        }
+        grouped.get(key).push({ weapon, sourceUnit: unit });
+      });
+      order.forEach(key => groups.push({ type:'weaponChoice', sourceUnit: unit, alternatives: grouped.get(key) }));
+    };
+
+    const addMeleeGroups = () => {
+      const extra = [];
+      const normal = [];
+      melee.forEach(weapon => {
+        const kw = window.WeaponCalc.parseWeaponKeywords(weapon?.modifiers || '', weapon);
+        (kw.extraAttacks ? extra : normal).push({ weapon, sourceUnit: unit });
+      });
+      if(normal.length) groups.push({ type:'weaponChoice', sourceUnit: unit, alternatives: normal });
+      extra.forEach(item => groups.push({ type:'weaponChoice', sourceUnit: unit, alternatives: [item] }));
+    };
+
+    if(attackMode === 'shooting') addShootingGroups();
+    else if(attackMode === 'melee') addMeleeGroups();
+    else if(options.combineShootingProfiles){
+      addShootingGroups();
+      addMeleeGroups();
+    }else{
+      addShootingGroups();
+      addMeleeGroups();
+    }
+    return groups;
+  }
+
+  function attackGroupsForUnit(unit, defenderUnit, attackMode, options){
+    const groups = leafAttackUnits(unit)
+      .flatMap(leaf => attackGroupsForLeaf(leaf, defenderUnit, options));
+    additionalMortalDamage(unit, attackMode, options).forEach(item => {
+      groups.push({ type:'mortal', sourceUnit: unit, item });
+    });
+    return groups;
   }
 
   function killChanceFromExpectedDamage(expectedDamage, woundPool){
@@ -468,135 +669,69 @@
 
   function computeCell(attackerUnit, defenderUnit, options){
     const def = effectiveDefense(defenderUnit, options, attackerUnit);
-    const T = parseFloat(def.T) || 0;
-    const sv = parseFloat(def.Sv) || 0;
-    const inv = parseFloat(def.Inv) || 0;
-    const Fnp = parseFloat(def.Fnp) || 0;
-    const W = parseFloat(def.W) || 0;
-    const unitWoundPool = defenderWoundPool(def, defenderUnit);
     const attackMode = attackerUnit?._attackMode || 'all';
-    const childUnits = Array.isArray(attackerUnit?._children) ? attackerUnit._children : [];
-    if(childUnits.length){
-      const childCells = childUnits.map(child => computeCell(child, defenderUnit, { ...options, suppressInheritedUnitAbilities: true }));
-      const mortalItems = allocateMortalDamageItems(additionalMortalDamage(attackerUnit, attackMode, options), defenderUnit, options, attackerUnit);
-      const mortalDmg = mortalItems.reduce((total, item) => total + (item.allocated?.dmg || 0), 0);
-      const mortalKills = mortalItems.reduce((total, item) => total + (item.allocated?.kills || 0), 0);
-      const dmg = childCells.reduce((total, cell) => total + (cell?.dmg || 0), 0) + mortalDmg;
-      const kills = childCells.reduce((total, cell) => total + (cell?.kills || 0), 0) + mortalKills;
-      const profilesUsed = aggregateProfiles([
-        ...childCells.flatMap(cell => cell?.profilesUsed || []),
-        ...mortalItems.map(item => item.profile),
-      ]);
-      const profileModifierText = childCells
-        .map(cell => cell?.profileModifierText)
-        .filter(Boolean)
-        .filter((text, index, list) => list.indexOf(text) === index)
-        .join(' | ');
-      const formulaItems = options.includeFormula ? [
-        ...childCells.flatMap(cell => cell?.formulaItems || []),
-        ...mortalItems.map(item => mortalFormulaItem(item, defenderUnit)),
-      ] : [];
-      return {
-        dmg,
-        kills,
-        pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
-        pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
-        weaponName: formatProfiles(profilesUsed),
-        profileModifierText,
-        profilesUsed,
-        ...(options.includeFormula ? { formulaItems } : {}),
-      };
-    }
+    const state = defenderState(defenderUnit, options, attackerUnit);
+    const unitWoundPool = totalStateWounds(state) || defenderWoundPool(def, defenderUnit);
+    const groups = attackGroupsForUnit(attackerUnit, defenderUnit, attackMode, options);
+    if(groups.length === 0) return emptyCell();
 
-    const enabled = (attackerUnit?.weapons || [])
-      .filter(w => options.isWeaponEnabled(w))
-      .filter(w => weaponMatchesAttackMode(w, attackMode));
-    if(enabled.length === 0) return emptyCell();
-
-    const evalOne = (w) => {
-      const modifierText = options.effectiveWeaponModifiers(w, attackerUnit, defenderUnit);
-      const variants = window.AbilityModifierService?.modifierTextVariants
-        ? window.AbilityModifierService.modifierTextVariants(modifierText)
-        : [modifierText];
-      const bestVariant = variants
-        .map(text => ({
-          text,
-          result: calcOneWeaponIntoDefender(w, defenderUnit, text, options, attackerUnit),
-          kw: window.WeaponCalc.parseWeaponKeywords(text, w),
-        }))
-        .reduce((winner, candidate) => candidate.result.dmg > (winner?.result?.dmg ?? -1) ? candidate : winner, null);
-      const result = bestVariant?.result || { dmg: 0, kills: 0 };
-      const kw = bestVariant?.kw || window.WeaponCalc.parseWeaponKeywords(modifierText, w);
-      return {
-        ...result,
-        weapon: w,
-        weaponName: w.name || '',
-        profileLabel: weaponProfileLabel(w),
-        profilesUsed: [weaponProfileEntry(w)],
-        profileModifiers: profileModifierEntries(w, bestVariant?.text || modifierText),
-        ...(options.includeFormula ? { formulaItems: [result.formula].filter(Boolean) } : {}),
-        extraAttacks: !!kw.extraAttacks,
-      };
-    };
-
-    const shooting = enabled.filter(w => !isMeleeWeapon(w)).map(evalOne);
-    const melee = enabled.filter(w => isMeleeWeapon(w)).map(evalOne);
-    const best = (arr) => arr.reduce((winner, candidate) => candidate.dmg > (winner?.dmg ?? -1) ? candidate : winner, null);
-
-    let shootingSelection = { dmg: 0, kills: 0, profilesUsed: [], formulaItems: [] };
-    if(shooting.length){
-      const chosenShooting = chooseShootingProfiles(shooting);
-      shootingSelection = selectedTotals(chosenShooting);
-    }
-
-    let meleeSelection = { dmg: 0, kills: 0, profilesUsed: [], formulaItems: [] };
-    if(melee.length){
-      const extra = melee.filter(x => x.extraAttacks);
-      const normal = melee.filter(x => !x.extraAttacks);
-      const extraTotals = selectedTotals(extra);
-      const mortalItems = allocateMortalDamageItems(additionalMortalDamage(attackerUnit, attackMode, options), defenderUnit, options, attackerUnit);
-      const mortalDmg = mortalItems.reduce((total, item) => total + (item.allocated?.dmg || 0), 0);
-      const mortalKills = mortalItems.reduce((total, item) => total + (item.allocated?.kills || 0), 0);
-      const choices = normal.length ? normal : (extra.length ? [{ dmg:0, kills:0, profilesUsed:[], formulaItems:[] }] : []);
-      const winner = best(choices.map(choice => ({
-        dmg: (choice?.dmg || 0) + extraTotals.dmg + mortalDmg,
-        kills: (choice?.kills || 0) + extraTotals.kills + mortalKills,
-        profilesUsed: aggregateProfiles([
-          ...(choice?.profilesUsed || []),
-          ...extraTotals.profilesUsed,
-          ...mortalItems.map(item => item.profile),
-        ]),
-        profileModifiers: [
-          ...(choice?.profileModifiers || []),
-          ...extraTotals.profileModifiers,
-        ],
-        ...(options.includeFormula ? { formulaItems: [
-          ...(choice?.formulaItems || []),
-          ...extraTotals.formulaItems,
-          ...mortalItems.map(item => mortalFormulaItem(item, defenderUnit)),
-        ] } : {}),
-      })));
-      meleeSelection = winner || meleeSelection;
-    }
-
-    let selectedProfiles = [];
-    let selectedFormulaItems = [];
-    let selectedProfileModifiers = [];
     let dmg = 0;
     let kills = 0;
-    if(options.combineShootingProfiles){
-      dmg = shootingSelection.dmg + meleeSelection.dmg;
-      kills = shootingSelection.kills + meleeSelection.kills;
-      selectedProfiles = aggregateProfiles([...shootingSelection.profilesUsed, ...meleeSelection.profilesUsed]);
-      selectedProfileModifiers = [...(shootingSelection.profileModifiers || []), ...(meleeSelection.profileModifiers || [])];
-      selectedFormulaItems = [...(shootingSelection.formulaItems || []), ...(meleeSelection.formulaItems || [])];
-    }else{
-      const selected = meleeSelection.dmg > shootingSelection.dmg ? meleeSelection : shootingSelection;
-      dmg = selected.dmg || 0;
-      kills = selected.kills || 0;
-      selectedProfiles = selected.profilesUsed || [];
-      selectedProfileModifiers = selected.profileModifiers || [];
-      selectedFormulaItems = selected.formulaItems || [];
+    const selectedProfiles = [];
+    const selectedFormulaItems = [];
+    const selectedProfileModifiers = [];
+    const remainingGroups = groups.map((group, index) => ({ ...group, index }));
+
+    while(remainingGroups.length && aliveStateLines(state).length){
+      const choices = remainingGroups.map((group, index) => {
+        if(group.type === 'mortal'){
+          return {
+            group,
+            groupIndex: index,
+            firstTargetDamage: group.item?.dmg || 0,
+            mortal: group.item,
+          };
+        }
+        const alternatives = (group.alternatives || [])
+          .map(item => bestWeaponVariantForState(item.weapon, item.sourceUnit, defenderUnit, state, options))
+          .filter(Boolean);
+        const bestAlternative = alternatives.reduce((winner, candidate) => candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1) ? candidate : winner, null);
+        return {
+          group,
+          groupIndex: index,
+          firstTargetDamage: bestAlternative?.firstTargetDamage || 0,
+          choice: bestAlternative,
+        };
+      });
+      const selected = choices.reduce((winner, candidate) => {
+        if(candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1)) return candidate;
+        if(Math.abs(candidate.firstTargetDamage - (winner?.firstTargetDamage ?? 0)) <= 1e-9 && candidate.group.index < winner.group.index) return candidate;
+        return winner;
+      }, choices[0]);
+      remainingGroups.splice(selected.groupIndex, 1);
+
+      if(selected.mortal){
+        const allocated = applyFlatDamageToState(selected.mortal.dmg, state, false);
+        dmg += allocated.dmg;
+        kills += allocated.kills;
+        selectedProfiles.push(selected.mortal.profile);
+        if(options.includeFormula){
+          selectedFormulaItems.push({
+            ...mortalFormulaItem({ ...selected.mortal, allocated }, defenderUnit),
+            totalDamage: allocated.dmg,
+            totalKills: allocated.kills,
+          });
+        }
+        continue;
+      }
+
+      if(!selected.choice) continue;
+      const applied = applyWeaponToState(selected.choice, defenderUnit, state, options);
+      dmg += applied.dmg;
+      kills += applied.kills;
+      selectedProfiles.push(weaponProfileEntry(selected.choice.weapon));
+      selectedProfileModifiers.push(...profileModifierEntries(selected.choice.weapon, selected.choice.text));
+      if(options.includeFormula && applied.formula) selectedFormulaItems.push(applied.formula);
     }
 
     return {

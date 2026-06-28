@@ -59,7 +59,7 @@ assert.ok(Math.abs(fnpWeapon.dmg - (noFnpWeapon.dmg * (2 / 3))) < 1e-9, 'weapon 
 const matchupNoFnp = context.window.MatchupEngine.computeCell(
   {
     label: 'Attacker',
-    weapons: [{ name: 'FNP check', range: '24', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'ranged' }],
+    weapons: [{ name: 'FNP check', range: '24', A: '2', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'ranged' }],
     defense: { T: 4, Sv: 3, W: 2, models: 1 },
   },
   { label: 'No FNP target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
@@ -73,7 +73,7 @@ const matchupNoFnp = context.window.MatchupEngine.computeCell(
 const matchupFnp = context.window.MatchupEngine.computeCell(
   {
     label: 'Attacker',
-    weapons: [{ name: 'FNP check', range: '24', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'ranged' }],
+    weapons: [{ name: 'FNP check', range: '24', A: '2', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'ranged' }],
     defense: { T: 4, Sv: 3, W: 2, models: 1 },
   },
   { label: 'FNP target', defense: { T: 4, Sv: 7, W: 2, Fnp: 5, models: 1, totalWounds: 2 } },
@@ -102,7 +102,7 @@ assert.ok(Math.abs(antiIntoVehicle.dmg - 3) < 1e-9, 'Anti-Vehicle applies only i
 
 const antiMatchupInfantry = context.window.MatchupEngine.computeCell(
   { label: 'Anti attacker', weapons: [antiVehicleWeapon], defense: { T: 4, Sv: 3, W: 2, models: 1 } },
-  { label: 'Infantry target', _keywords: ['Infantry'], defense: { T: 8, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+  { label: 'Infantry target', _keywords: ['Infantry'], defense: { T: 8, Sv: 7, W: 6, models: 1, totalWounds: 6 } },
   {
     isWeaponEnabled: () => true,
     isMeleeEnabled: () => true,
@@ -112,7 +112,7 @@ const antiMatchupInfantry = context.window.MatchupEngine.computeCell(
 );
 const antiMatchupVehicle = context.window.MatchupEngine.computeCell(
   { label: 'Anti attacker', weapons: [antiVehicleWeapon], defense: { T: 4, Sv: 3, W: 2, models: 1 } },
-  { label: 'Vehicle target', _keywords: ['Vehicle'], defense: { T: 8, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+  { label: 'Vehicle target', _keywords: ['Vehicle'], defense: { T: 8, Sv: 7, W: 6, models: 1, totalWounds: 6 } },
   {
     isWeaponEnabled: () => true,
     isMeleeEnabled: () => true,
@@ -214,6 +214,83 @@ const precisionCell = context.window.MatchupEngine.computeCell(
 );
 assert.ok(Math.abs(nonPrecisionCell.dmg - 2) < 1e-9, 'non-Precision weapons allocate into non-character defensive profiles first');
 assert.ok(Math.abs(precisionCell.dmg - (2 / 3)) < 1e-9, 'Precision weapons allocate into character defensive profiles first');
+
+const sharedStateDefender = {
+  label: 'Shared state defender',
+  defense: { T: 4, Sv: 7, W: 2, models: 3, totalWounds: 9 },
+  _children: [
+    { label: 'Bodyguard 1', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+    { label: 'Bodyguard 2', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+    { label: 'Attached Character', _isCharacterModel: true, defense: { T: 10, Sv: 2, W: 5, models: 1, totalWounds: 5 } },
+  ],
+};
+const sharedStateCell = context.window.MatchupEngine.computeCell(
+  {
+    label: 'Three separate gunners',
+    defense: { T: 4, Sv: 3, W: 1, models: 3 },
+    _children: [
+      { label: 'Gunner 1', weapons: [{ name: 'Clean kill 1', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '2', mode: 'ranged' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+      { label: 'Gunner 2', weapons: [{ name: 'Clean kill 2', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '2', mode: 'ranged' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+      { label: 'Gunner 3', weapons: [{ name: 'Clean kill 3', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '2', mode: 'ranged' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+    ],
+  },
+  sharedStateDefender,
+  {
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+    isAbilityEnabled: () => true,
+    combineShootingProfiles: true,
+  }
+);
+assert.ok(sharedStateCell.dmg < 6 && sharedStateCell.dmg > 4, 'unit attacks share defender wound state instead of every model hitting a fresh bodyguard pool');
+
+const precisionAfterCharacterCell = context.window.MatchupEngine.computeCell(
+  {
+    label: 'Precision then normal',
+    weapons: [
+      { name: 'Character picker', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '5', modifiers: 'Precision', mode: 'ranged' },
+      { name: 'Follow up shots', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '2', modifiers: '', mode: 'ranged' },
+    ],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  sharedStateDefender,
+  {
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+    isAbilityEnabled: () => true,
+    combineShootingProfiles: true,
+  }
+);
+assert.ok(precisionAfterCharacterCell.dmg > 5, 'Precision weapons remove character wounds before later non-Precision weapons continue into bodyguards');
+
+const optimalOrderCell = context.window.MatchupEngine.computeCell(
+  {
+    label: 'Optimal order attacker',
+    weapons: [
+      { name: 'Infantry sweeper', range: '24', A: '6', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged' },
+      { name: 'Tank breaker', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '4', modifiers: '', mode: 'ranged' },
+    ],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  {
+    label: 'Worst first defender',
+    defense: { T: 4, Sv: 7, W: 2, models: 2, totalWounds: 6 },
+    _children: [
+      { label: 'Hard target', defense: { T: 10, Sv: 7, W: 4, models: 1, totalWounds: 4 } },
+      { label: 'Soft target', defense: { T: 3, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+    ],
+  },
+  {
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+    isAbilityEnabled: () => true,
+    combineShootingProfiles: true,
+  }
+);
+assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon order is selected by best damage into the current worst legal defensive profile');
 
 const app = context.weaponVsDefenseApp();
 const baseProfiles = app.baseProfilesRosterData();
@@ -618,8 +695,8 @@ const darkPactAttacker = {
   weapons: [{ name: 'Pact gun', range: '24', A: '6', skill: '4', S: '10', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'pact-gun' }],
   defense: { T: 4, Sv: 3, W: 2, models: 1 },
 };
-const easyTarget = { label: 'Easy target', defense: { T: 3, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
-const hardTarget = { label: 'Hard target', defense: { T: 20, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
+const easyTarget = { label: 'Easy target', defense: { T: 3, Sv: 7, W: 10, models: 1, totalWounds: 10 } };
+const hardTarget = { label: 'Hard target', defense: { T: 20, Sv: 7, W: 10, models: 1, totalWounds: 10 } };
 const darkPactEasy = app.computeMatchupCell(darkPactAttacker, easyTarget);
 const darkPactHard = app.computeMatchupCell(darkPactAttacker, hardTarget);
 assert.ok(Math.abs(darkPactEasy.dmg - (10 / 3)) < 1e-9, 'Dark Pacts chooses Sustained Hits when it beats Lethal Hits');
