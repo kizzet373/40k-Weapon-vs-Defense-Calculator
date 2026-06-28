@@ -274,9 +274,10 @@
         if(dmg <= 0) return;
         specs.push({
           dmg,
-          profile: { name: `${ability} mortal wounds`, count: 1 },
+          profile: { name: `${ability} mortal wounds`, count: 1, D: '1' },
           modifierText: parsed.modifiers?.[0] || 'Fight phase mortal wounds',
-          phase: 'preDamage',
+          effect: { count: diceCount, chance: successChance, dice: '1', label: 'rolls' },
+          phase: 'postDamage',
         });
       });
     });
@@ -919,23 +920,26 @@
     const selectedFormulaItems = [];
     const selectedProfileModifiers = [];
     const preDamageGroups = groups.filter(group => group.type === 'mortal' && (group.item?.phase || group.phase) === 'preDamage');
+    const postDamageGroups = groups.filter(group => group.type === 'mortal' && (group.item?.phase || group.phase) === 'postDamage');
     const remainingGroups = groups
-      .filter(group => !(group.type === 'mortal' && (group.item?.phase || group.phase) === 'preDamage'))
+      .filter(group => !(group.type === 'mortal' && ['preDamage', 'postDamage'].includes(group.item?.phase || group.phase)))
       .map((group, index) => ({ ...group, index }));
 
-    preDamageGroups.forEach(group => {
+    const applyMortalGroup = (group, phase) => {
       const allocated = applyFlatDamageToState(group.item?.dmg, state, false);
       dmg += allocated.dmg;
       kills += allocated.kills;
       selectedProfiles.push(group.item.profile);
       if(options.includeFormula){
         selectedFormulaItems.push({
-          ...mortalFormulaItem({ ...group.item, allocated, phase: 'preDamage' }, defenderUnit),
+          ...mortalFormulaItem({ ...group.item, allocated, phase }, defenderUnit),
           totalDamage: allocated.dmg,
           totalKills: allocated.kills,
         });
       }
-    });
+    };
+
+    preDamageGroups.forEach(group => applyMortalGroup(group, 'preDamage'));
 
     while(remainingGroups.length){
       const choices = remainingGroups.map((group, index) => {
@@ -988,6 +992,8 @@
       selectedProfileModifiers.push(...profileModifierEntries(selected.choice.weapon, selected.choice.text));
       if(options.includeFormula && applied.formula) selectedFormulaItems.push(applied.formula);
     }
+
+    postDamageGroups.forEach(group => applyMortalGroup(group, 'postDamage'));
 
     return {
       dmg,

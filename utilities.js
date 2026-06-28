@@ -2436,11 +2436,12 @@ function weaponVsDefenseApp(){
     },
 
     formulaItemTitle(item, index=0){
-      if(item?.phase === 'preDamage'){
+      if(item?.phase === 'preDamage' || item?.phase === 'postDamage'){
+        const phaseText = item.phase === 'postDamage' ? 'Post-Damage' : 'Pre-Damage';
         const count = Math.max(1, parseInt(item?.effect?.count ?? 1, 10) || 1);
         const countText = count > 1 ? ` (x${count})` : '';
         const damageText = item?.effect?.dice ? ` - D:${item.effect.dice}` : '';
-        return `${index + 1}. Pre-Damage - ${item?.weaponName || `Effect ${index + 1}`}${countText}${damageText}`;
+        return `${index + 1}. ${phaseText} - ${item?.weaponName || `Effect ${index + 1}`}${countText}${damageText}`;
       }
       const firstFormula = (item?.lines || []).find(line => line?.formula)?.formula || {};
       const skillText = Number(firstFormula.skill) === 0 ? 'auto' : this.formulaNumber(firstFormula.skill);
@@ -2503,7 +2504,7 @@ function weaponVsDefenseApp(){
 
     formulaItemLines(item, index=0){
       const lines = [];
-      if(item?.phase === 'preDamage' && item?.effect){
+      if((item?.phase === 'preDamage' || item?.phase === 'postDamage') && item?.effect){
         const count = Math.max(1, Number(item.effect.count) || 1);
         const countText = count > 1 ? `${this.formulaNumber(count)} ${item.effect.label || 'models'} x ` : '';
         lines.push(this.formulaLineEntry(
