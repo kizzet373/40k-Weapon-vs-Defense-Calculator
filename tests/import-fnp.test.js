@@ -155,6 +155,68 @@ const psychicIntoFlesh = app.computeMatchupCell({
 }, fleshHounds).dmg;
 assert.ok(psychicIntoFlesh < nonPsychicIntoFlesh, 'Collar of Khorne reduces only Psychic incoming weapon damage');
 
+const enhancementImportApp = context.weaponVsDefenseApp();
+enhancementImportApp.addRoster({
+  roster: {
+    name: 'Enhancement fixture',
+    battleScribeVersion: '2.03',
+    forces: [{
+      name: 'Force',
+      selections: [{
+        type: 'unit',
+        id: 'enhanced-unit',
+        name: 'Enhanced Unit',
+        number: '1',
+        profiles: [{
+          typeName: 'Unit',
+          name: 'Enhanced Unit',
+          characteristics: [
+            { name: 'T', $text: '4' },
+            { name: 'Sv', $text: '3+' },
+            { name: 'W', $text: '2' },
+          ],
+        }],
+        selections: [{
+          type: 'upgrade',
+          id: 'mantle-of-gloom',
+          name: 'Mantle of Gloom (Aura)',
+          costs: [
+            { name: 'Enhancements', value: '1' },
+            { name: 'pts', value: '20' },
+          ],
+          profiles: [{
+            typeName: 'Abilities',
+            name: 'Mantle of Gloom (Aura)',
+            characteristics: [
+              { name: 'Description', $text: 'The bearer fades away.' },
+            ],
+          }],
+        }],
+      }],
+    }],
+  },
+}, 'Enhancement fixture');
+const enhancedUnit = enhancementImportApp.units.find(unit => unit.label === 'Enhanced Unit');
+assert.strictEqual(JSON.stringify(enhancedUnit?._enhancements?.map(enh => enh.name)), JSON.stringify(['Mantle of Gloom (Aura)']), 'fresh imports keep enhancement entries in the enhancement section');
+assert.ok(!enhancedUnit?.abilities?.some(name => /Mantle of Gloom/i.test(name)), 'fresh imports do not duplicate enhancements in abilities');
+
+const duplicateEnhancementImportApp = context.weaponVsDefenseApp();
+duplicateEnhancementImportApp.addRoster({
+  schema: '40k-roster-matchup-import',
+  rosterLabel: 'Duplicate enhancement fixture',
+  postMergeUnits: [{
+    key: 'enhancement-owner',
+    label: 'Enhancement Owner',
+    abilities: ['Battle Focus', 'Mantle of Gloom (Aura) (20 pts)'],
+    enhancements: [{ name: 'Mantle of Gloom (Aura)', points: 20, description: 'The bearer fades away.' }],
+    defense: { T: 4, Sv: 3, W: 2, models: 1 },
+    weapons: [],
+  }],
+}, 'Duplicate enhancement fixture');
+const duplicateEnhancementUnit = duplicateEnhancementImportApp.units[0];
+assert.strictEqual(JSON.stringify(duplicateEnhancementUnit.abilities), JSON.stringify(['Battle Focus']), 'matchup imports remove enhancement duplicates from abilities');
+assert.strictEqual(JSON.stringify(duplicateEnhancementUnit._enhancements.map(enh => enh.name)), JSON.stringify(['Mantle of Gloom (Aura)']), 'matchup imports keep the enhancement section');
+
 const matchupImportApp = context.weaponVsDefenseApp();
 matchupImportApp.addRoster({
   schema: '40k-roster-matchup-import',

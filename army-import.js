@@ -970,6 +970,24 @@
       : cleaned;
   }
 
+  function enhancementAbilityKey(value){
+    return cleanProfileName(value)
+      .replace(/\s*\(\s*\d+(?:\.\d+)?\s*pts?\s*\)\s*$/i, '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function normalizeAbilityNamesWithoutEnhancements(names, enhancements=[]){
+    const enhancementKeys = new Set((enhancements || [])
+      .map(enh => enhancementAbilityKey(enh?.name || enh))
+      .filter(Boolean));
+    if(!enhancementKeys.size) return normalizeAbilityNames(names);
+    return normalizeAbilityNames(names)
+      .filter(name => !enhancementKeys.has(enhancementAbilityKey(name)));
+  }
+
   function modifiersFromWeaponNode(node, profile){
     const keywords = profileCharacteristic(profile, ['Keywords', 'modifiers']);
     const mods = /^-+$/.test(String(keywords).trim()) ? [] : splitModifiers(keywords);
@@ -1103,15 +1121,14 @@
       abilityDescriptionsFromTree(selection),
       Object.fromEntries(enhancementList.map(enh => [enh.name, enh.description]).filter(entry => entry[0] && entry[1]))
     );
-    const abilities = normalizeAbilityNames([
+    const abilities = normalizeAbilityNamesWithoutEnhancements([
       ...ruleNamesFromNode(selection),
       ...abilityNamesFromProfiles(selection?.profiles || []),
       ...commonChildAbilityNames(children),
-      ...enhancementList.map(enh => enh.points ? `${enh.name} (${fmtNumber(enh.points)} pts)` : enh.name),
       ...((selection?.selections || [])
         .filter(child => child?.type !== 'model')
         .flatMap(child => abilityNamesFromTree(child))),
-    ]);
+    ], enhancementList);
     const points = totalPointsForTree(selection);
     const key = `nr-${selection?.id || selection?.entryId || `${selection?.name || 'unit'}-${index}`}`;
 
@@ -1242,6 +1259,7 @@
   }
 
   function parseMatchupImportUnit(unit, repairs=new Map()){
+    const enhancements = (unit?.enhancements || unit?._enhancements || []).map(enh => ({ ...enh }));
     const parsed = allocateUnitPointRemainder({
       label: cleanName(unit?.label) || 'Imported unit',
       weapons: (unit?.weapons || []).map(weapon => ({
@@ -1258,13 +1276,13 @@
         _count: Math.max(1, parseInt(weapon.count ?? weapon._count ?? 1, 10) || 1),
       })),
       defense: { ...(unit?.defense || {}) },
-      abilities: normalizeAbilityNames(unit?.abilities || []),
+      abilities: normalizeAbilityNamesWithoutEnhancements(unit?.abilities || [], enhancements),
       _abilityDescriptions: { ...(unit?.abilityDescriptions || unit?._abilityDescriptions || {}) },
       _children: (unit?.children || unit?._children || []).map(child => parseMatchupImportUnit(child, repairs)),
       _tags: [...(unit?._tags || [])],
       _keywords: [...(unit?.keywords || unit?._keywords || [])],
       _points: unit?.points ?? unit?._points ?? null,
-      _enhancements: (unit?.enhancements || unit?._enhancements || []).map(enh => ({ ...enh })),
+      _enhancements: enhancements,
       _upgrades: (unit?.upgrades || unit?._upgrades || []).map(upgrade => ({ ...upgrade })),
       _unitKey: String(unit?.key || unit?._unitKey || unit?.viewKey || unit?.label || Math.random()),
       _groupId: String(unit?._groupId || unit?.key || unit?._unitKey || unit?.label || Math.random()),
@@ -1274,7 +1292,7 @@
       _isLeaderModel: !!unit?._isLeaderModel,
       source: unit?.source || 'Matchup roster import',
     });
-    parsed.abilities = normalizeAbilityNames([...(parsed.abilities || []), ...commonChildAbilityNames(parsed._children || [])]);
+    parsed.abilities = normalizeAbilityNamesWithoutEnhancements([...(parsed.abilities || []), ...commonChildAbilityNames(parsed._children || [])], parsed._enhancements || []);
     return applySourceDefenseRepair(parsed, repairs);
   }
 
