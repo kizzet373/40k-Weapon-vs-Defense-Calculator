@@ -633,6 +633,42 @@ app.units = [faithfulFlockTarget];
 app.selectedUnitIdx = 0;
 app.loadSelectedDefenseIntoForm();
 assert.strictEqual(app.defense.Inv, 5, 'loading selected defense uses ability-granted invulnerable saves');
+const appGridFnpAttacker = {
+  label: 'App grid FNP attacker',
+  weapons: [{ name: 'FNP grid gun', range: '24', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'fnp-grid-gun' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+  _unitKey: 'app-grid-fnp-attacker',
+};
+const appGridNoFnpTarget = { label: 'App grid no FNP target', defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 }, _unitKey: 'app-grid-no-fnp-target' };
+const appGridFnpTarget = { label: 'App grid FNP target', defense: { T: 4, Sv: 7, W: 100, Fnp: 5, models: 1, totalWounds: 100 }, _unitKey: 'app-grid-fnp-target' };
+app.clearMatchupComputationCache();
+const appGridNoFnpDamage = app.computeMatchupCell(appGridFnpAttacker, appGridNoFnpTarget).dmg;
+const appGridFnpDamage = app.computeMatchupCell(appGridFnpAttacker, appGridFnpTarget).dmg;
+assert.ok(Math.abs(appGridFnpDamage - (appGridNoFnpDamage * (2 / 3))) < 1e-9, 'app matchup grid damage is reduced by defender FNP');
+const customFnpTarget = { label: 'Custom FNP target', defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 }, _unitKey: 'custom-fnp-target' };
+app.addCustomModifierSpec(customFnpTarget, 'Defense: Feel No Pain 5+');
+app.clearMatchupComputationCache();
+const customFnpDamage = app.computeMatchupCell(appGridFnpAttacker, customFnpTarget).dmg;
+assert.ok(Math.abs(customFnpDamage - (appGridNoFnpDamage * (2 / 3))) < 1e-9, 'ability/custom defensive FNP modifiers reduce matchup grid damage');
+assert.strictEqual(app.effectiveDefense(customFnpTarget).Fnp, 5, 'ability/custom defensive FNP modifiers are reflected in effective defense');
+const conditionalDefenseAttacker = {
+  label: 'Conditional defense attacker',
+  weapons: [{ name: 'S4 grid gun', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'conditional-defense-gun' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+  _unitKey: 'conditional-defense-attacker',
+};
+const nurgleAuraTarget = { label: 'Nurgle aura target', abilities: ['Daemon Lord of Nurgle'], defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 }, _unitKey: 'nurgle-aura-target' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+const nurgleAuraOff = app.computeMatchupCell(conditionalDefenseAttacker, nurgleAuraTarget).dmg;
+assert.strictEqual(app.effectiveDefense(nurgleAuraTarget).T, 4, 'conditional defensive profile modifiers are off by default');
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const nurgleAuraOn = app.computeMatchupCell(conditionalDefenseAttacker, nurgleAuraTarget).dmg;
+assert.strictEqual(app.effectiveDefense(nurgleAuraTarget).T, 5, 'conditional defensive profile modifiers apply when Conditions Met is enabled');
+assert.ok(nurgleAuraOn < nurgleAuraOff, 'conditional defensive profile modifiers reduce matchup grid damage when Conditions Met is enabled');
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
 const unmodifiedTarget = { label: 'Base target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
 const tougherTarget = { label: 'Tougher target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
 const defenseModifierAttacker = {
