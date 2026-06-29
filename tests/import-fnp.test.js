@@ -229,6 +229,13 @@ modelCountUpgradeApp.addRoster({
         id: 'wolf-scouts',
         name: 'Wolf Scouts',
         number: '1',
+        categories: [
+          { name: 'Faction: Adeptus Astartes' },
+          { name: 'Faction: Space Wolves' },
+          { name: 'Infantry' },
+          { name: 'Phobos' },
+          { name: 'Wolf Scouts' },
+        ],
         profiles: [{
           typeName: 'Unit',
           name: 'Wolf Scouts',
@@ -326,6 +333,11 @@ modelCountUpgradeApp.addRoster({
 const modelCountUpgradeUnit = modelCountUpgradeApp.units.find(unit => unit.label === 'Wolf Scouts');
 assert.strictEqual(modelCountUpgradeUnit?.defense?.models, 6, 'imports model-count upgrade labels such as "6 Models"');
 assert.strictEqual(modelCountUpgradeUnit?.defense?.totalWounds, 11, 'nested model rows with mixed wound profiles update the aggregate wound pool');
+assert.strictEqual(
+  JSON.stringify(modelCountUpgradeApp.unitKeywordList(modelCountUpgradeUnit)),
+  JSON.stringify(['Adeptus Astartes', 'Space Wolves', 'Infantry', 'Phobos', 'Wolf Scouts']),
+  'imports roster category keywords for unit profile display'
+);
 assert.strictEqual(modelCountUpgradeUnit?._children?.length, 6, 'imports nested model selections under model-count upgrades as individual rows');
 assert.strictEqual(
   JSON.stringify(modelCountUpgradeUnit?._children?.map(child => child.label)),

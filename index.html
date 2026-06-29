@@ -667,7 +667,16 @@
             </div>
           </div>
         </div>
-        <button class="secondary" type="button" @click="closeUnitProfile()">Close</button>
+        <div class="profileHeadRight">
+          <button class="secondary" type="button" @click="closeUnitProfile()">Close</button>
+          <template x-if="unitKeywordList(profileUnit).length">
+            <div class="profileKeywordList" aria-label="Unit keywords">
+              <template x-for="keyword in unitKeywordList(profileUnit)" :key="`profile-keyword-${keyword}`">
+                <span class="profileKeywordPill" x-text="keyword"></span>
+              </template>
+            </div>
+          </template>
+        </div>
       </div>
 
       <div class="modalBody profileBody">

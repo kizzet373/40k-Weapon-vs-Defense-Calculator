@@ -2808,6 +2808,24 @@ function weaponVsDefenseApp(){
       return values.includes(wanted);
     },
 
+    unitKeywordList(unit){
+      const seen = new Set();
+      return [
+        ...(unit?._keywords || []),
+        ...(unit?.keywords || []),
+        ...(unit?.defense?.keywords || []),
+        ...(unit?.defense?._keywords || []),
+      ]
+        .map(value => String(value || '').replace(/^Faction:\s*/i, '').trim())
+        .filter(Boolean)
+        .filter(value => {
+          const key = this.normalizeKeyword(value);
+          if(!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    },
+
     weaponHasKeyword(weapon, keyword){
       const wanted = this.normalizeKeyword(keyword);
       if(!wanted) return true;
