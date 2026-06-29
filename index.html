@@ -485,7 +485,21 @@
         </div>
 
         <template x-if="matchup.loading">
-          <div class="muted" style="padding:10px">Computing matchup grid…</div>
+          <div class="matchupLoadingPanel" role="status" aria-live="polite">
+            <div class="techSpinner" aria-hidden="true">
+              <div class="techSpinnerRing"></div>
+              <div class="techSpinnerRing techSpinnerRingDelay"></div>
+              <div class="techSpinnerCore"></div>
+              <div class="techSpinnerScan"></div>
+            </div>
+            <div class="matchupLoadingText">
+              <div class="matchupLoadingTitle">Calculating Matchups</div>
+              <div class="matchupLoadingSub" x-text="matchup.loadingMessage || 'Building matchup matrix'"></div>
+              <div class="matchupLoadingBars" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
         </template>
 
         <template x-if="!matchup.loading">
