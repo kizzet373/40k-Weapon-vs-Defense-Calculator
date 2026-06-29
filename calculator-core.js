@@ -208,6 +208,7 @@
     let rerollWounds = 'none';
     let ignoreHitPenalties = false;
     let ignoresCover = false;
+    let defensiveFnp = 0;
 
     tokens.forEach(token => {
       const text = String(token || '');
@@ -262,6 +263,11 @@
       if(/\bIgnores?\s+Cover\b/i.test(text)) ignoresCover = true;
       const critHitMatch = text.match(/\bCritical\s+Hits?\s*(\d)\+/i);
       if(critHitMatch) critMin = Math.min(critMin, parseFloat(critHitMatch[1]) || critMin);
+      const fnpMatch = text.match(/\b(?:Feel No Pain|FNP)\s*(\d)\+/i);
+      if(fnpMatch){
+        const value = parseFloat(fnpMatch[1]);
+        if(Number.isFinite(value) && value > 0) defensiveFnp = defensiveFnp > 0 ? Math.min(defensiveFnp, value) : value;
+      }
     });
     if(ignoreHitPenalties) hitNegative = 0;
 
@@ -289,6 +295,7 @@
       damageAdd,
       damageDivisor,
       skillTargetMod,
+      defensiveFnp,
     };
   }
 
@@ -303,7 +310,10 @@
     const cappedD = expectedCappedDamage(weapon?.D, def.W, kw.damageAdd || 0, kw.damageDivisor || 1);
     const damageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, 1);
     const cappedDamageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, kw.damageDivisor || 1);
-    const fnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
+    const profileFnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
+    const modifierFnp = parseFloat(kw.defensiveFnp) || 0;
+    const fnpValues = [profileFnp, modifierFnp].filter(value => Number.isFinite(value) && value > 0);
+    const fnp = fnpValues.length ? Math.min(...fnpValues) : 0;
     const critMin = kw.critMin || 6;
     const applicableAnti = (kw.antiRules || [])
       .filter(rule => targetHasKeyword(def, rule.target))

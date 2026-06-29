@@ -69,6 +69,38 @@ app.addRoster({
         }],
       }, {
         type: 'unit',
+        id: 'flesh-hounds',
+        name: 'Flesh Hounds',
+        number: '1',
+        rules: [{
+          name: 'Feel No Pain 3+',
+          description: 'This ability always takes the form Feel No Pain X+. Each time a model with this ability would lose a wound, roll one D6: on an X+, that wound is not lost.',
+        }],
+        profiles: [{
+          typeName: 'Unit',
+          name: 'Flesh Hounds',
+          characteristics: [
+            { name: 'T', $text: '4' },
+            { name: 'Sv', $text: '7+' },
+            { name: 'W', $text: '2' },
+            { name: 'InSv', $text: '5+' },
+          ],
+        }],
+        selections: [{
+          type: 'model',
+          id: 'flesh-hound-models',
+          name: 'Flesh Hound',
+          number: '5',
+          profiles: [{
+            typeName: 'Abilities',
+            name: 'Collar of Khorne',
+            characteristics: [
+              { name: 'Description', $text: 'Models in this unit have the Feel No Pain 3+ ability against Psychic Attacks.' },
+            ],
+          }],
+        }],
+      }, {
+        type: 'unit',
         id: 'psychic-only-fnp',
         name: 'Psychic Ward',
         number: '1',
@@ -112,6 +144,17 @@ const psychicWard = app.units.find(unit => unit.label === 'Psychic Ward');
 assert.ok(psychicWard, 'imports psychic-only FNP control unit');
 assert.ok(psychicWard.defense.Fnp == null, 'psychic-only FNP is not treated as always-on FNP');
 
+const fleshHounds = app.units.find(unit => unit.label === 'Flesh Hounds');
+assert.ok(fleshHounds, 'imports Flesh Hounds');
+assert.ok(fleshHounds.defense.Fnp == null, 'Flesh Hounds Collar of Khorne is not imported as universal FNP');
+assert.ok(fleshHounds.abilities.includes('Collar of Khorne'), 'aggregate Flesh Hounds inherit Collar of Khorne when every child model has it');
+const nonPsychicIntoFlesh = app.computeMatchupCell(attacker, fleshHounds).dmg;
+const psychicIntoFlesh = app.computeMatchupCell({
+  ...attacker,
+  weapons: [{ ...attacker.weapons[0], name: 'Psychic flat damage', modifiers: 'Psychic' }],
+}, fleshHounds).dmg;
+assert.ok(psychicIntoFlesh < nonPsychicIntoFlesh, 'Collar of Khorne reduces only Psychic incoming weapon damage');
+
 const matchupImportApp = context.weaponVsDefenseApp();
 matchupImportApp.addRoster({
   schema: '40k-roster-matchup-import',
@@ -141,6 +184,38 @@ matchupImportApp.addRoster({
               { name: 'InSv', $text: '4+' },
             ],
           }],
+        }, {
+          type: 'unit',
+          id: 'flesh-hounds',
+          name: 'Flesh Hounds',
+          number: '1',
+          rules: [{
+            name: 'Feel No Pain 3+',
+            description: 'This ability always takes the form Feel No Pain X+. Each time a model with this ability would lose a wound, roll one D6: on an X+, that wound is not lost.',
+          }],
+          profiles: [{
+            typeName: 'Unit',
+            name: 'Flesh Hounds',
+            characteristics: [
+              { name: 'T', $text: '4' },
+              { name: 'Sv', $text: '7+' },
+              { name: 'W', $text: '2' },
+              { name: 'InSv', $text: '5+' },
+            ],
+          }],
+          selections: [{
+            type: 'model',
+            id: 'saved-flesh-hound-models',
+            name: 'Flesh Hound',
+            number: '2',
+            profiles: [{
+              typeName: 'Abilities',
+              name: 'Collar of Khorne',
+              characteristics: [
+                { name: 'Description', $text: 'Models in this unit have the Feel No Pain 3+ ability against Psychic Attacks.' },
+              ],
+            }],
+          }],
         }],
       }],
     },
@@ -151,9 +226,22 @@ matchupImportApp.addRoster({
     defense: { T: 12, Sv: 5, Inv: 4, W: 20, models: 1, totalWounds: 20 },
     weapons: [],
     abilities: [],
+  }, {
+    label: 'Flesh Hounds',
+    key: 'nr-flesh-hounds',
+    defense: { T: 4, Sv: 7, Inv: 5, W: 2, Fnp: 3, models: 5, totalWounds: 10 },
+    weapons: [],
+    abilities: [],
+    children: [
+      { label: 'Flesh Hound 1', defense: { T: 4, Sv: 7, Inv: 5, W: 2, models: 1 }, weapons: [], abilities: ['Collar of Khorne'] },
+      { label: 'Flesh Hound 2', defense: { T: 4, Sv: 7, Inv: 5, W: 2, models: 1 }, weapons: [], abilities: ['Collar of Khorne'] },
+    ],
   }],
 }, 'Saved matchup import');
 const repairedGreatUnclean = matchupImportApp.units.find(unit => unit.label === 'Great Unclean One');
 assert.strictEqual(repairedGreatUnclean?.defense?.Fnp, 6, 'saved matchup imports repair missing FNP from embedded source roster');
+const repairedFleshHounds = matchupImportApp.units.find(unit => unit.label === 'Flesh Hounds');
+assert.ok(repairedFleshHounds?.defense?.Fnp == null, 'saved matchup imports clear stale universal Flesh Hounds FNP from embedded source roster');
+assert.ok(repairedFleshHounds?.abilities?.includes('Collar of Khorne'), 'saved matchup imports keep Collar of Khorne as the scoped defensive ability');
 
 console.log('import-fnp tests passed');

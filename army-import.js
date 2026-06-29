@@ -98,6 +98,13 @@
     return out;
   }
 
+  function commonChildAbilityNames(children){
+    const xs = (children || []).filter(child => Array.isArray(child?.abilities));
+    if(!xs.length) return [];
+    const sets = xs.map(child => new Set((child.abilities || []).map(name => cleanProfileName(name)).filter(Boolean)));
+    return [...sets[0]].filter(name => sets.every(set => set.has(name)));
+  }
+
   function parseStatline(lines){
     const headerIdx = lines.findIndex(line => /\bM\b/i.test(line) && /\bT\b/i.test(line) && /\bSv\b/i.test(line) && /\bW\b/i.test(line));
     if(headerIdx < 0) return null;
@@ -660,6 +667,17 @@
     return Math.min(c, n);
   }
 
+  function scopedFnpValuesFromNode(node){
+    return (node?.profiles || [])
+      .filter(profile => /abilities|shadow form/i.test(profile?.typeName || ''))
+      .map(profile => {
+        const text = `${profile?.name || ''} ${profileCharacteristic(profile, ['Description', 'Effect']) || profileCharacteristicsText(profile)}`;
+        return /\bagainst\b/i.test(text) ? parseFnpFromText(text) : null;
+      })
+      .filter(value => Number.isFinite(value) && value > 0)
+      .map(value => String(value));
+  }
+
   function modelEntriesUnder(unitNode){
     return [unitNode, ...getAllSelections(unitNode)]
       .filter(node => node?.type === 'model' && Number.isFinite(parseInt(node?.number, 10)))
@@ -838,10 +856,12 @@
       .join(' | ');
   }
 
-  function applyDefenseRulesFromNodes(defense, nodes){
+  function applyDefenseRulesFromNodes(defense, nodes, scopeNodes=nodes){
+    const scopedFnpValues = new Set((scopeNodes || []).flatMap(scopedFnpValuesFromNode));
     (nodes || []).forEach(node => {
       (node?.rules || []).forEach(rule => {
         const fnp = parseGenericFnp(rule?.name, rule?.description || rule?.$text || '');
+        if(scopedFnpValues.has(String(fnp))) return;
         if(fnp) defense.Fnp = bestFnp(defense.Fnp, fnp);
       });
       (node?.profiles || []).forEach(profile => {
@@ -1028,7 +1048,7 @@
 
     const parentModelCount = modelCountForSelection(selection);
     const parentDefense = defenseFromProfile(unitProfileFromNode(selection), parentModelCount);
-    applyDefenseRulesFromNodes(parentDefense, unitDefenseRuleNodes(selection));
+    applyDefenseRulesFromNodes(parentDefense, unitDefenseRuleNodes(selection), [selection, ...getAllSelections(selection)]);
 
     const modelSelections = modelSelectionsForUnit(selection);
     const children = modelSelections.flatMap((model, modelIndex) => {
@@ -1086,6 +1106,7 @@
     const abilities = normalizeAbilityNames([
       ...ruleNamesFromNode(selection),
       ...abilityNamesFromProfiles(selection?.profiles || []),
+      ...commonChildAbilityNames(children),
       ...enhancementList.map(enh => enh.points ? `${enh.name} (${fmtNumber(enh.points)} pts)` : enh.name),
       ...((selection?.selections || [])
         .filter(child => child?.type !== 'model')
@@ -1196,9 +1217,10 @@
     const repairs = new Map();
     (parsed?.roster?.forces || []).forEach(force => {
       flattenUnitTree(force?._importedUnits || []).forEach(unit => {
-        if(unit?.defense?.Fnp == null || unit.defense.Fnp === '') return;
+        const fnp = (unit?.defense?.Fnp == null || unit.defense.Fnp === '') ? null : unit.defense.Fnp;
         unitLookupKeys(unit).forEach(key => {
-          if(!repairs.has(key)) repairs.set(key, { Fnp: unit.defense.Fnp });
+          const existing = repairs.get(key);
+          if(!existing || (existing.Fnp == null && fnp != null)) repairs.set(key, { Fnp: fnp });
         });
       });
     });
@@ -1208,8 +1230,13 @@
   function applySourceDefenseRepair(unit, repairs){
     if(!unit || !repairs?.size) return unit;
     const repair = unitLookupKeys(unit).map(key => repairs.get(key)).find(Boolean);
-    if(repair?.Fnp != null && repair.Fnp !== '' && (unit.defense?.Fnp == null || unit.defense.Fnp === '')){
-      unit.defense = { ...(unit.defense || {}), Fnp: repair.Fnp };
+    if(repair && Object.prototype.hasOwnProperty.call(repair, 'Fnp')){
+      unit.defense = { ...(unit.defense || {}) };
+      if(repair.Fnp != null && repair.Fnp !== ''){
+        unit.defense.Fnp = repair.Fnp;
+      }else{
+        delete unit.defense.Fnp;
+      }
     }
     return unit;
   }
@@ -1247,6 +1274,7 @@
       _isLeaderModel: !!unit?._isLeaderModel,
       source: unit?.source || 'Matchup roster import',
     });
+    parsed.abilities = normalizeAbilityNames([...(parsed.abilities || []), ...commonChildAbilityNames(parsed._children || [])]);
     return applySourceDefenseRepair(parsed, repairs);
   }
 

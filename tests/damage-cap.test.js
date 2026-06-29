@@ -651,6 +651,35 @@ app.clearMatchupComputationCache();
 const customFnpDamage = app.computeMatchupCell(appGridFnpAttacker, customFnpTarget).dmg;
 assert.ok(Math.abs(customFnpDamage - (appGridNoFnpDamage * (2 / 3))) < 1e-9, 'ability/custom defensive FNP modifiers reduce matchup grid damage');
 assert.strictEqual(app.effectiveDefense(customFnpTarget).Fnp, 5, 'ability/custom defensive FNP modifiers are reflected in effective defense');
+assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('Collar of Khorne')), JSON.stringify(['Defense Attack: FNP 3+ | Weapon is Psychic']), 'Collar of Khorne maps to a weapon-keyword-scoped defensive FNP');
+const collarTarget = { label: 'Flesh Hounds', abilities: ['Collar of Khorne'], defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 }, _unitKey: 'collar-target' };
+const collarNonPsychicAttacker = {
+  label: 'Non-psychic attacker',
+  weapons: [{ name: 'Normal gun', range: '24', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'normal-gun' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+  _unitKey: 'normal-attacker',
+};
+const collarPsychicAttacker = {
+  ...collarNonPsychicAttacker,
+  label: 'Psychic attacker',
+  weapons: [{ ...collarNonPsychicAttacker.weapons[0], name: 'Psychic gun', modifiers: 'Psychic', _weaponKey: 'psychic-gun' }],
+  _unitKey: 'psychic-attacker',
+};
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+assert.ok(collarTarget.defense.Fnp == null, 'Collar of Khorne does not become a universal defensive FNP');
+assert.ok(!/FNP/i.test(app.effectiveWeaponModifiers(collarNonPsychicAttacker.weapons[0], collarNonPsychicAttacker, collarTarget)), 'Collar of Khorne does not apply into non-Psychic weapons');
+assert.ok(/FNP 3\+/i.test(app.effectiveWeaponModifiers(collarPsychicAttacker.weapons[0], collarPsychicAttacker, collarTarget)), 'Collar of Khorne applies into Psychic weapons');
+const collarNonPsychicDamage = app.computeMatchupCell(collarNonPsychicAttacker, collarTarget).dmg;
+const collarPsychicDamage = app.computeMatchupCell(collarPsychicAttacker, collarTarget).dmg;
+assert.ok(collarPsychicDamage < collarNonPsychicDamage, 'Collar of Khorne reduces damage only from Psychic weapons');
+const collarFormulaCell = app.computeMatchupCell(collarPsychicAttacker, collarTarget, { includeFormula: true });
+app.formulaCell = collarFormulaCell;
+assert.ok(app.matchupFormulaLines().some(line => /after FNP/i.test(line)), 'Psychic weapon calculations show Collar of Khorne FNP in the formula');
+app.toggleUnitAbility(collarTarget, 'Collar of Khorne');
+const collarDisabledDamage = app.computeMatchupCell(collarPsychicAttacker, collarTarget).dmg;
+assert.ok(Math.abs(collarDisabledDamage - collarNonPsychicDamage) < 1e-9, 'turning off Collar of Khorne removes the Psychic FNP');
+app.toggleUnitAbility(collarTarget, 'Collar of Khorne');
 const conditionalDefenseAttacker = {
   label: 'Conditional defense attacker',
   weapons: [{ name: 'S4 grid gun', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'conditional-defense-gun' }],

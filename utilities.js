@@ -2877,6 +2877,7 @@ function weaponVsDefenseApp(){
       const kind = meta.kind || 'weapon';
       if(kind === 'special') return true;
       const text = (parsed?.modifiers || []).join(', ');
+      if(kind === 'defenseAttack' && /\b(?:Feel No Pain|FNP)\s*\d\+/i.test(text)) return true;
       const hasPenalty = this.modifierTextHasPenalty(text);
       const hasBonus = this.modifierTextHasBonus(text);
       if(kind === 'defenseAttack' || kind === 'targetDefense') return hasPenalty || !hasBonus;

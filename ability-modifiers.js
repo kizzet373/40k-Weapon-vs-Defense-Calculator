@@ -36,6 +36,7 @@
     'Blood Throne': ['Conditional | Unit-wide | Strength +1 | AP +1 | Damage +1'],
     'Relentless Carnage': ['Conditional | Fight Phase Mortals: 8D6 4+'],
     'Champion Slayer': ['Bearer | Melee: Reroll Wounds | Target: Character | Target: Monster'],
+    'Collar of Khorne': ['Defense Attack: FNP 3+ | Weapon is Psychic'],
     "Skullmaster's Fury": ['Conditional | Unit-wide | Weapon: Juggernaut bladed horns | Melee: Devastating Wounds'],
     'Keep Counting!': ['Unit-wide | Melee: Sustained Hits 1'],
     'Tormentbringer (Aura)': ['Unit-wide | Melee: Sustained Hits 1'],
@@ -137,6 +138,7 @@
       if(/^Unit[-\s]?wide$/i.test(part)){ meta.unitWide = true; return; }
       if((match = part.match(/^Weapon:\s*(.+)$/i))){ meta.weapons.push(match[1]); return; }
       if((match = part.match(/^Weapon Keyword:\s*(.+)$/i))){ meta.weaponKeywords.push(match[1]); return; }
+      if((match = part.match(/^Weapon\s+(?:is|has keyword)\s+(.+)$/i))){ meta.weaponKeywords.push(match[1]); return; }
       if((match = part.match(/^Target:\s*(.+)$/i))){ meta.targets.push(...match[1].split(/[\/,]/).map(x => x.trim()).filter(Boolean)); return; }
       if(/^Target On Objective$/i.test(part)){ meta.targetOnObjective = true; return; }
       if(/^If Strength > Toughness$/i.test(part)){ meta.strengthGreaterThanToughness = true; return; }
