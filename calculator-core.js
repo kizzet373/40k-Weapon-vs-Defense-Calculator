@@ -198,6 +198,7 @@
     let woundPositive = 0;
     let woundNegative = 0;
     let attacksAdd = 0;
+    let blastDice = 0;
     let strengthAdd = 0;
     let apAdd = 0;
     let damageAdd = 0;
@@ -244,6 +245,11 @@
       }
       const attacksMatch = text.match(/\bAttacks?\s*([+-]\d+)\b/i);
       if(attacksMatch) attacksAdd += parseFloat(attacksMatch[1]) || 0;
+      const blastMatch = text.match(/\bBlast(?:\s+(\d+(?:\.\d+)?))?\b/i);
+      if(blastMatch){
+        const value = blastMatch[1] ? parseFloat(blastMatch[1]) : 1;
+        if(Number.isFinite(value) && value > 0) blastDice = Math.max(blastDice, value);
+      }
       const strengthMatch = text.match(/\bStrength\s*([+-]\d+)\b/i);
       if(strengthMatch) strengthAdd += parseFloat(strengthMatch[1]) || 0;
       const apMatch = text.match(/\b(?:AP|Armou?r Penetration)\s*([+-]\d+)\b/i);
@@ -290,6 +296,7 @@
       woundRollMod: capRollModifier(woundPositive + (has(/\bLance\b/i) ? 1 : 0), woundNegative),
       critMin,
       attacksAdd,
+      blastDice,
       strengthAdd,
       apAdd,
       damageAdd,
@@ -301,7 +308,10 @@
 
   function calcOneWeapon(weapon, def, modifierText, options={}){
     const kw = parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
-    const A = Math.max(0, parseNdX(weapon?.A).mean + (kw.attacksAdd || 0));
+    const targetModels = parseFloat(def?.models);
+    const blastAttacksAdd = (kw.blastDice || 0) * Math.floor(Math.max(0, Number.isFinite(targetModels) ? targetModels : 0) / 5);
+    const totalAttacksAdd = (kw.attacksAdd || 0) + blastAttacksAdd;
+    const A = Math.max(0, parseNdX(weapon?.A).mean + totalAttacksAdd);
     const skill = Math.max(0, (parseFloat(String(weapon?.skill || '').replace('+','')) || 0) + (kw.skillTargetMod || 0));
     const S = Math.max(0, (parseFloat(weapon?.S) || 0) + (kw.strengthAdd || 0));
     const apRaw = parseFloat(weapon?.AP) || 0;
@@ -408,7 +418,7 @@
         damageText,
         cappedDamage: cappedD,
         cappedDamageText,
-        defense: { T: def.T, sv: def.sv, inv: def.inv, W: def.W, Fnp: fnp > 0 ? fnp : null, cover: !!def.cover, keywords: [...(def?.keywords || []), ...(def?._keywords || [])] },
+        defense: { T: def.T, sv: def.sv, inv: def.inv, W: def.W, Fnp: fnp > 0 ? fnp : null, cover: !!def.cover, models: Number.isFinite(targetModels) ? targetModels : null, keywords: [...(def?.keywords || []), ...(def?._keywords || [])] },
         probabilities: {
           pHit,
           pCrit,
@@ -428,6 +438,10 @@
           woundRerollStrategy: woundOutcome.strategy,
           sustained: kw.sustained || 0,
           sustainedText: kw.sustainedText || '',
+        },
+        modifiers: {
+          blastDice: kw.blastDice || 0,
+          blastAttacksAdd,
         },
         totals: { expectedHits, lethalWounds, expectedWoundsFromRolls, expectedWounds, normalWounds, criticalWounds, unsavedNormal, mortals, totalDamage },
       };

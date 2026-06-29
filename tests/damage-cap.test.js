@@ -175,6 +175,28 @@ const ignoredHitPenalty = context.window.WeaponCalc.calcOneWeapon(
 );
 assert.ok(ignoredHitPenalty.dmg > hitPenalty.dmg, 'Ignore Hit Penalties removes negative hit-roll modifiers');
 
+const blastSmallTarget = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Blast check', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: 'Blast' },
+  { T: 4, sv: 7, inv: 0, W: 20, models: 4 },
+  'Blast',
+  { includeFormula: true }
+);
+const blastTenTarget = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Blast check', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: 'Blast' },
+  { T: 4, sv: 7, inv: 0, W: 20, models: 10 },
+  'Blast',
+  { includeFormula: true }
+);
+const blastTwoTenTarget = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Blast two check', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: 'Blast 2' },
+  { T: 4, sv: 7, inv: 0, W: 20, models: 10 },
+  'Blast 2',
+  { includeFormula: true }
+);
+assert.ok(Math.abs(blastTenTarget.formula.attacks - 3) < 1e-9, 'Blast adds one attack per five target models');
+assert.ok(Math.abs(blastTenTarget.dmg - (blastSmallTarget.dmg * 3)) < 1e-9, 'Blast increases damage from target model count');
+assert.ok(Math.abs(blastTwoTenTarget.formula.attacks - 5) < 1e-9, 'Blast X adds X attacks per five target models');
+
 const mixedCharacterDefender = {
   label: 'Bodyguard with character',
   defense: { T: 4, Sv: 7, W: 2, models: 3, totalWounds: 9 },
@@ -847,6 +869,20 @@ assert.ok(noSpillLines.some(line => /^Total: .* damage \(.* wounds\)$/i.test(lin
 assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\)$/i.test(line)), 'profile total summarizes all target totals');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
+
+const blastFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Blast attacker',
+    weapons: [{ name: 'Frag launcher', range: '24', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: 'Blast 2', mode: 'ranged' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Blast target', defense: { T: 4, Sv: 7, W: 20, models: 10, totalWounds: 200 } },
+  { includeFormula: true }
+);
+app.formulaCell = blastFormulaCell;
+const blastSection = app.matchupFormulaSections()[0];
+assert.ok(/Frag launcher \(x1\).*A:5 Skill:auto S:8 AP:6 D:1/.test(blastSection.title), 'matchup formula title includes Blast-modified attacks from target model count');
+assert.ok(/A 5 from 1 \(\+4\)/.test(blastFormulaCell.profileModifierText), 'matchup cell modifier text reports Blast attack increases');
 
 const diceFormulaCell = app.computeMatchupCell(
   {

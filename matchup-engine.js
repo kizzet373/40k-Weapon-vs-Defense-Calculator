@@ -126,12 +126,14 @@
     return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
   }
 
-  function changedProfileStats(weapon, modifierText){
+  function changedProfileStats(weapon, modifierText, defense=null){
     const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || '', weapon);
     const diceMean = value => window.WeaponCalc.parseNdX(value).mean || 0;
     const numeric = value => parseFloat(String(value ?? '').replace('+', ''));
+    const targetModels = parseFloat(defense?.models);
+    const blastAttacksAdd = (kw.blastDice || 0) * Math.floor(Math.max(0, Number.isFinite(targetModels) ? targetModels : 0) / 5);
     const stats = [
-      ['A', diceMean(weapon?.A), diceMean(weapon?.A) + (kw.attacksAdd || 0), weapon?.A],
+      ['A', diceMean(weapon?.A), diceMean(weapon?.A) + (kw.attacksAdd || 0) + blastAttacksAdd, weapon?.A],
       ['Skill', numeric(weapon?.skill) || 0, (numeric(weapon?.skill) || 0) + (kw.skillTargetMod || 0), weapon?.skill],
       ['S', numeric(weapon?.S) || 0, (numeric(weapon?.S) || 0) + (kw.strengthAdd || 0), weapon?.S],
       ['AP', Math.abs(numeric(weapon?.AP) || 0), Math.max(0, Math.abs(numeric(weapon?.AP) || 0) + (kw.apAdd || 0)), weapon?.AP],
@@ -146,8 +148,8 @@
       });
   }
 
-  function profileModifierEntries(weapon, modifierText){
-    const changes = changedProfileStats(weapon, modifierText);
+  function profileModifierEntries(weapon, modifierText, defense=null){
+    const changes = changedProfileStats(weapon, modifierText, defense);
     if(!changes.length) return [];
     return [{ name: weaponProfileLabel(weapon), text: changes.join(', ') }];
   }
@@ -425,6 +427,7 @@
       W: parseFloat(def.W) || 0,
       Fnp: parseFloat(def.Fnp) || 0,
       cover: !!def.cover,
+      models: parseFloat(line?.models ?? def.models) || 1,
       keywords: [...(unit._keywords || []), ...(def.keywords || []), ...(def._keywords || [])],
     };
   }
@@ -1024,7 +1027,11 @@
       dmg += applied.dmg;
       kills += applied.kills;
       selectedProfiles.push(weaponProfileEntry(selected.choice.weapon));
-      selectedProfileModifiers.push(...profileModifierEntries(selected.choice.weapon, selected.choice.text));
+      selectedProfileModifiers.push(...profileModifierEntries(
+        selected.choice.weapon,
+        selected.choice.text,
+        selected.choice.firstLine?.def ? { ...selected.choice.firstLine.def, models: selected.choice.firstLine.models } : null
+      ));
       if(options.includeFormula && applied.formula) selectedFormulaItems.push(applied.formula);
     }
 
