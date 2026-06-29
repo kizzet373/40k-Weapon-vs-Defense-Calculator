@@ -203,7 +203,8 @@
     let apAdd = 0;
     let damageAdd = 0;
     let damageDivisor = 1;
-    let skillTargetMod = 0;
+    let skillPositive = 0;
+    let skillNegative = 0;
     let critMin = 6;
     let rerollHits = 'none';
     let rerollWounds = 'none';
@@ -262,7 +263,11 @@
         if(Number.isFinite(value) && value > 0) damageDivisor = Math.max(damageDivisor, value);
       }
       const skillMatch = text.match(/\b(?:BS|WS|Skill)\s*([+-]\d+)\b/i);
-      if(skillMatch) skillTargetMod -= parseFloat(skillMatch[1]) || 0;
+      if(skillMatch){
+        const value = parseFloat(skillMatch[1]) || 0;
+        if(value > 0) skillPositive += value;
+        if(value < 0) skillNegative += value;
+      }
       if(/\bReroll\s+Hits?\b/i.test(text) || /\bRe-roll\s+Hits?\b/i.test(text)) rerollHits = bestRerollMode(rerollHits, /\b(?:of\s+)?1s?\b/i.test(text) ? 'ones' : 'all');
       if(/\bReroll\s+Wounds?\b/i.test(text) || /\bRe-roll\s+Wounds?\b/i.test(text)) rerollWounds = bestRerollMode(rerollWounds, /\b(?:of\s+)?1s?\b/i.test(text) ? 'ones' : 'all');
       if(/\bIgnore\s+Hit\s+Penalties\b/i.test(text)) ignoreHitPenalties = true;
@@ -277,7 +282,7 @@
     });
     const isPsychic = has(/\bPsychic\b/i);
     if(ignoreHitPenalties || isPsychic) hitNegative = 0;
-    if(isPsychic) woundNegative = 0;
+    const skillTargetMod = -(skillPositive + (isPsychic ? 0 : skillNegative));
 
     return {
       torrent: has(/\bTorrent\b/i) || has(/\bAuto[-\s]?hits\b/i),

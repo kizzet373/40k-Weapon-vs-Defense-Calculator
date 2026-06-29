@@ -179,12 +179,24 @@ const psychicPenaltyBaseline = context.window.WeaponCalc.calcOneWeapon(
   { T: 4, sv: 7, inv: 0, W: 2 },
   ''
 );
-const psychicIgnoredPenalties = context.window.WeaponCalc.calcOneWeapon(
-  { name: 'Psychic ignores penalties', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '' },
+const psychicIgnoredHitPenalty = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Psychic ignores hit penalty', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '' },
   { T: 4, sv: 7, inv: 0, W: 2 },
-  'Psychic, Hit Rolls -1, Wound Rolls -1'
+  'Psychic, Hit Rolls -1'
 );
-assert.ok(Math.abs(psychicIgnoredPenalties.dmg - psychicPenaltyBaseline.dmg) < 1e-9, 'Psychic attacks ignore negative hit and wound roll modifiers');
+const psychicIgnoredSkillPenalty = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Psychic ignores skill penalty', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  'Psychic, BS -1, WS -1'
+);
+const psychicWoundPenalty = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Psychic keeps wound penalty', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  'Psychic, Wound Rolls -1'
+);
+assert.ok(Math.abs(psychicIgnoredHitPenalty.dmg - psychicPenaltyBaseline.dmg) < 1e-9, 'Psychic attacks ignore negative hit-roll modifiers');
+assert.ok(Math.abs(psychicIgnoredSkillPenalty.dmg - psychicPenaltyBaseline.dmg) < 1e-9, 'Psychic attacks ignore negative BS and WS modifiers');
+assert.ok(psychicWoundPenalty.dmg < psychicPenaltyBaseline.dmg, 'Psychic attacks do not ignore negative wound-roll modifiers');
 
 const blastSmallTarget = context.window.WeaponCalc.calcOneWeapon(
   { name: 'Blast check', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: 'Blast' },
