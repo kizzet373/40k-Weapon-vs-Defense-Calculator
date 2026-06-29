@@ -564,6 +564,11 @@ assert.strictEqual(
   'imported Shadow Lord aura maps to an always-on unit-wide hit reroll modifier'
 );
 assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Oath of Moment')),
+  JSON.stringify(['Conditional | Reroll Hits']),
+  'Oath of Moment is treated as a conditional hit reroll'
+);
+assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Daemon Lord of Khorne (Aura)')),
   JSON.stringify(['Conditional | Unit-wide | Melee: Hit Rolls +1']),
   'Daemon Lord aura aliases from Daemons Options map to their damage modifier'
@@ -1043,6 +1048,10 @@ Object.defineProperty(bearerSibling, '_parentUnit', { value: bearerParent, enume
 app.clearMatchupComputationCache();
 assert.ok(/Strength \+2/i.test(app.effectiveWeaponModifiers(bearerOnlyModel.weapons[0], bearerOnlyModel, hardTarget)), 'bearer-only abilities still apply to the actual model with the ability');
 assert.ok(!/Strength \+2/i.test(app.effectiveWeaponModifiers(bearerSibling.weapons[0], bearerSibling, hardTarget)), 'bearer-only abilities on an aggregate parent do not leak to sibling models');
+bearerParent.weapons = [
+  { name: 'Parent aggregate blade', range: 'Melee', A: '2', skill: 'auto', S: '5', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'parent-aggregate-blade' },
+];
+assert.ok(!/Strength \+2|Damage \+1/i.test(app.effectiveWeaponModifiers(bearerParent.weapons[0], bearerParent, hardTarget)), 'bearer-only abilities do not apply to aggregate parent weapon displays');
 
 const skullmaster = {
   label: 'Skullmaster',
@@ -1164,6 +1173,17 @@ assert.ok(/D 3 from 2/.test(braggartCell.profileModifierText), 'calculation brea
 const braggartCellCopyText = app.matchupCellCopyText(braggartCell);
 assert.ok(/Master-crafted power weapon/.test(braggartCellCopyText), 'copy/export cells include the profiles used in the calculation');
 assert.ok(!/S 7 from 5|D 3 from 2/.test(braggartCellCopyText), 'copy/export cells omit profile modifier details from the grid cell text');
+
+const oathAttacker = { label: 'Oath unit', abilities: ['Oath of Moment'], weapons: [{ name: 'Oath gun', range: '24', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'oath-gun' }], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'oath-unit' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+const oathOff = app.computeMatchupCell(oathAttacker, hardTarget).dmg;
+assert.ok(!/Reroll Hits/i.test(app.effectiveWeaponModifiers(oathAttacker.weapons[0], oathAttacker, hardTarget)), 'Oath of Moment is off until Conditions Met is enabled');
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const oathOn = app.computeMatchupCell(oathAttacker, hardTarget).dmg;
+assert.ok(/Reroll Hits/i.test(app.effectiveWeaponModifiers(oathAttacker.weapons[0], oathAttacker, hardTarget)), 'Oath of Moment applies when Conditions Met is enabled');
+assert.ok(oathOn > oathOff, 'conditional Oath of Moment rerolls increase damage when enabled');
 
 const heroicDefender = { label: 'Resolved Character', abilities: ['Heroic Resolve'], defense: { T: 4, Sv: 7, W: 3, models: 1 }, _unitKey: 'heroic-resolve' };
 const damageTwo = { name: 'Damage two', range: '24', A: '1', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'ranged', _weaponKey: 'damage-two' };

@@ -5,7 +5,7 @@
     'Stealth': ['Defense: Cover'],
     'Cover': ['Defense: Cover'],
     'Benefit of Cover': ['Defense: Cover'],
-    'Oath of Moment': ['Reroll Hits'],
+    'Oath of Moment': ['Conditional | Reroll Hits'],
     'Heroes All': ['Conditional | Reroll Hits 1', 'Conditional | Reroll Wounds 1'],
     'Saga of The Bold': ['Conditional | Reroll Hits 1', 'Conditional | Reroll Wounds 1'],
 

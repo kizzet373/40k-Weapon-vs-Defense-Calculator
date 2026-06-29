@@ -2842,6 +2842,7 @@ function weaponVsDefenseApp(){
     modifierSpecApplies(parsed, context={}){
       const meta = parsed?.meta || {};
       if(meta.conditional && !this.matchup.conditionsMet) return false;
+      if(meta.bearer && Array.isArray(context.attacker?._children) && context.attacker._children.length) return false;
       if(!this.modifierSpecBenefitsOwner(parsed)) return false;
       if(meta.weapons?.length && !meta.weapons.some(scope => this.weaponNameMatchesScope(context.weapon, scope))) return false;
       if(meta.weaponKeywords?.length && !meta.weaponKeywords.some(keyword => this.weaponHasKeyword(context.weapon, keyword))) return false;
