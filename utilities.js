@@ -2541,6 +2541,7 @@ function weaponVsDefenseApp(){
         const allocation = line?.allocation || {};
         if(allocation.overkill){
           parts.overkill += Number(line?.appliedDamage ?? allocation.appliedDamage) || 0;
+          parts.spill += Number(allocation.rawSpillLoss) || 0;
         }else{
           parts.wounds += Number(line?.appliedDamage ?? allocation.appliedDamage) || 0;
           parts.spill += Number(allocation.rawSpillLoss) || 0;
@@ -2554,7 +2555,8 @@ function weaponVsDefenseApp(){
       const allocation = line?.allocation || {};
       if(allocation.overkill){
         const overkill = Number(line?.appliedDamage ?? allocation.appliedDamage) || 0;
-        return { wounds: 0, spill: 0, overkill, remaining: 0, remainingFraction: 0, total: overkill };
+        const spill = Number(allocation.rawSpillLoss) || 0;
+        return { wounds: 0, spill, overkill, remaining: 0, remainingFraction: 0, total: overkill };
       }
       const wounds = Number(line?.appliedDamage ?? allocation.appliedDamage) || 0;
       const spill = Number(allocation.rawSpillLoss) || 0;

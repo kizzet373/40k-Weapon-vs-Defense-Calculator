@@ -1000,7 +1000,7 @@ const overkillFormulaCell = app.computeMatchupCell(
     ],
     defense: { T: 4, Sv: 3, W: 1, models: 1 },
   },
-  { label: 'Single model defender', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } },
+  { label: 'Single model defender', defense: { T: 4, Sv: 7, W: 1, models: 1, totalWounds: 1 } },
   { includeFormula: true, combineShootingProfiles: true }
 );
 app.formulaCell = overkillFormulaCell;
@@ -1009,6 +1009,7 @@ assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon out
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
 assert.ok(overkillLines.some(line => /0 models left/i.test(line)), 'formula shows zero models left for weapon profiles calculated after the defender is destroyed');
+assert.ok(overkillLines.some((line, index) => /0 models left/i.test(line) && overkillLines.slice(index, index + 8).some(next => /^Spill Loss:/i.test(next))), 'post-destroy weapon profile calculations still apply no-spill damage loss');
 assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models killed');
 assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\)$/i.test(line)), 'profile totals summarize overkill damage instead of models killed');
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');

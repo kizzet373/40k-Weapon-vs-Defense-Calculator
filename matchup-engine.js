@@ -672,21 +672,53 @@
     const preAllocationDamage = Math.max(0, (normalAttacksTotal * cappedDamage * fnpMultiplier) + mortalDamageTotal);
 
     if(overkill){
+      const hypotheticalModels = modelWounds > 0
+        ? Math.max(1, Math.ceil((rawDamageTotal / modelWounds) + normalAttacksTotal + 2))
+        : 0;
+      const hypotheticalPool = modelWounds > 0 ? modelWounds * hypotheticalModels : rawDamageTotal;
+      let remainingPool = hypotheticalPool;
+      let normalAttacksRemaining = normalAttacksTotal;
+      let normalApplied = 0;
+
+      while(normalAttacksRemaining > 1e-9 && remainingPool > 1e-9){
+        const attackPortion = Math.min(1, normalAttacksRemaining);
+        const modelRemaining = currentModelRemaining(remainingPool, modelWounds);
+        const attackDamage = modelWounds > 0
+          ? window.WeaponCalc.expectedCappedDamage(
+              weapon?.D,
+              modelWounds,
+              kw.damageAdd || 0,
+              kw.damageDivisor || 1
+            ) * fnpMultiplier
+          : rawDamagePerHit;
+        const applied = Math.min(modelRemaining || attackDamage * attackPortion, attackDamage * attackPortion, remainingPool);
+        if(applied <= 1e-9) break;
+        normalApplied += applied;
+        remainingPool = Math.max(0, remainingPool - applied);
+        normalAttacksRemaining -= attackPortion;
+      }
+
+      const mortalApplied = mortalDamageTotal;
+      const appliedDamage = normalApplied + mortalApplied;
+      const rawSpillLoss = Math.max(0, rawDamageTotal - appliedDamage);
+      const killedModels = modelWounds > 0
+        ? Math.max(0, aliveModelCount(hypotheticalPool, modelWounds) - aliveModelCount(remainingPool, modelWounds))
+        : 0;
       return {
-        appliedDamage: rawDamageTotal,
-        kills: modelWounds > 0 ? rawDamageTotal / modelWounds : 0,
-        normalApplied: rawNormalDamageTotal,
-        mortalApplied: mortalDamageTotal,
+        appliedDamage,
+        kills: modelWounds > 0 ? appliedDamage / modelWounds : 0,
+        normalApplied,
+        mortalApplied,
         preAllocationDamage,
         rawDamageTotal,
         rawDamageRemaining: 0,
-        rawSpillLoss: 0,
-        overkillDamage: rawDamageTotal,
-        allocationLoss: 0,
-        killedModels: 0,
+        rawSpillLoss,
+        overkillDamage: 0,
+        allocationLoss: rawSpillLoss,
+        killedModels,
         remainingPool: startPool,
         normalAttacks: normalAttacksTotal,
-        normalAttacksRemaining: 0,
+        normalAttacksRemaining,
         mortalDamage: mortalDamageTotal,
         remainingFraction: 0,
         fnpMultiplier,
