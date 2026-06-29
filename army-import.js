@@ -98,6 +98,55 @@
     return out;
   }
 
+  function mergeRuleEntries(...lists){
+    const seen = new Set();
+    const out = [];
+    lists.flat().forEach(rule => {
+      const name = cleanProfileName(rule?.name || rule);
+      if(!name) return;
+      const key = name.toLowerCase();
+      if(seen.has(key)) return;
+      seen.add(key);
+      out.push({
+        name,
+        description: cleanText(rule?.description || ''),
+      });
+    });
+    return out;
+  }
+
+  function ruleRequiresAllModels(rule){
+    const text = `${rule?.name || ''} ${rule?.description || ''}`;
+    return /\bif\s+(?:every|all)\s+models?\s+in\s+(?:this|that|the)\s+unit\s+has\s+(?:this|that|the)\s+(?:ability|rule)\b/i.test(text)
+      || /\bif\s+(?:every|all)\s+models?\s+in\s+(?:this|that|the)\s+unit\s+have\s+(?:this|that|the)\s+(?:ability|rule)\b/i.test(text);
+  }
+
+  function ruleKey(rule){
+    return cleanProfileName(rule?.name || rule).toLowerCase();
+  }
+
+  function aggregateRulesForChildren(sourceRulesUnits, childUnits){
+    const childRuleSets = (childUnits || []).map(unit => new Set((unit?._rules || []).map(ruleKey).filter(Boolean)));
+    return mergeRuleEntries(...(sourceRulesUnits || []).map(unit => unit?._rules || []))
+      .filter(rule => {
+        if(!ruleRequiresAllModels(rule)) return true;
+        if(!childRuleSets.length) return false;
+        const key = ruleKey(rule);
+        return key && childRuleSets.every(set => set.has(key));
+      });
+  }
+
+  function commonChildRuleEntries(children){
+    const xs = (children || []).filter(child => Array.isArray(child?._rules));
+    if(!xs.length) return [];
+    const childSets = xs.map(child => new Set((child._rules || []).map(ruleKey).filter(Boolean)));
+    return mergeRuleEntries(...xs.map(child => child._rules || []))
+      .filter(rule => {
+        const key = ruleKey(rule);
+        return key && childSets.every(set => set.has(key));
+      });
+  }
+
   function commonChildAbilityNames(children){
     const xs = (children || []).filter(child => Array.isArray(child?.abilities));
     if(!xs.length) return [];
@@ -455,6 +504,11 @@
       _abilityDescriptions: mergeDescriptionMaps(
         ...sourceUnits.map(unit => unit._abilityDescriptions || {}),
         ...ordered.map(unit => unit._abilityDescriptions || {})
+      ),
+      _rules: aggregateRulesForChildren([...sourceUnits, ...ordered], ordered),
+      _ruleDescriptions: mergeDescriptionMaps(
+        ...sourceUnits.map(unit => unit._ruleDescriptions || {}),
+        ...ordered.map(unit => unit._ruleDescriptions || {})
       ),
       source: [...new Set([...sourceUnits, ...ordered].map(unit => unit.source).filter(Boolean))].join(' + ') || 'Imported',
       _unitKey: key,
@@ -938,13 +992,19 @@
       .filter(name => name && (window.AbilityModifierService?.modifiersForRule(name).length));
   }
 
-  function ruleDescriptionEntriesFromNode(node){
+  function ruleEntriesFromNode(node){
     return (node?.rules || [])
       .map(rule => {
         const name = cleanProfileName(rule?.name);
         const description = cleanText(rule?.description || rule?.$text || '');
-        return name && description ? [name, description] : null;
+        return name ? { name, description } : null;
       })
+      .filter(Boolean);
+  }
+
+  function ruleDescriptionEntriesFromNode(node){
+    return ruleEntriesFromNode(node)
+      .map(rule => rule.description ? [rule.name, rule.description] : null)
       .filter(Boolean);
   }
 
@@ -960,6 +1020,16 @@
       ...ruleDescriptionEntriesFromNode(item),
       ...abilityDescriptionEntriesFromProfiles(item?.profiles || []),
     ])));
+  }
+
+  function displayRuleEntriesFromNodes(nodes){
+    return mergeRuleEntries(...(nodes || []).map(ruleEntriesFromNode));
+  }
+
+  function ruleDescriptionMapFromEntries(rules){
+    return Object.fromEntries((rules || [])
+      .map(rule => [cleanProfileName(rule?.name), cleanText(rule?.description || '')])
+      .filter(entry => entry[0] && entry[1]));
   }
 
   function normalizeAbilityNames(names){
@@ -1098,6 +1168,7 @@
       const modelIsCharacter = selectionIsCharacter || hasCharacterCategory(model);
       const modelKeywords = [...new Set([...selectionKeywords, ...keywordNamesFromCategories(model)])];
       const modelAbilityDescriptions = abilityDescriptionsFromTree(model);
+      const modelRules = displayRuleEntriesFromNodes([model]);
       return Array.from({ length: count }, (_, instanceIndex) => {
         const modelDefense = cloneDefenseForModel(parentDefense, unitProfileFromNode(model), 1);
         applyDefenseRulesFromNodes(modelDefense, [model, ...getAllSelections(model)]);
@@ -1111,6 +1182,8 @@
           defense: modelDefense,
           abilities: abilityNamesFromTree(model),
           _abilityDescriptions: modelAbilityDescriptions,
+          _rules: modelRules,
+          _ruleDescriptions: ruleDescriptionMapFromEntries(modelRules),
           source: 'NewRecruit/BattleScribe',
           _unitKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}-${instanceIndex}`,
           _groupId: selection?.id || selection?.entryId || String(index),
@@ -1151,6 +1224,8 @@
           .flatMap((child, childIndex) => weaponProfilesFromTree(child, `nr-${selection?.id || index}|direct-${childIndex}`))
       : weaponProfilesFromTree(selection, `nr-${selection?.id || index}`);
     const enhancementList = enhancementEntries(selection);
+    const directRules = displayRuleEntriesFromNodes([selection, ...unitLevelSelections(selection)]);
+    const displayRules = mergeRuleEntries(directRules, commonChildRuleEntries(children));
     const abilityDescriptions = mergeDescriptionMaps(
       abilityDescriptionsFromTree(selection),
       Object.fromEntries(enhancementList.map(enh => [enh.name, enh.description]).filter(entry => entry[0] && entry[1]))
@@ -1172,6 +1247,8 @@
       defense: parentDefense,
       abilities,
       _abilityDescriptions: abilityDescriptions,
+      _rules: displayRules,
+      _ruleDescriptions: ruleDescriptionMapFromEntries(displayRules),
       source: 'NewRecruit/BattleScribe',
       _unitKey: key,
       _groupId: key,
@@ -1310,6 +1387,8 @@
       defense: { ...(unit?.defense || {}) },
       abilities: normalizeAbilityNamesWithoutEnhancements(unit?.abilities || [], enhancements),
       _abilityDescriptions: { ...(unit?.abilityDescriptions || unit?._abilityDescriptions || {}) },
+      _rules: mergeRuleEntries(unit?.rules || unit?._rules || []),
+      _ruleDescriptions: { ...(unit?.ruleDescriptions || unit?._ruleDescriptions || {}) },
       _children: (unit?.children || unit?._children || []).map(child => parseMatchupImportUnit(child, repairs)),
       _tags: [...(unit?._tags || [])],
       _keywords: [...(unit?.keywords || unit?._keywords || [])],
@@ -1366,6 +1445,8 @@
       })),
       abilities: [...(unit.abilities || [])],
       _abilityDescriptions: { ...(unit._abilityDescriptions || {}) },
+      _rules: mergeRuleEntries(unit._rules || []),
+      _ruleDescriptions: { ...(unit._ruleDescriptions || {}) },
       _children: (unit._children || []).map(cloneUnit),
       _tags: [...(unit._tags || [])],
       _keywords: [...(unit._keywords || [])],

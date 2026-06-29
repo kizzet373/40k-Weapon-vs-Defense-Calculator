@@ -236,6 +236,10 @@ modelCountUpgradeApp.addRoster({
           { name: 'Phobos' },
           { name: 'Wolf Scouts' },
         ],
+        rules: [{
+          name: 'Scouts 6"',
+          description: 'This unit can make a Scouts move of up to 6".',
+        }],
         profiles: [{
           typeName: 'Unit',
           name: 'Wolf Scouts',
@@ -254,6 +258,10 @@ modelCountUpgradeApp.addRoster({
             id: 'pack-leader',
             name: 'Wolf Scout Pack Leader',
             number: '1',
+            rules: [{
+              name: 'Deep Strike',
+              description: 'If every model in this unit has this rule, this unit can be set up anywhere on the battlefield that is more than 9" away from all enemy models.',
+            }],
             selections: [{
               type: 'upgrade',
               name: 'Power weapon',
@@ -338,6 +346,9 @@ assert.strictEqual(
   JSON.stringify(['Adeptus Astartes', 'Space Wolves', 'Infantry', 'Phobos', 'Wolf Scouts']),
   'imports roster category keywords for unit profile display'
 );
+assert.ok(modelCountUpgradeApp.unitRuleNames(modelCountUpgradeUnit).includes('Scouts 6"'), 'unit profile rules include imported unit-level rules such as Scouts');
+assert.ok(/Scouts move of up to 6/i.test(modelCountUpgradeApp.unitRuleDescription(modelCountUpgradeUnit, 'Scouts 6"')), 'unit profile rules retain imported rule descriptions');
+assert.ok(!modelCountUpgradeApp.unitRuleNames(modelCountUpgradeUnit).includes('Deep Strike'), 'all-model-gated child rules are not promoted to the parent unit unless all children have them');
 assert.strictEqual(modelCountUpgradeUnit?._children?.length, 6, 'imports nested model selections under model-count upgrades as individual rows');
 assert.strictEqual(
   JSON.stringify(modelCountUpgradeUnit?._children?.map(child => child.label)),
@@ -345,6 +356,7 @@ assert.strictEqual(
   'nested model-count upgrade rows keep the selected model names'
 );
 assert.strictEqual(modelCountUpgradeUnit?._children?.find(child => child.label === 'Hunting Wolf')?.defense?.W, 1, 'nested model rows can use their own defensive profile');
+assert.ok(modelCountUpgradeApp.unitRuleNames(modelCountUpgradeUnit?._children?.[0]).includes('Deep Strike'), 'child model profile rules keep their own imported rules');
 assert.strictEqual(modelCountUpgradeUnit?.weapons?.find(weapon => weapon.name === 'Combat Blade')?._profileCount, 4, 'nested model weapons aggregate once into the parent unit');
 
 const matchupImportApp = context.weaponVsDefenseApp();

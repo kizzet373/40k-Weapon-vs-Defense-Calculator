@@ -2060,6 +2060,8 @@ function weaponVsDefenseApp(){
         weapons: cleanWeapons,
         abilities: [...(unit?.abilities || [])],
         abilityDescriptions: { ...(unit?._abilityDescriptions || {}) },
+        rules: (unit?._rules || []).map(rule => ({ ...rule })),
+        ruleDescriptions: { ...(unit?._ruleDescriptions || {}) },
         enhancements: [...(unit?._enhancements || [])],
         keywords: [...(unit?._keywords || [])],
         isCharacterUnit: !!unit?._isCharacterUnit,
@@ -2340,6 +2342,27 @@ function weaponVsDefenseApp(){
       return '';
     },
 
+    unitRuleNames(unit){
+      return [...new Set((unit?._rules || []).map(rule => String(rule?.name || rule || '').trim()).filter(Boolean))];
+    },
+
+    unitRuleDescription(unit, ruleName){
+      const wanted = this.ruleLookupName(ruleName);
+      const rule = (unit?._rules || []).find(item => this.ruleLookupName(item?.name || item) === wanted);
+      if(rule?.description) return String(rule.description);
+      const maps = [
+        unit?._ruleDescriptions || {},
+        unit?._parentUnit?._ruleDescriptions || {},
+        unit?._baseUnit?._ruleDescriptions || {},
+        unit?._baseUnit?._parentUnit?._ruleDescriptions || {},
+      ];
+      for(const map of maps){
+        const found = Object.entries(map || {}).find(([name]) => this.ruleLookupName(name) === wanted);
+        if(found && found[1]) return String(found[1]);
+      }
+      return '';
+    },
+
     ruleModifierDescription(name){
       const modifiers = this.ruleModifierNames(name);
       return modifiers.length ? `Damage calculation modifiers: ${modifiers.join('; ')}` : '';
@@ -2361,6 +2384,7 @@ function weaponVsDefenseApp(){
       const title = payload.title || payload.name || 'Rule';
       const description = (() => {
         if(type === 'Ability') return this.unitAbilityDescription(unit, payload.name) || this.ruleModifierDescription(payload.name);
+        if(type === 'Rule') return this.unitRuleDescription(unit, payload.name) || this.ruleModifierDescription(payload.name);
         if(type === 'Enhancement') return payload.enhancement?.description || this.unitAbilityDescription(unit, payload.enhancement?.name || payload.name) || this.ruleModifierDescription(payload.enhancement?.name || payload.name);
         if(type === 'Keyword' || type === 'Modifier') return this.weaponModifierDescription(payload.name);
         if(type === 'Custom Modifier') return this.customModifierDescription(payload.modifier || payload.name);

@@ -844,6 +844,16 @@
               </template>
             </div>
           </template>
+
+          <h2>Rules</h2>
+          <template x-if="!unitRuleNames(profileUnit).length">
+            <div class="muted">No rules found.</div>
+          </template>
+          <template x-for="(rule, ri) in unitRuleNames(profileUnit)" :key="`profile-r-${ri}-${rule}`">
+            <div class="profileRuleBlock">
+              <button type="button" class="ruleLink" @click="openRuleDescription({ type: 'Rule', name: rule, title: rule, unit: profileUnit })" x-text="rule"></button>
+            </div>
+          </template>
         </div>
       </div>
     </div>
