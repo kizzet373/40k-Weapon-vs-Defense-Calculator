@@ -595,7 +595,7 @@
       );
       const capacity = Math.max(0, line.remainingPool || 0);
       const W = parseFloat(line.def?.W) || 0;
-      const modelsLeft = aliveModelCount(capacity, W);
+      const modelsLeft = line.overkill ? 0 : aliveModelCount(capacity, W);
       const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction, !!line.overkill, !line.overkill && aliveStateLines(state).length <= 1);
       const applied = allocated.appliedDamage;
       if(applied <= 0) continue;

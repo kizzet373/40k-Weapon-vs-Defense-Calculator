@@ -174,6 +174,17 @@ const ignoredHitPenalty = context.window.WeaponCalc.calcOneWeapon(
   'Hit Rolls -1, Ignore Hit Penalties'
 );
 assert.ok(ignoredHitPenalty.dmg > hitPenalty.dmg, 'Ignore Hit Penalties removes negative hit-roll modifiers');
+const psychicPenaltyBaseline = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Psychic baseline', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  ''
+);
+const psychicIgnoredPenalties = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'Psychic ignores penalties', A: '6', skill: '4', S: '4', AP: '6', D: '1', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  'Psychic, Hit Rolls -1, Wound Rolls -1'
+);
+assert.ok(Math.abs(psychicIgnoredPenalties.dmg - psychicPenaltyBaseline.dmg) < 1e-9, 'Psychic attacks ignore negative hit and wound roll modifiers');
 
 const blastSmallTarget = context.window.WeaponCalc.calcOneWeapon(
   { name: 'Blast check', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: 'Blast' },
@@ -985,6 +996,7 @@ const overkillLines = app.matchupFormulaLines();
 assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
+assert.ok(overkillLines.some(line => /0 models left/i.test(line)), 'formula shows zero models left for weapon profiles calculated after the defender is destroyed');
 assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models killed');
 assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\)$/i.test(line)), 'profile totals summarize overkill damage instead of models killed');
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');

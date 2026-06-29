@@ -275,7 +275,9 @@
         if(Number.isFinite(value) && value > 0) defensiveFnp = defensiveFnp > 0 ? Math.min(defensiveFnp, value) : value;
       }
     });
-    if(ignoreHitPenalties) hitNegative = 0;
+    const isPsychic = has(/\bPsychic\b/i);
+    if(ignoreHitPenalties || isPsychic) hitNegative = 0;
+    if(isPsychic) woundNegative = 0;
 
     return {
       torrent: has(/\bTorrent\b/i) || has(/\bAuto[-\s]?hits\b/i),
@@ -291,6 +293,7 @@
       rerollHits,
       rerollWounds,
       ignoreHitPenalties,
+      psychic: isPsychic,
       ignoresCover,
       hitRollMod: capRollModifier(hitPositive, hitNegative),
       woundRollMod: capRollModifier(woundPositive + (has(/\bLance\b/i) ? 1 : 0), woundNegative),
