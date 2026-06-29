@@ -1047,8 +1047,19 @@
       });
   }
 
+  function selectionContainsModel(selection){
+    return selection?.type === 'model' || getAllSelections(selection).some(child => child?.type === 'model');
+  }
+
   function modelSelectionsForUnit(selection){
-    return (selection?.selections || []).filter(child => child?.type === 'model');
+    return (selection?.selections || []).flatMap(child => {
+      if(child?.type === 'model') return [child];
+      return getAllSelections(child).filter(item => item?.type === 'model');
+    });
+  }
+
+  function unitLevelSelections(selection){
+    return (selection?.selections || []).filter(child => !selectionContainsModel(child));
   }
 
   function modelCountUpgradeForSelection(selection){
@@ -1105,7 +1116,7 @@
           _groupId: selection?.id || selection?.entryId || String(index),
           _modelGroupKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}`,
           _modelGroupCount: count,
-          _isLeaderModel: (count === 1 || instanceIndex === 0) && (modelIndex === 0 || /champion|bloodhunter|plagueridden|gore hound/i.test(model?.name || '')),
+          _isLeaderModel: (count === 1 || instanceIndex === 0) && (modelIndex === 0 || /champion|pack leader|bloodhunter|plagueridden|gore hound/i.test(model?.name || '')),
           _isCharacterModel: modelIsCharacter,
           _keywords: modelKeywords,
           _points: null,
@@ -1119,13 +1130,24 @@
         if(parentDefense[key] == null && primary?.defense?.[key] != null) parentDefense[key] = primary.defense[key];
       });
     }
-    if(Number.isFinite(parseFloat(parentDefense.W)) && parentModelCount > 0){
+    if(children.length){
+      const childModelCount = children.reduce((sum, child) => sum + (parseInt(child?.defense?.models, 10) || 1), 0);
+      const childWounds = children.reduce((sum, child) => {
+        const childDefense = child?.defense || {};
+        const wounds = parseFloat(childDefense.totalWounds);
+        if(Number.isFinite(wounds) && wounds > 0) return sum + wounds;
+        const W = parseFloat(childDefense.W) || 0;
+        const models = parseInt(childDefense.models, 10) || 1;
+        return sum + (W * models);
+      }, 0);
+      if(childModelCount > 0) parentDefense.models = childModelCount;
+      if(childWounds > 0) parentDefense.totalWounds = childWounds;
+    }else if(Number.isFinite(parseFloat(parentDefense.W)) && parentModelCount > 0){
       parentDefense.totalWounds = parseFloat(parentDefense.W) * parentModelCount;
     }
 
     const directWeapons = modelSelections.length
-      ? (selection?.selections || [])
-          .filter(child => child?.type !== 'model')
+      ? unitLevelSelections(selection)
           .flatMap((child, childIndex) => weaponProfilesFromTree(child, `nr-${selection?.id || index}|direct-${childIndex}`))
       : weaponProfilesFromTree(selection, `nr-${selection?.id || index}`);
     const enhancementList = enhancementEntries(selection);
@@ -1137,9 +1159,7 @@
       ...ruleNamesFromNode(selection),
       ...abilityNamesFromProfiles(selection?.profiles || []),
       ...commonChildAbilityNames(children),
-      ...((selection?.selections || [])
-        .filter(child => child?.type !== 'model')
-        .flatMap(child => abilityNamesFromTree(child))),
+      ...unitLevelSelections(selection).flatMap(child => abilityNamesFromTree(child)),
     ], enhancementList);
     const points = totalPointsForTree(selection);
     const key = `nr-${selection?.id || selection?.entryId || `${selection?.name || 'unit'}-${index}`}`;

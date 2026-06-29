@@ -238,14 +238,102 @@ modelCountUpgradeApp.addRoster({
             { name: 'W', $text: '2' },
           ],
         }],
-        selections: [{ type: 'upgrade', name: '6 Models', number: '1' }],
+        selections: [{
+          type: 'upgrade',
+          name: '6 Models',
+          number: '1',
+          selections: [{
+            type: 'model',
+            id: 'pack-leader',
+            name: 'Wolf Scout Pack Leader',
+            number: '1',
+            selections: [{
+              type: 'upgrade',
+              name: 'Power weapon',
+              number: '1',
+              profiles: [{
+                typeName: 'Melee Weapons',
+                name: 'Power weapon',
+                characteristics: [
+                  { name: 'Range', $text: 'Melee' },
+                  { name: 'A', $text: '4' },
+                  { name: 'WS', $text: '3+' },
+                  { name: 'S', $text: '5' },
+                  { name: 'AP', $text: '-2' },
+                  { name: 'D', $text: '1' },
+                ],
+              }],
+            }],
+          }, {
+            type: 'model',
+            id: 'scout-a',
+            name: 'Wolf Scout',
+            number: '4',
+            selections: [{
+              type: 'upgrade',
+              name: 'Combat Blade',
+              number: '4',
+              profiles: [{
+                typeName: 'Melee Weapons',
+                name: 'Combat Blade',
+                characteristics: [
+                  { name: 'Range', $text: 'Melee' },
+                  { name: 'A', $text: '4' },
+                  { name: 'WS', $text: '3+' },
+                  { name: 'S', $text: '4' },
+                  { name: 'AP', $text: '-1' },
+                  { name: 'D', $text: '1' },
+                ],
+              }],
+            }],
+          }, {
+            type: 'model',
+            id: 'hunting-wolf',
+            name: 'Hunting Wolf',
+            number: '1',
+            profiles: [{
+              typeName: 'Unit',
+              name: 'Hunting Wolf',
+              characteristics: [
+                { name: 'T', $text: '4' },
+                { name: 'Sv', $text: '6+' },
+                { name: 'W', $text: '1' },
+              ],
+            }],
+            selections: [{
+              type: 'upgrade',
+              name: 'Teeth and Claws',
+              number: '1',
+              profiles: [{
+                typeName: 'Melee Weapons',
+                name: 'Teeth and Claws',
+                characteristics: [
+                  { name: 'Range', $text: 'Melee' },
+                  { name: 'A', $text: '2' },
+                  { name: 'WS', $text: '4+' },
+                  { name: 'S', $text: '4' },
+                  { name: 'AP', $text: '0' },
+                  { name: 'D', $text: '1' },
+                ],
+              }],
+            }],
+          }],
+        }],
       }],
     }],
   },
 }, 'Model count upgrade fixture');
 const modelCountUpgradeUnit = modelCountUpgradeApp.units.find(unit => unit.label === 'Wolf Scouts');
 assert.strictEqual(modelCountUpgradeUnit?.defense?.models, 6, 'imports model-count upgrade labels such as "6 Models"');
-assert.strictEqual(modelCountUpgradeUnit?.defense?.totalWounds, 12, 'model-count upgrade labels update total wound pool');
+assert.strictEqual(modelCountUpgradeUnit?.defense?.totalWounds, 11, 'nested model rows with mixed wound profiles update the aggregate wound pool');
+assert.strictEqual(modelCountUpgradeUnit?._children?.length, 6, 'imports nested model selections under model-count upgrades as individual rows');
+assert.strictEqual(
+  JSON.stringify(modelCountUpgradeUnit?._children?.map(child => child.label)),
+  JSON.stringify(['Wolf Scout Pack Leader', 'Wolf Scout 1', 'Wolf Scout 2', 'Wolf Scout 3', 'Wolf Scout 4', 'Hunting Wolf']),
+  'nested model-count upgrade rows keep the selected model names'
+);
+assert.strictEqual(modelCountUpgradeUnit?._children?.find(child => child.label === 'Hunting Wolf')?.defense?.W, 1, 'nested model rows can use their own defensive profile');
+assert.strictEqual(modelCountUpgradeUnit?.weapons?.find(weapon => weapon.name === 'Combat Blade')?._profileCount, 4, 'nested model weapons aggregate once into the parent unit');
 
 const matchupImportApp = context.weaponVsDefenseApp();
 matchupImportApp.addRoster({
