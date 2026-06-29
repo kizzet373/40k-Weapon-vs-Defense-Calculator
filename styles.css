@@ -598,7 +598,7 @@ details summary{cursor:pointer}
 .attackerHeaderCell .attackerEyeButton{position:absolute;top:0;right:0}
 .defenderHeaderCell .matchupHeaderProfileLink{min-width:max-content}
 .gridHeaderLine{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}
-.matchupCornerHeader{position:relative;min-height:72px;padding:0;font-size:12px;line-height:1.15}
+.matchupCornerHeader{position:relative;min-height:66px;padding:0;font-size:12px;line-height:1.15}
 .matchupCornerHeader > div:first-child:not(.cornerSortLabel){display:none}
 .cornerSortLabel{
   position:absolute;
@@ -620,11 +620,11 @@ details summary{cursor:pointer}
   color:var(--fg);
   font-size:11px
 }
-.attackerSortSelect{left:42px;bottom:0;transform:none}
-.defenderSortSelect{right:76px;top:0}
-.sortIconButton.cornerSortButton{position:absolute;width:28px;height:28px;min-width:28px;padding:0;font-size:16px;font-weight:800}
-.attackerSortButton{left:112px;bottom:0;transform:none}
-.defenderSortButton{right:42px;top:0;transform:none}
+.attackerSortSelect{left:31px;bottom:0;transform:none}
+.defenderSortSelect{right:60px;top:0}
+.sortIconButton.cornerSortButton{position:absolute;width:28px;height:28px;min-width:28px;max-width:28px;box-sizing:border-box;padding:0;font-size:16px;font-weight:800;aspect-ratio:1/1}
+.attackerSortButton{left:99px;bottom:0;transform:none}
+.defenderSortButton{right:28px;top:0;transform:none}
 .sortIconButton{
   width:28px;
   height:28px;
