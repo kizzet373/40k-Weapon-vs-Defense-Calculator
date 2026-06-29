@@ -640,6 +640,26 @@
     return match ? `${match[1]}` : '';
   }
 
+  function parseFnpFromText(text){
+    const s = String(text || '');
+    const match = s.match(/\b(?:Feel No Pain|FNP)\s*(\d)\+/i);
+    return match ? parseFloat(match[1]) : null;
+  }
+
+  function parseGenericFnp(name, description=''){
+    const desc = String(description || '');
+    if(/\bagainst\b/i.test(desc)) return null;
+    return parseFnpFromText(`${name || ''} ${desc}`);
+  }
+
+  function bestFnp(current, candidate){
+    const c = parseFloat(current);
+    const n = parseFloat(candidate);
+    if(!Number.isFinite(n)) return current;
+    if(!Number.isFinite(c) || c <= 0) return n;
+    return Math.min(c, n);
+  }
+
   function modelEntriesUnder(unitNode){
     return [unitNode, ...getAllSelections(unitNode)]
       .filter(node => node?.type === 'model' && Number.isFinite(parseInt(node?.number, 10)))
@@ -678,9 +698,11 @@
           return;
         }
 
-        if(!defense.Inv && typeName === 'abilities'){
+        if(typeName === 'abilities'){
           const inv = parseInvFromText(get('Description')) || parseInvFromText(profile.name);
           if(inv) defense.Inv = inv;
+          const fnp = parseGenericFnp(profile.name, get('Description'));
+          if(fnp) defense.Fnp = bestFnp(defense.Fnp, fnp);
         }
       });
     };
@@ -816,6 +838,25 @@
       .join(' | ');
   }
 
+  function applyDefenseRulesFromNodes(defense, nodes){
+    (nodes || []).forEach(node => {
+      (node?.rules || []).forEach(rule => {
+        const fnp = parseGenericFnp(rule?.name, rule?.description || rule?.$text || '');
+        if(fnp) defense.Fnp = bestFnp(defense.Fnp, fnp);
+      });
+      (node?.profiles || []).forEach(profile => {
+        if(!/abilities|shadow form/i.test(profile?.typeName || '')) return;
+        const fnp = parseGenericFnp(profile?.name, profileCharacteristic(profile, ['Description', 'Effect']) || profileCharacteristicsText(profile));
+        if(fnp) defense.Fnp = bestFnp(defense.Fnp, fnp);
+      });
+    });
+    return defense;
+  }
+
+  function unitDefenseRuleNodes(node){
+    return [node, ...getAllSelections(node).filter(item => item?.type !== 'model')];
+  }
+
   function unitProfileFromNode(node){
     return (node?.profiles || []).find(profile => /\bunit\b/i.test(profile?.typeName || '')) || null;
   }
@@ -826,6 +867,7 @@
       Sv: null,
       Inv: null,
       W: null,
+      Fnp: null,
       models: modelCount,
     };
     if(!profile) return defense;
@@ -842,7 +884,7 @@
 
   function cloneDefenseForModel(parentDefense, modelProfile, count){
     const modelDefense = defenseFromProfile(modelProfile, count);
-    ['T', 'Sv', 'Inv', 'W'].forEach(key => {
+    ['T', 'Sv', 'Inv', 'W', 'Fnp'].forEach(key => {
       if(modelDefense[key] == null && parentDefense?.[key] != null) modelDefense[key] = parentDefense[key];
     });
     modelDefense.models = count;
@@ -986,6 +1028,7 @@
 
     const parentModelCount = modelCountForSelection(selection);
     const parentDefense = defenseFromProfile(unitProfileFromNode(selection), parentModelCount);
+    applyDefenseRulesFromNodes(parentDefense, unitDefenseRuleNodes(selection));
 
     const modelSelections = modelSelectionsForUnit(selection);
     const children = modelSelections.flatMap((model, modelIndex) => {
@@ -994,26 +1037,30 @@
       const modelIsCharacter = selectionIsCharacter || hasCharacterCategory(model);
       const modelKeywords = [...new Set([...selectionKeywords, ...keywordNamesFromCategories(model)])];
       const modelAbilityDescriptions = abilityDescriptionsFromTree(model);
-      return Array.from({ length: count }, (_, instanceIndex) => ({
-        label: count > 1 ? `${baseLabel} ${instanceIndex + 1}` : baseLabel,
-        weapons: weaponProfilesFromTree(
-          model,
-          `nr-${selection?.id || index}|model-${modelIndex}-${instanceIndex}`,
-          rawCount => perModelWeaponCount(rawCount, count)
-        ),
-        defense: cloneDefenseForModel(parentDefense, unitProfileFromNode(model), 1),
-        abilities: abilityNamesFromTree(model),
-        _abilityDescriptions: modelAbilityDescriptions,
-        source: 'NewRecruit/BattleScribe',
-        _unitKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}-${instanceIndex}`,
-        _groupId: selection?.id || selection?.entryId || String(index),
-        _modelGroupKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}`,
-        _modelGroupCount: count,
-        _isLeaderModel: (count === 1 || instanceIndex === 0) && (modelIndex === 0 || /champion|bloodhunter|plagueridden|gore hound/i.test(model?.name || '')),
-        _isCharacterModel: modelIsCharacter,
-        _keywords: modelKeywords,
-        _points: null,
-      }));
+      return Array.from({ length: count }, (_, instanceIndex) => {
+        const modelDefense = cloneDefenseForModel(parentDefense, unitProfileFromNode(model), 1);
+        applyDefenseRulesFromNodes(modelDefense, [model, ...getAllSelections(model)]);
+        return {
+          label: count > 1 ? `${baseLabel} ${instanceIndex + 1}` : baseLabel,
+          weapons: weaponProfilesFromTree(
+            model,
+            `nr-${selection?.id || index}|model-${modelIndex}-${instanceIndex}`,
+            rawCount => perModelWeaponCount(rawCount, count)
+          ),
+          defense: modelDefense,
+          abilities: abilityNamesFromTree(model),
+          _abilityDescriptions: modelAbilityDescriptions,
+          source: 'NewRecruit/BattleScribe',
+          _unitKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}-${instanceIndex}`,
+          _groupId: selection?.id || selection?.entryId || String(index),
+          _modelGroupKey: `nr-${selection?.id || index}-model-${model?.id || model?.entryId || modelIndex}`,
+          _modelGroupCount: count,
+          _isLeaderModel: (count === 1 || instanceIndex === 0) && (modelIndex === 0 || /champion|bloodhunter|plagueridden|gore hound/i.test(model?.name || '')),
+          _isCharacterModel: modelIsCharacter,
+          _keywords: modelKeywords,
+          _points: null,
+        };
+      });
     });
 
     if((parentDefense.T == null || parentDefense.Sv == null || parentDefense.W == null) && children.length){
@@ -1129,8 +1176,46 @@
     };
   }
 
-  function parseMatchupImportUnit(unit){
-    return allocateUnitPointRemainder({
+  function unitLookupKeys(unit){
+    return [
+      unit?._unitKey,
+      unit?.key,
+      unit?._viewKey,
+      unit?.viewKey,
+      cleanName(unit?.label || '').toLowerCase(),
+    ].map(key => String(key || '').trim()).filter(Boolean);
+  }
+
+  function flattenUnitTree(units){
+    return (units || []).flatMap(unit => [unit, ...flattenUnitTree(unit?._children || [])]);
+  }
+
+  function sourceDefenseRepairMap(sourceRoster){
+    if(!sourceRoster || !looksLikeNewRecruitRoster(sourceRoster)) return new Map();
+    const parsed = parseNewRecruitRoster(sourceRoster, sourceRoster?.roster?.name || sourceRoster?.name || 'Source roster');
+    const repairs = new Map();
+    (parsed?.roster?.forces || []).forEach(force => {
+      flattenUnitTree(force?._importedUnits || []).forEach(unit => {
+        if(unit?.defense?.Fnp == null || unit.defense.Fnp === '') return;
+        unitLookupKeys(unit).forEach(key => {
+          if(!repairs.has(key)) repairs.set(key, { Fnp: unit.defense.Fnp });
+        });
+      });
+    });
+    return repairs;
+  }
+
+  function applySourceDefenseRepair(unit, repairs){
+    if(!unit || !repairs?.size) return unit;
+    const repair = unitLookupKeys(unit).map(key => repairs.get(key)).find(Boolean);
+    if(repair?.Fnp != null && repair.Fnp !== '' && (unit.defense?.Fnp == null || unit.defense.Fnp === '')){
+      unit.defense = { ...(unit.defense || {}), Fnp: repair.Fnp };
+    }
+    return unit;
+  }
+
+  function parseMatchupImportUnit(unit, repairs=new Map()){
+    const parsed = allocateUnitPointRemainder({
       label: cleanName(unit?.label) || 'Imported unit',
       weapons: (unit?.weapons || []).map(weapon => ({
         name: weapon.name || '',
@@ -1148,7 +1233,7 @@
       defense: { ...(unit?.defense || {}) },
       abilities: normalizeAbilityNames(unit?.abilities || []),
       _abilityDescriptions: { ...(unit?.abilityDescriptions || unit?._abilityDescriptions || {}) },
-      _children: (unit?.children || unit?._children || []).map(parseMatchupImportUnit),
+      _children: (unit?.children || unit?._children || []).map(child => parseMatchupImportUnit(child, repairs)),
       _tags: [...(unit?._tags || [])],
       _keywords: [...(unit?.keywords || unit?._keywords || [])],
       _points: unit?.points ?? unit?._points ?? null,
@@ -1162,11 +1247,13 @@
       _isLeaderModel: !!unit?._isLeaderModel,
       source: unit?.source || 'Matchup roster import',
     });
+    return applySourceDefenseRepair(parsed, repairs);
   }
 
   function parseMatchupRosterImport(obj, label){
+    const repairs = sourceDefenseRepairMap(obj?.sourceRoster);
     const units = (obj?.postMergeUnits || obj?.gridUnits || [])
-      .map(parseMatchupImportUnit)
+      .map(unit => parseMatchupImportUnit(unit, repairs))
       .filter(Boolean);
     return {
       roster: {

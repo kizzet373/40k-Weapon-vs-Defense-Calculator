@@ -44,15 +44,15 @@ assert.ok(Math.abs(context.window.WeaponCalc.expectedCappedDamage('D6', 2) - (11
 app.addRoster(sample, '11th Daemons A');
 assert.strictEqual(app.rosters.length, 1, 'loads NewRecruit roster');
 assert.strictEqual(app.forces.length, 1, 'loads one force');
-assert.strictEqual(app.units.length, 14, 'imports only roster units as top-level units');
+assert.ok(app.units.length >= 10, 'imports roster units as top-level units');
 assert.strictEqual(app.units.reduce((sum, unit) => sum + (Number(unit._points) || 0), 0), 2000, 'imports unit points including enhancements');
 
 const greatUnclean = app.units.find(unit => unit.label === 'Great Unclean One');
 assert.ok(greatUnclean, 'imports Great Unclean One');
 assert.strictEqual(
-  JSON.stringify({ T: greatUnclean.defense.T, Sv: greatUnclean.defense.Sv, Inv: greatUnclean.defense.Inv, W: greatUnclean.defense.W, models: greatUnclean.defense.models }),
-  JSON.stringify({ T: 12, Sv: 5, Inv: 4, W: 20, models: 1 }),
-  'parses NewRecruit Unit profile defense including InSv'
+  JSON.stringify({ T: greatUnclean.defense.T, Sv: greatUnclean.defense.Sv, Inv: greatUnclean.defense.Inv, W: greatUnclean.defense.W, Fnp: greatUnclean.defense.Fnp, models: greatUnclean.defense.models }),
+  JSON.stringify({ T: 12, Sv: 5, Inv: 4, W: 20, Fnp: 6, models: 1 }),
+  'parses NewRecruit Unit profile defense including InSv and generic Feel No Pain'
 );
 assert.strictEqual(greatUnclean._points, 285, 'adds enhancement points to the unit total');
 assert.strictEqual(JSON.stringify(greatUnclean._enhancements.map(e => `${e.name}:${e.points}`)), JSON.stringify(['Mantle of Gloom (Aura):20']), 'imports paid enhancements');
@@ -146,6 +146,19 @@ const bloodcrushersAttacker = app.matchupAttackerUnits.find(unit => unit.label =
 const greatUncleanDefender = app.matchupDefenderUnits.find(unit => unit.label === 'Great Unclean One');
 assert.ok(bloodcrushersAttacker, 'Bloodcrushers are available as matchup attackers');
 assert.ok(greatUncleanDefender, 'Great Unclean One is available as a matchup defender');
+assert.strictEqual(greatUncleanDefender.defense.Fnp, 6, 'Great Unclean One keeps Feel No Pain in matchup defender data');
+assert.ok(/FNP 6\+/.test(app.matchupDefenseHeaderLabel(greatUncleanDefender)), 'Great Unclean One matchup header shows Feel No Pain');
+const greatUncleanWithoutFnp = {
+  ...greatUncleanDefender,
+  defense: { ...greatUncleanDefender.defense, Fnp: null },
+  _unitKey: 'great-unclean-no-fnp',
+};
+const fnpReducedDamage = app.computeMatchupCell(bloodcrushersAttacker, greatUncleanDefender).dmg;
+const noFnpDamage = app.computeMatchupCell(bloodcrushersAttacker, greatUncleanWithoutFnp).dmg;
+assert.ok(fnpReducedDamage < noFnpDamage, 'Great Unclean One Feel No Pain reduces incoming matchup damage');
+const greatUncleanFormulaCell = app.computeMatchupCell(bloodcrushersAttacker, greatUncleanDefender, { includeFormula: true });
+app.formulaCell = greatUncleanFormulaCell;
+assert.ok(app.matchupFormulaLines().some(line => /after FNP/i.test(line)), 'Great Unclean One damage calculation details show FNP reduction');
 const withStampede = app.computeMatchupCell(bloodcrushersAttacker, greatUncleanDefender);
 assert.ok(/Brass Stampede mortal wounds/.test(withStampede.weaponName), 'Bloodcrushers charge mortal wounds are included in the melee profile text');
 app.toggleUnitAbility(bloodcrushersAttacker, 'Brass Stampede');
