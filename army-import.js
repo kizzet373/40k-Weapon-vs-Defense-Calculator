@@ -1051,9 +1051,21 @@
     return (selection?.selections || []).filter(child => child?.type === 'model');
   }
 
+  function modelCountUpgradeForSelection(selection){
+    const counts = (selection?.selections || [])
+      .map(child => {
+        const match = cleanName(child?.name).match(/^(\d+)\s+models?\b/i);
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter(value => Number.isFinite(value) && value > 0);
+    return counts.length ? Math.max(...counts) : null;
+  }
+
   function modelCountForSelection(selection){
     const models = modelSelectionsForUnit(selection);
     if(models.length) return models.reduce((sum, model) => sum + (Math.max(1, parseInt(model?.number ?? 1, 10) || 1)), 0);
+    const upgradeCount = modelCountUpgradeForSelection(selection);
+    if(upgradeCount != null) return upgradeCount;
     return Math.max(1, parseInt(selection?.number ?? 1, 10) || 1);
   }
 

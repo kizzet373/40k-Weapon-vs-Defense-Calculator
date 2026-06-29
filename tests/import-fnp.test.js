@@ -217,6 +217,36 @@ const duplicateEnhancementUnit = duplicateEnhancementImportApp.units[0];
 assert.strictEqual(JSON.stringify(duplicateEnhancementUnit.abilities), JSON.stringify(['Battle Focus']), 'matchup imports remove enhancement duplicates from abilities');
 assert.strictEqual(JSON.stringify(duplicateEnhancementUnit._enhancements.map(enh => enh.name)), JSON.stringify(['Mantle of Gloom (Aura)']), 'matchup imports keep the enhancement section');
 
+const modelCountUpgradeApp = context.weaponVsDefenseApp();
+modelCountUpgradeApp.addRoster({
+  roster: {
+    name: 'Model count upgrade fixture',
+    battleScribeVersion: '2.03',
+    forces: [{
+      name: 'Force',
+      selections: [{
+        type: 'unit',
+        id: 'wolf-scouts',
+        name: 'Wolf Scouts',
+        number: '1',
+        profiles: [{
+          typeName: 'Unit',
+          name: 'Wolf Scouts',
+          characteristics: [
+            { name: 'T', $text: '4' },
+            { name: 'Sv', $text: '3+' },
+            { name: 'W', $text: '2' },
+          ],
+        }],
+        selections: [{ type: 'upgrade', name: '6 Models', number: '1' }],
+      }],
+    }],
+  },
+}, 'Model count upgrade fixture');
+const modelCountUpgradeUnit = modelCountUpgradeApp.units.find(unit => unit.label === 'Wolf Scouts');
+assert.strictEqual(modelCountUpgradeUnit?.defense?.models, 6, 'imports model-count upgrade labels such as "6 Models"');
+assert.strictEqual(modelCountUpgradeUnit?.defense?.totalWounds, 12, 'model-count upgrade labels update total wound pool');
+
 const matchupImportApp = context.weaponVsDefenseApp();
 matchupImportApp.addRoster({
   schema: '40k-roster-matchup-import',
