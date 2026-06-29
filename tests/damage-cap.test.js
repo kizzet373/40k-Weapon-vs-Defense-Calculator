@@ -1015,6 +1015,21 @@ assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\)$/
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');
 assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
 
+const finalProfileOverkillCell = app.computeMatchupCell(
+  {
+    label: 'Final profile overkill attacker',
+    weapons: [{ name: 'Damage two claws', range: 'Melee', A: '4', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'melee' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'One wound defender', defense: { T: 4, Sv: 7, W: 1, models: 1, totalWounds: 1 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = finalProfileOverkillCell;
+const finalProfileOverkillLines = app.matchupFormulaLines();
+assert.ok(Math.abs(finalProfileOverkillCell.dmg - (10 / 3)) < 1e-9, 'the profile that kills the final model still applies no-spill damage loss to its overkill attacks');
+assert.ok(finalProfileOverkillLines.some(line => /^Spill Loss: .* = 3\.333 spill loss$/i.test(line)), 'last-profile overkill shows spill loss from the repeated final defensive profile');
+assert.ok(finalProfileOverkillLines.some(line => /^Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\)$/i.test(line)), 'last-profile overkill total reports post-spill overkill damage');
+
 const remainingAllocationFormulaCell = app.computeMatchupCell(
   {
     label: 'Remaining allocation attacker',
