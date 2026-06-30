@@ -1418,6 +1418,47 @@ assert.strictEqual(app.matchup.sortDefenders, 'alpha', 'defender dropdown can so
 app.setMatchupSideSortMode('attacker', 'score');
 app.setMatchupSideSortMode('defender', 'score');
 
+const noRecalcSortApp = context.weaponVsDefenseApp();
+const sortAttackerA = {
+  label: 'Sort attacker A',
+  _unitKey: 'sort-attacker-a',
+  _points: 100,
+  weapons: [{ name: 'Rifle', range: '24', A: '1', skill: 3, S: 4, AP: 0, D: 1, mode: 'ranged' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+};
+const sortAttackerB = {
+  label: 'Sort attacker B',
+  _unitKey: 'sort-attacker-b',
+  _points: 100,
+  weapons: [{ name: 'Rifle', range: '24', A: '1', skill: 3, S: 4, AP: 0, D: 1, mode: 'ranged' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+};
+const sortDefenderA = { label: 'Sort defender A', _unitKey: 'sort-defender-a', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+const sortDefenderB = { label: 'Sort defender B', _unitKey: 'sort-defender-b', _points: 100, defense: { T: 5, Sv: 2, W: 3, models: 1 } };
+noRecalcSortApp.matchupModalOpen = true;
+noRecalcSortApp.matchupAttackerUnits = [sortAttackerA, sortAttackerB];
+noRecalcSortApp.matchupDefenderUnits = [sortDefenderA, sortDefenderB];
+noRecalcSortApp.matchup.rows = [
+  { unit: sortAttackerA, cells: [{ dmg: 10 }, { dmg: 1 }] },
+  { unit: sortAttackerB, cells: [{ dmg: 2 }, { dmg: 20 }] },
+];
+noRecalcSortApp.matchup.cellCache = {
+  [noRecalcSortApp.cellCacheKey(sortAttackerA, sortDefenderA)]: { dmg: 10 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerA, sortDefenderB)]: { dmg: 1 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerB, sortDefenderA)]: { dmg: 2 },
+};
+noRecalcSortApp.computeMatchupCell = () => {
+  throw new Error('sorting should not recalculate matchup cells');
+};
+noRecalcSortApp.setMatchupSideSortMode('attacker', 'overallDamage');
+noRecalcSortApp.cycleMatchupSideSort('attacker');
+noRecalcSortApp.setMatchupSideSortMode('defender', 'overallDamage');
+noRecalcSortApp.cycleMatchupSideSort('defender');
+noRecalcSortApp.sortMatchupByColumn(sortDefenderA);
+noRecalcSortApp.sortMatchupByRow(sortAttackerA);
+noRecalcSortApp.sortMatchupAlphabetical();
+assert.ok(noRecalcSortApp.matchup.visibleRows.length > 0, 'sorting refreshes visible rows from cached matchup cells');
+
 const profileScoreAttacker = {
   label: 'Profile score attacker',
   _unitKey: 'profile-score-attacker',

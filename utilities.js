@@ -959,12 +959,12 @@ function weaponVsDefenseApp(){
       return this.matchup.visibleDefenders || [];
     },
 
-    buildVisibleDefenders(){
+    buildVisibleDefenders(options={}){
       const cols = [];
       (this.matchupDefenderUnits || []).forEach((unit, colIndex) => {
         cols.push({ unit, colIndex, depth: 0, isChild: false });
         if(this.isUnitExpanded(unit)){
-          this.sortedDefenderChildren(unit?._children || []).forEach((child, childIndex) => {
+          this.sortedDefenderChildren(unit?._children || [], options).forEach((child, childIndex) => {
             cols.push({ unit: child, colIndex, childIndex, depth: 1, isChild: true });
           });
         }
@@ -1267,8 +1267,24 @@ function weaponVsDefenseApp(){
       return this.matchup.cellCache[key];
     },
 
-    refreshVisibleMatchup(){
-      const defenders = this.buildVisibleDefenders();
+    lookupCachedMatchupCell(attacker, defender){
+      const key = this.cellCacheKey(attacker, defender);
+      return this.matchup.cellCache?.[key] || null;
+    },
+
+    presentationMatchupCell(attacker, defender){
+      return this.lookupCachedMatchupCell(attacker, defender) || window.MatchupEngine.emptyCell();
+    },
+
+    matchupCellReader(options={}){
+      return options.computeMissing === false
+        ? (attacker, defender) => this.presentationMatchupCell(attacker, defender)
+        : (attacker, defender) => this.cachedMatchupCell(attacker, defender);
+    },
+
+    refreshVisibleMatchup(options={}){
+      const cellFor = this.matchupCellReader(options);
+      const defenders = this.buildVisibleDefenders(options);
       const rows = [];
       (this.matchup.rows || []).forEach((row, rowIndex) => {
         rows.push({
@@ -1276,7 +1292,7 @@ function weaponVsDefenseApp(){
           rowIndex,
           depth: 0,
           isChild: false,
-          cells: defenders.map(defender => this.cachedMatchupCell(row.unit, defender.unit)),
+          cells: defenders.map(defender => cellFor(row.unit, defender.unit)),
         });
         if(this.isUnitExpanded(row.unit)){
           (row.unit?._children || []).filter(child => this.hasMatchupWeaponProfiles(child)).forEach((child, childIndex) => {
@@ -1286,7 +1302,7 @@ function weaponVsDefenseApp(){
               childIndex,
               depth: 1,
               isChild: true,
-              cells: defenders.map(defender => this.cachedMatchupCell(child, defender.unit)),
+              cells: defenders.map(defender => cellFor(child, defender.unit)),
             });
           });
         }
@@ -1312,15 +1328,16 @@ function weaponVsDefenseApp(){
       });
     },
 
-    refreshMatchupPresentation(){
-      this.applyMatchupSorting(false);
-      this.refreshVisibleMatchup();
+    refreshMatchupPresentation(options={}){
+      this.applyMatchupSorting(false, options);
+      this.refreshVisibleMatchup(options);
     },
 
-    sortedDefenderChildren(children){
+    sortedDefenderChildren(children, options={}){
       const list = [...(children || [])];
       if(list.length <= 1) return list;
-      const summaries = new Map(list.map(unit => [this.unitKey(unit), this.defenderSortSummaryForUnit(unit)]));
+      const cellFor = this.matchupCellReader(options);
+      const summaries = new Map(list.map(unit => [this.unitKey(unit), this.defenderSortSummaryForUnit(unit, options)]));
       const sortAlpha = (a, b) => String(a?.label || '').localeCompare(String(b?.label || ''));
       const summary = unit => summaries.get(this.unitKey(unit)) || { maxMetric:0, totalMetric:0, focusMetric:0, score:0 };
       const direction = this.matchup.sortDefendersDirection || 'desc';
@@ -1331,7 +1348,7 @@ function weaponVsDefenseApp(){
       const byLeastDmg = metricSort(unit => summary(unit).focusMetric, (a, b) => this.compareSortValues(summary(a).totalMetric, summary(b).totalMetric, direction) || sortAlpha(a, b));
       const byRow = metricSort(unit => {
         const attacker = this.sortAnchorAttacker();
-        return attacker ? this.matchupCellMetric(this.cachedMatchupCell(attacker, unit)) : summary(unit).focusMetric;
+        return attacker ? this.matchupCellMetric(cellFor(attacker, unit)) : summary(unit).focusMetric;
       }, byOverallDmg);
       const mode = this.matchup.sortDefenders || 'alpha';
       if(mode === 'leastDamage') return list.sort(byLeastDmg);
@@ -1342,19 +1359,20 @@ function weaponVsDefenseApp(){
       return list.sort(sortAlpha);
     },
 
-    defenderSortSummaryForUnit(unit){
+    defenderSortSummaryForUnit(unit, options={}){
+      const cellFor = this.matchupCellReader(options);
       let maxMetric = 0;
       let totalMetric = 0;
       let focusMetric = 0;
       (this.matchup.rows || []).forEach(row => {
-        const c = this.cachedMatchupCell(row.unit, unit);
+        const c = cellFor(row.unit, unit);
         const value = this.matchupCellMetric(c);
         if(Number.isFinite(value)){
           maxMetric = Math.max(maxMetric, value);
           totalMetric += value;
         }
       });
-      const focusCell = this.matchup.rows?.[0]?.unit ? this.cachedMatchupCell(this.matchup.rows[0].unit, unit) : null;
+      const focusCell = this.matchup.rows?.[0]?.unit ? cellFor(this.matchup.rows[0].unit, unit) : null;
       const focusValue = this.matchupCellMetric(focusCell);
       if(Number.isFinite(focusValue)) focusMetric = focusValue;
       const points = this.unitPointValue(unit);
@@ -1593,15 +1611,16 @@ function weaponVsDefenseApp(){
       return key ? this.flattenMatchupAttackers(this.matchupAttackerUnits || []).find(unit => this.unitKey(unit) === key) : null;
     },
 
-    applyMatchupSorting(refresh=true){
+    applyMatchupSorting(refresh=true, options={}){
       const attackers = [...(this.matchupAttackerUnits || [])].filter(unit => this.hasMatchupWeaponProfiles(unit));
       const defenders = [...(this.matchupDefenderUnits || [])];
+      const cellFor = this.matchupCellReader(options);
       const alphaDirection = this.matchup.sortAttackers === 'alpha' ? (this.matchup.sortAttackersDirection || 'asc') : 'asc';
       const alpha = (direction=alphaDirection) => (a, b) => {
         const diff = String(a?.label || '').localeCompare(String(b?.label || ''));
         return direction === 'desc' ? -diff : diff;
       };
-      const metricFor = (attacker, defender) => this.matchupCellMetric(this.cachedMatchupCell(attacker, defender));
+      const metricFor = (attacker, defender) => this.matchupCellMetric(cellFor(attacker, defender));
       const rowTotal = attacker => defenders.reduce((sum, defender) => {
         const value = metricFor(attacker, defender);
         return sum + (Number.isFinite(value) ? value : 0);
@@ -1685,9 +1704,9 @@ function weaponVsDefenseApp(){
       this.matchupDefenderUnits = defenders;
       this.matchup.rows = attackers.map(attacker => ({
         unit: attacker,
-        cells: defenders.map(defender => this.cachedMatchupCell(attacker, defender)),
+        cells: defenders.map(defender => cellFor(attacker, defender)),
       }));
-      if(refresh) this.refreshVisibleMatchup();
+      if(refresh) this.refreshVisibleMatchup(options);
     },
 
     setMatchupSort(side){
@@ -1698,7 +1717,7 @@ function weaponVsDefenseApp(){
         this.matchup.sortDefenders = this.matchup.sortDefenders || 'overallDamage';
         this.matchup.sortDefendersDirection = this.matchup.sortDefendersDirection || 'desc';
       }
-      this.refreshMatchupPresentation();
+      this.refreshMatchupPresentation({ computeMissing: false });
     },
 
     normalizeMatchupSideSortMode(mode){
@@ -1712,7 +1731,7 @@ function weaponVsDefenseApp(){
       const anchorKey = isAttacker ? 'sortAttackersColumnKey' : 'sortDefendersRowKey';
       this.matchup[modeKey] = this.normalizeMatchupSideSortMode(mode);
       this.matchup[anchorKey] = '';
-      this.refreshMatchupPresentation();
+      this.refreshMatchupPresentation({ computeMissing: false });
     },
 
     cycleMatchupSideSort(side){
@@ -1721,7 +1740,7 @@ function weaponVsDefenseApp(){
       const defaultDirection = 'desc';
       const direction = this.matchup[directionKey] || defaultDirection;
       this.matchup[directionKey] = direction === 'asc' ? 'desc' : 'asc';
-      this.refreshMatchupPresentation();
+      this.refreshMatchupPresentation({ computeMissing: false });
     },
 
     matchupSideSortLabel(side){
@@ -1758,7 +1777,7 @@ function weaponVsDefenseApp(){
       this.matchup.sortDefendersDirection = next;
       this.matchup.sortAttackersColumnKey = '';
       this.matchup.sortDefendersRowKey = '';
-      this.refreshMatchupPresentation();
+      this.refreshMatchupPresentation({ computeMissing: false });
     },
 
     sortMatchupByColumn(defender){
@@ -1767,7 +1786,7 @@ function weaponVsDefenseApp(){
       this.matchup.sortAttackers = 'column';
       this.matchup.sortAttackersColumnKey = key;
       this.matchup.sortAttackersDirection = active ? this.toggleDirection(this.matchup.sortAttackersDirection, 'desc') : 'desc';
-      this.refreshMatchupPresentation();
+      this.refreshMatchupPresentation({ computeMissing: false });
     },
 
     sortMatchupByRow(attacker){
@@ -1776,7 +1795,7 @@ function weaponVsDefenseApp(){
       this.matchup.sortDefenders = 'row';
       this.matchup.sortDefendersRowKey = key;
       this.matchup.sortDefendersDirection = active ? this.toggleDirection(this.matchup.sortDefendersDirection, 'asc') : 'desc';
-      this.refreshMatchupPresentation();
+      this.refreshMatchupPresentation({ computeMissing: false });
     },
 
     sortButtonSymbol(axis, unit=null){
