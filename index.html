@@ -125,9 +125,31 @@
 
     <h2>Pick a Unit</h2>
     <div class="card" id="unitPicker">
-      <div class="row">
-        <label>
-          Unit / Model
+      <div class="unitPickerSelectionRow" :class="activeView === 'matchups' ? 'matchupUnitPickerSelectionRow' : 'calcUnitPickerSelectionRow'">
+        <label x-show="activeView === 'matchups'" x-cloak>
+          Roster
+          <select x-model.number="selectedRosterIdx" @change="refreshForces()">
+            <template x-for="(r, i) in rosters" :key="`unit-roster-${i}`">
+              <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
+            </template>
+            <template x-if="rosters.length === 0">
+              <option value="0">No rosters loaded</option>
+            </template>
+          </select>
+        </label>
+        <label x-show="activeView === 'matchups'" x-cloak>
+          Force
+          <select x-model.number="selectedForceIdx" @change="refreshUnits()">
+            <template x-for="(f, i) in forces" :key="`unit-force-${i}`">
+              <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+            </template>
+            <template x-if="forces.length === 0">
+              <option value="0">No forces found</option>
+            </template>
+          </select>
+        </label>
+        <label class="unitSelectLabel">
+          Unit
           <select x-model.number="selectedUnitIdx" @change="onUnitChanged()">
             <template x-for="(u, i) in units" :key="`unit-${i}`">
               <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
@@ -142,7 +164,7 @@
         <div class="unitActionRow unitActionPrimary">
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptRenameUnit(activeUnit)">Rename</button>
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
-          <button class="danger" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
+          <button class="danger unitDeleteButton" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete Unit</button>
         </div>
         <div class="unitActionRow unitActionSecondary">
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length < 2" @click="openMergeUnitModal()">Merge</button>

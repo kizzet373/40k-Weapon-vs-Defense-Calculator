@@ -233,10 +233,14 @@ main{padding:14px;min-width:0;overflow:hidden}
 }
 .forcePickerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .forceSelectLabel{min-width:0}
+.unitPickerSelectionRow{display:grid;gap:8px;align-items:end}
+.calcUnitPickerSelectionRow{grid-template-columns:minmax(0,1fr)}
+.matchupUnitPickerSelectionRow{grid-template-columns:minmax(0,.85fr) minmax(0,.85fr) minmax(0,1.25fr)}
+.unitPickerSelectionRow label{min-width:0}
 .unitActionRows{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .unitActionRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .unitActionRow button{flex:0 0 auto}
-.unitActionPrimary .danger{order:3}
+.unitDeleteButton{margin-left:auto}
 .matchupSidebarTools .card{overflow:visible}
 .sidebarMatchupToolbar{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:0;flex-wrap:nowrap}
 .sidebarMatchupToolbar .matchupToggles{min-width:0;flex-wrap:wrap;align-items:stretch}
