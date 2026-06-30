@@ -341,6 +341,7 @@ const app = context.weaponVsDefenseApp();
 const movementProfileUnit = { label: 'Movement profile', defense: { M: '6"', T: 4, Sv: 3, Inv: 5, W: 2, models: 5 } };
 assert.ok(/^M6" \| T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.profileDefenseHeaderLabel(movementProfileUnit)), 'unit profile modal defense line shows movement before toughness');
 assert.ok(/^T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.matchupDefenseHeaderLabel(movementProfileUnit)), 'matchup grid defense line does not add movement');
+assert.ok(/M6&quot;.*T4/.test(app.profileChildSummaryHtml(movementProfileUnit)), 'unit profile modal child summaries show movement before toughness');
 app.addBaseProfilesRoster();
 assert.strictEqual(app.activeView, 'matchups', 'Unit Matchups view is active by default');
 app.switchToMatchupView({ reset: true });

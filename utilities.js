@@ -780,7 +780,7 @@ function weaponVsDefenseApp(){
     },
 
     profileChildSummaryHtml(child){
-      return `${this.defenseProfileTextHtml(this.matchupDefenseHeaderLabel(child))} <span class="profileSummarySeparator">·</span> ${this.htmlCell(this.matchupWeaponSummary(child))}`;
+      return `${this.defenseProfileTextHtml(this.profileDefenseHeaderLabel(child))} <span class="profileSummarySeparator">·</span> ${this.htmlCell(this.matchupWeaponSummary(child))}`;
     },
 
     matchupDefenseProfileLines(u){
