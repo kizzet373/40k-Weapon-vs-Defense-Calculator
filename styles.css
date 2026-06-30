@@ -215,6 +215,8 @@ main{padding:14px;min-width:0;overflow:hidden}
 .matchupRosterRow{display:grid;grid-template-columns:68px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
 .matchupRosterSide{display:flex;align-items:flex-end;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em;padding-bottom:9px;text-transform:uppercase}
 .matchupRosterSideText{display:inline-block}
+.matchupRosterSideTextAttacker{color:#ff3b3b}
+.matchupRosterSideTextDefender{color:#34ff6a}
 .matchupRosterRow label{min-width:0}
 .matchupRosterSwapButton{
   position:absolute;

@@ -74,7 +74,7 @@
       <div class="matchupRosterPicker" x-show="activeView === 'matchups'" x-cloak>
         <button type="button" class="secondary matchupRosterSwapButton" @click="swapMatchupSides()">Swap</button>
         <div class="matchupRosterRow">
-          <div class="matchupRosterSide"><span class="matchupRosterSideText">Attacker</span></div>
+          <div class="matchupRosterSide"><span class="matchupRosterSideText matchupRosterSideTextAttacker">Attacker</span></div>
           <label>
             Roster
             <select x-model.number="matchup.attackerRosterIdx" @change="onMatchupRosterChanged('attacker')">
@@ -94,7 +94,7 @@
         </div>
 
         <div class="matchupRosterRow">
-          <div class="matchupRosterSide"><span class="matchupRosterSideText">Defender</span></div>
+          <div class="matchupRosterSide"><span class="matchupRosterSideText matchupRosterSideTextDefender">Defender</span></div>
           <label>
             Roster
             <select x-model.number="matchup.defenderRosterIdx" @change="onMatchupRosterChanged('defender')">
