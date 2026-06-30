@@ -15,7 +15,7 @@
 
 <body>
 <div class="app" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''" x-data="weaponVsDefenseApp()" x-init="init()"
-     x-effect="document.documentElement.classList.toggle('modalOpen', mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen); document.body.classList.toggle('modalOpen', mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen)">
+     x-effect="document.documentElement.classList.toggle('modalOpen', renameModalOpen || mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen); document.body.classList.toggle('modalOpen', renameModalOpen || mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen)">
   <aside id="sidebar">
     <div class="asideHead">
       <h1>Army Loader</h1>
@@ -55,8 +55,8 @@
         </button>
       </div>
 
-      <div class="row">
-        <label>
+      <div class="row forcePickerRow">
+        <label class="forceSelectLabel">
           Force
           <select x-model.number="selectedForceIdx" @change="refreshUnits()">
             <template x-for="(f, i) in forces" :key="`force-${i}`">
@@ -67,11 +67,10 @@
             </template>
           </select>
         </label>
-      </div>
-
-      <div class="sidebarMatchupSetters" x-show="activeView === 'matchups'" x-cloak>
-        <button type="button" class="secondary" @click="setCurrentSelectionAsMatchupSide('attacker')">Set as Attacker</button>
-        <button type="button" class="secondary" @click="setCurrentSelectionAsMatchupSide('defender')">Set as Defender</button>
+        <div class="sidebarMatchupSetters" x-show="activeView === 'matchups'" x-cloak>
+          <button type="button" class="secondary" @click="setCurrentSelectionAsMatchupSide('attacker')">Set Attacker</button>
+          <button type="button" class="secondary" @click="setCurrentSelectionAsMatchupSide('defender')">Set Defender</button>
+        </div>
       </div>
 
     </div>
@@ -97,11 +96,17 @@
             </template>
           </select>
         </label>
+      </div>
+      <div class="unitActionRows">
+        <div class="unitActionRow unitActionPrimary">
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptRenameUnit(activeUnit)">Rename</button>
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
+          <button class="danger" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
+        </div>
+        <div class="unitActionRow unitActionSecondary">
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length < 2" @click="openMergeUnitModal()">Merge</button>
         <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="unmergeActiveUnit()">Unmerge</button>
-        <button class="danger" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
+        </div>
       </div>
     </div>
 
@@ -125,9 +130,11 @@
               <span>Conditions Met</span>
             </label>
 
-            <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">Shooting</button>
-            <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')" title="Combine shooting and melee into one row/column">&lt; Combined &gt;</button>
-            <button type="button" class="seg" :class="matchup.showMelee ? 'active' : ''" @click="toggleMatchupRecomputeOption('showMelee')">Melee</button>
+            <div class="attackModeButtonRow">
+              <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">Shooting</button>
+              <button type="button" class="seg" :class="matchup.combineShootingProfiles ? 'active' : ''" @click="toggleMatchupRecomputeOption('combineShootingProfiles')" title="Combine shooting and melee into one row/column">&lt; Combined &gt;</button>
+              <button type="button" class="seg" :class="matchup.showMelee ? 'active' : ''" @click="toggleMatchupRecomputeOption('showMelee')">Melee</button>
+            </div>
           </div>
 
           <div class="matchupActions" @keydown.escape.window="matchupActionMenu = ''">
@@ -841,6 +848,30 @@
         <div x-text="ruleDescription.description"></div>
         <div class="muted" style="font-size:12px" x-show="ruleDescription.source" x-text="ruleDescription.source"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Rename unit modal -->
+  <div class="modalOverlay" x-show="renameModalOpen" x-cloak
+       @keydown.escape.window="closeRenameUnitModal()" @click.self="closeRenameUnitModal()">
+    <div class="modal modalSmall" role="dialog" aria-modal="true" aria-label="Rename unit">
+      <div class="modalHead">
+        <div>
+          <div style="font-weight:800">Rename</div>
+          <div class="muted" style="font-size:12px" x-text="unitLabelText(renameTargetUnit, 'Unit')"></div>
+        </div>
+        <button class="secondary" type="button" @click="closeRenameUnitModal()">Close</button>
+      </div>
+      <form class="modalBody renameModalBody" @submit.prevent="submitRenameUnit()">
+        <label>
+          Name
+          <input type="text" x-ref="renameInput" x-model="renameDraft" />
+        </label>
+        <div class="renameModalActions">
+          <button type="button" class="secondary" @click="closeRenameUnitModal()">Cancel</button>
+          <button type="submit" class="primary" :disabled="!String(renameDraft || '').trim()">Save</button>
+        </div>
+      </form>
     </div>
   </div>
 

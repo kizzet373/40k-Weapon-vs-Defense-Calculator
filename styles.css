@@ -199,15 +199,26 @@ main{padding:14px;min-width:0;overflow:hidden}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .viewToggleRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .viewToggleRow button.active{border-color:rgba(110,231,255,.7);box-shadow:0 0 0 2px rgba(110,231,255,.13) inset}
-.sidebarMatchupSetters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.forcePickerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.forceSelectLabel{min-width:0}
+.sidebarMatchupSetters{display:flex;gap:8px;align-items:end}
+.sidebarMatchupSetters button{white-space:nowrap}
+.unitActionRows{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.unitActionRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.unitActionRow button{flex:0 0 auto}
+.unitActionPrimary .danger{order:3}
 .matchupSidebarTools .card{overflow:visible}
 .sidebarMatchupToolbar{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:0;flex-wrap:nowrap}
 .sidebarMatchupToolbar .matchupToggles{min-width:0;flex-wrap:wrap;align-items:stretch}
 .sidebarMatchupToolbar .matchupToggles > *{flex:1 1 auto}
+.attackModeButtonRow{display:flex;gap:6px;align-items:center;flex:0 0 100%;flex-wrap:nowrap}
+.attackModeButtonRow .seg{flex:0 0 auto;width:auto}
 .sidebarMatchupToolbar .matchupActions{justify-content:flex-start;flex-wrap:wrap;white-space:normal}
 .sidebarMatchupToolbar .actionMenu{left:0;right:auto}
 .matchupPage{min-height:calc(100dvh - 70px);min-width:0}
 .matchupPage .matchupGridWrap{height:calc(100dvh - 88px);max-height:none;width:100%;max-width:100%;box-sizing:border-box}
+.renameModalBody{display:flex;flex-direction:column;gap:14px}
+.renameModalActions{display:flex;justify-content:flex-end;gap:8px;align-items:center}
 .mergeTargetTable{width:100%;border-collapse:collapse}
 .mergeTargetTable th,.mergeTargetTable td{padding:8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
 .mergeTargetTable th{text-align:left;color:var(--muted);font-size:12px}

@@ -8,6 +8,9 @@ function weaponVsDefenseApp(){
     importStatus: { type: '', text: '' },
     mergeModalOpen: false,
     mergeFromUnit: null,
+    renameModalOpen: false,
+    renameTargetUnit: null,
+    renameDraft: '',
 
     // ---------------- Matchups ----------------
     matchupModalOpen: false,
@@ -619,10 +622,36 @@ function weaponVsDefenseApp(){
     promptRenameUnit(unit=null){
       const target = unit || this.activeUnit;
       if(!target) return;
-      const current = this.unitLabelText(target, 'Unit');
-      const next = window.prompt('Rename unit/model', current);
-      if(next == null) return;
-      this.renameUnit(target, next);
+      this.openRenameUnitModal(target);
+    },
+
+    openRenameUnitModal(unit=null){
+      const target = unit || this.activeUnit;
+      if(!target) return;
+      this.renameTargetUnit = target;
+      this.renameDraft = this.unitLabelText(target, 'Unit');
+      this.renameModalOpen = true;
+      const focusInput = () => {
+        this.$refs?.renameInput?.focus?.();
+        this.$refs?.renameInput?.select?.();
+      };
+      if(typeof this.$nextTick === 'function') this.$nextTick(focusInput);
+      if(typeof setTimeout === 'function') setTimeout(focusInput, 50);
+      else queueMicrotask(focusInput);
+    },
+
+    closeRenameUnitModal(){
+      this.renameModalOpen = false;
+      this.renameTargetUnit = null;
+      this.renameDraft = '';
+    },
+
+    submitRenameUnit(){
+      const target = this.renameTargetUnit || this.activeUnit;
+      const label = String(this.renameDraft || '').trim();
+      if(!target || !label) return;
+      this.renameUnit(target, label);
+      this.closeRenameUnitModal();
     },
 
     duplicateSelectedUnit(){
