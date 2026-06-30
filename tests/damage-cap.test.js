@@ -1368,6 +1368,16 @@ assert.ok(afterCustom.dmg > beforeCustom.dmg, 'custom profile modifiers affect m
 assert.ok(/S 8 from 4/.test(afterCustom.profileModifierText), 'custom profile modifiers are retained for calculation breakdown data');
 assert.ok(app.unitCustomModifierOptions().some(option => option.value === 'Hit Rolls +1' && /\+1 to Hit/.test(option.label)), 'unit custom modifier dropdown includes readable offensive effects');
 assert.ok(app.unitCustomModifierOptions().some(option => option.value === 'Defense: Invulnerable Save 4+'), 'unit custom modifier dropdown includes defensive profile effects');
+const globalCustomApp = context.weaponVsDefenseApp();
+const globalCustomAttacker = { label: 'Global custom attacker', _viewKey: 'global-custom-attacker', _unitKey: 'global-custom-attacker', abilities: [], weapons: [{ name: 'Global blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'global-blade' }], defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+const globalCustomDefender = { label: 'Global custom defender', _viewKey: 'global-custom-defender', _unitKey: 'global-custom-defender', abilities: [], weapons: [], defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
+const beforeGlobalCustom = globalCustomApp.computeMatchupCell(globalCustomAttacker, globalCustomDefender);
+globalCustomApp.addMatchupCustomModifier('Strength +4');
+const afterGlobalCustom = globalCustomApp.computeMatchupCell(globalCustomAttacker, globalCustomDefender);
+assert.ok(afterGlobalCustom.dmg > beforeGlobalCustom.dmg, 'matchup custom modifiers apply globally to matchup calculations');
+assert.strictEqual(globalCustomApp.matchupCustomModifiers().length, 1, 'matchup custom modifier dropdown adds selected modifiers as pills');
+globalCustomApp.removeMatchupCustomModifier(globalCustomApp.matchupCustomModifiers()[0].id);
+assert.strictEqual(globalCustomApp.matchupCustomModifiers().length, 0, 'matchup custom modifier pills can be removed');
 const scopedWeaponA = { name: 'Scoped blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'scoped-a' };
 const scopedWeaponB = { name: 'Other blade', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'scoped-b' };
 const scopedAttacker = { label: 'Scoped attacker', _viewKey: 'scoped-attacker', _unitKey: 'scoped-attacker', abilities: [], weapons: [scopedWeaponA, scopedWeaponB], defense: { T: 4, Sv: 3, W: 2, models: 1 } };

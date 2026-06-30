@@ -4,6 +4,7 @@ function weaponVsDefenseApp(){
     sidebarCollapsed: false,
     activeView: 'matchups',
     matchupOptionsCollapsed: false,
+    pasteJsonModalOpen: false,
     jsonPaste: '',
     importStatus: { type: '', text: '' },
     mergeModalOpen: false,
@@ -42,6 +43,7 @@ function weaponVsDefenseApp(){
       cellCache: {},
       cacheWarmToken: 0,
       loadingMessage: '',
+      customModifiers: [],
     },
     matchupAttackerForces: [],
     matchupDefenderForces: [],
@@ -448,6 +450,14 @@ function weaponVsDefenseApp(){
       this.$refs?.rosterFileInput?.click?.();
     },
 
+    openPasteJsonModal(){
+      this.pasteJsonModalOpen = true;
+    },
+
+    closePasteJsonModal(){
+      this.pasteJsonModalOpen = false;
+    },
+
     async onRosterFile(evt){
       const f = evt.target.files?.[0];
       if(!f) return;
@@ -471,6 +481,7 @@ function weaponVsDefenseApp(){
       try{
         const label = this.addRoster(JSON.parse(t), 'Pasted JSON');
         this.setImportStatus('success', label || importName);
+        this.closePasteJsonModal();
       }catch(e){
         this.setImportStatus('error', importName);
         alert('Invalid JSON');
@@ -3232,6 +3243,7 @@ function weaponVsDefenseApp(){
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), resolvedContext),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), resolvedContext),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), resolvedContext),
       ];
     },
 
@@ -3258,6 +3270,7 @@ function weaponVsDefenseApp(){
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), context),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), context),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), context),
       ];
     },
 
@@ -3266,6 +3279,7 @@ function weaponVsDefenseApp(){
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), resolvedContext),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), resolvedContext),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), resolvedContext),
       ];
     },
 
@@ -3274,6 +3288,7 @@ function weaponVsDefenseApp(){
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(attacker), context),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(attacker), context),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), context),
       ];
     },
 
@@ -3570,6 +3585,46 @@ function weaponVsDefenseApp(){
           return { label: this.customModifierOptionLabel(value), value };
         });
       return this.dedupeCustomModifierOptions(options);
+    },
+
+    matchupCustomModifierOptions(){
+      return this.unitCustomModifierOptions();
+    },
+
+    matchupCustomModifiers(){
+      if(!Array.isArray(this.matchup.customModifiers)) this.matchup.customModifiers = [];
+      return this.matchup.customModifiers;
+    },
+
+    enabledMatchupCustomModifierSpecs(){
+      return this.matchupCustomModifiers()
+        .filter(mod => mod?.enabled !== false && String(mod?.text || '').trim())
+        .map(mod => mod.text.trim());
+    },
+
+    addMatchupCustomModifier(value){
+      const text = String(value || '').trim();
+      if(!text) return;
+      const option = this.matchupCustomModifierOptions().find(entry => entry.value === text);
+      const existing = this.matchupCustomModifiers().find(entry => String(entry?.text || '').trim().toLowerCase() === text.toLowerCase());
+      if(existing){
+        existing.enabled = true;
+      }else{
+        this.matchupCustomModifiers().push({
+          id: `matchup-custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+          text,
+          label: option?.label || this.customModifierOptionLabel(text),
+          enabled: true,
+        });
+      }
+      this.clearMatchupComputationCache();
+      if(this.matchupModalOpen) this.rebuildMatchup();
+    },
+
+    removeMatchupCustomModifier(id){
+      this.matchup.customModifiers = this.matchupCustomModifiers().filter(entry => entry.id !== id);
+      this.clearMatchupComputationCache();
+      if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
     scopedWeaponModifierText(w, value){

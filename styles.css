@@ -146,15 +146,7 @@ h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
     gap:6px;
   }
 
-  .importArmyRow button{width:100%}
-
-  .pasteJsonRow{
-    flex-direction:column;
-    align-items:stretch;
-    gap:6px;
-  }
-
-  .pasteJsonSubmit{width:100%}
+  .importArmyRow button{width:auto;flex:1 1 0}
 
   .defenseProfileLine{width:auto}
 
@@ -264,12 +256,21 @@ main{padding:14px;min-width:0;overflow:hidden}
 .unitActionRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .unitActionRow button{flex:0 0 auto}
 .unitDeleteButton{margin-left:auto}
+.pasteJsonModalBody{display:grid;gap:10px}
+.pasteJsonModalBody textarea{width:100%;min-height:260px;box-sizing:border-box;resize:vertical}
+.pasteJsonModalBody .primary{justify-self:end}
 .matchupSidebarTools .card{overflow:visible}
 .sidebarMatchupToolbar{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:0;flex-wrap:nowrap}
 .sidebarMatchupToolbar .matchupToggles{min-width:0;flex-wrap:wrap;align-items:stretch}
 .sidebarMatchupToolbar .matchupToggles > *{flex:1 1 auto}
 .attackModeButtonRow{display:flex;gap:6px;align-items:center;flex:0 0 100%;flex-wrap:nowrap}
 .attackModeButtonRow .seg{flex:0 0 auto;width:auto}
+.inlineMatchupActions{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
+.inlineMatchupActions .dropdownButton{padding:7px 9px}
+.matchupCustomModifierTool{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;flex:0 0 100%;min-width:0}
+.matchupCustomModifierPills{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.matchupCustomModifierPill{display:inline-flex;align-items:center;gap:6px}
+.matchupCustomModifierPill .tagX{padding:0 4px;line-height:1}
 .sidebarMatchupToolbar .matchupActions{justify-content:flex-start;flex-wrap:wrap;white-space:normal}
 .sidebarMatchupToolbar .actionMenu{left:0;right:auto}
 .matchupPage{min-height:calc(100dvh - 70px);min-width:0}
@@ -622,9 +623,6 @@ details summary{cursor:pointer}
 .importStatus{font-size:12px;font-weight:700;line-height:1.25}
 .importStatus.success{color:#86efac}
 .importStatus.error{color:#fca5a5}
-.pasteJsonRow{display:flex;gap:8px;align-items:flex-end;margin-top:8px}
-.pasteJsonLabel{min-width:0}
-.pasteJsonSubmit{flex:0 0 auto}
 .actionMenuWrap{position:relative}
 .dropdownButton{display:inline-flex;align-items:center;gap:6px}
 .dropdownArrow{font-size:12px;line-height:1}
@@ -816,14 +814,6 @@ details summary{cursor:pointer}
     padding:8px;
     z-index:2000;
   }
-
-  .pasteJsonRow{
-    flex-direction:column;
-    align-items:stretch;
-    gap:6px;
-  }
-
-  .pasteJsonSubmit{width:100%}
 
   .modalOverlay:has(.modalWide[aria-label="Unit matchups"]){
     padding:0;
