@@ -606,6 +606,50 @@ renameUnitApp.matchupMerge.attackerTo = 'wolf-squad';
 renameUnitApp.unmergeSelectedUnit('attacker');
 assert.ok(renameUnitApp.units.some(unit => unit.label === 'Pack Boss'), 'unmerge keeps renamed unique model names when they split out');
 
+const renameNoRecalcApp = context.weaponVsDefenseApp();
+renameNoRecalcApp.addRoster({
+  roster: {
+    name: 'Rename no recalc check',
+    forces: [{
+      name: 'Force',
+      _importedUnits: [{
+        label: 'Old Attacker',
+        weapons: [{ name: 'Test blade', range: 'Melee', A: '2', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee' }],
+        defense: { T: 4, Sv: 3, W: 2, models: 1 },
+        _unitKey: 'old-attacker',
+        _groupId: 'old-attacker',
+      }, {
+        label: 'Target',
+        weapons: [],
+        defense: { T: 4, Sv: 7, W: 2, models: 1 },
+        _unitKey: 'target',
+        _groupId: 'target',
+      }],
+      _unitMerges: [],
+    }],
+  },
+}, 'Rename no recalc check');
+renameNoRecalcApp.selectedUnitIdx = renameNoRecalcApp.units.findIndex(unit => unit._unitKey === 'old-attacker');
+renameNoRecalcApp.matchupModalOpen = true;
+renameNoRecalcApp.matchup.attackerRosterIdx = renameNoRecalcApp.selectedRosterIdx;
+renameNoRecalcApp.matchup.attackerForceIdx = 0;
+renameNoRecalcApp.matchup.defenderRosterIdx = renameNoRecalcApp.selectedRosterIdx;
+renameNoRecalcApp.matchup.defenderForceIdx = 0;
+renameNoRecalcApp.matchup.showMelee = true;
+renameNoRecalcApp.rebuildMatchup();
+const renameCacheTokenBefore = renameNoRecalcApp.matchup.cacheWarmToken;
+let renameRecalcCount = 0;
+const originalRenameCompute = renameNoRecalcApp.computeMatchupCell.bind(renameNoRecalcApp);
+renameNoRecalcApp.computeMatchupCell = (...args) => {
+  renameRecalcCount += 1;
+  return originalRenameCompute(...args);
+};
+renameNoRecalcApp.renameUnit(renameNoRecalcApp.activeUnit, 'New Attacker');
+assert.strictEqual(renameRecalcCount, 0, 'renaming a unit does not recalculate matchup cells');
+assert.strictEqual(renameNoRecalcApp.matchup.cacheWarmToken, renameCacheTokenBefore, 'renaming a unit does not clear matchup caches');
+assert.ok(renameNoRecalcApp.matchup.rows.some(row => /^New Attacker/.test(row.unit.label || '')), 'renaming updates the current matchup grid row label');
+assert.ok(renameNoRecalcApp.matchupVisibleRows().some(row => /^New Attacker/.test(row.unit.label || '')), 'renaming updates visible matchup row labels');
+
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Shadow Lord (Aura, Psychic)')),
   JSON.stringify(['Unit-wide | Reroll Hits 1']),

@@ -565,18 +565,50 @@ function weaponVsDefenseApp(){
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
+    relabelDisplayedUnitBySourceKey(sourceKey, label){
+      if(!sourceKey || !label) return;
+      const visit = unit => {
+        if(!unit) return;
+        if(this.sourceUnitKey(unit) === sourceKey) unit.label = label;
+        (unit._children || []).forEach(visit);
+      };
+      [
+        ...(this.units || []),
+        ...(this.matchupAttackerBaseUnits || []),
+        ...(this.matchupAttackerUnits || []),
+        ...(this.matchupDefenderUnits || []),
+        ...(this.matchup?.rows || []).map(row => row.unit),
+        ...(this.matchup?.visibleRows || []).map(row => row.unit),
+        ...(this.matchup?.visibleDefenders || []).map(col => col.unit),
+      ].forEach(visit);
+    },
+
+    refreshAfterUnitRename(selectedKey=null, renamedKey=null, label=''){
+      this.refreshUnitsPreservingSelection(selectedKey);
+      this.relabelDisplayedUnitBySourceKey(renamedKey, label);
+      if(this.profileModalOpen){
+        const currentProfileKey = this.sourceUnitKey(this.profileUnit);
+        if(currentProfileKey){
+          const refreshedProfile = this.findDisplayedUnitBySourceKey(currentProfileKey);
+          if(refreshedProfile) this.profileUnit = refreshedProfile;
+        }
+        this.relabelDisplayedUnitBySourceKey(renamedKey, label);
+      }
+      this.onUnitChanged();
+      if(this.matchupModalOpen) this.refreshMatchupPresentation();
+    },
+
     renameUnit(unit, newLabel){
       const label = String(newLabel || '').trim();
       if(!unit || !label) return false;
       const profileKey = this.sourceUnitKey(unit);
-      const currentProfileKey = this.sourceUnitKey(this.profileUnit);
       const selectedKey = this.sourceUnitKey(this.activeUnit);
       let changed = false;
       this.rosterForces().forEach(force => {
         if(window.ArmyImportService?.renameUnit(force, unit, label)) changed = true;
       });
       if(!changed) unit.label = label;
-      this.refreshAfterRosterUnitChange(selectedKey, currentProfileKey);
+      this.refreshAfterUnitRename(selectedKey, profileKey, label);
       if(this.profileUnit && this.sourceUnitKey(this.profileUnit) === profileKey) this.profileUnit.label = label;
       return true;
     },
