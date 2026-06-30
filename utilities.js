@@ -730,24 +730,6 @@ function weaponVsDefenseApp(){
       this.closeMatchupFormula();
     },
 
-    setCurrentSelectionAsMatchupSide(side){
-      if(!this.rosters || this.rosters.length === 0) return;
-      const rosterIdx = this.clamp(this.selectedRosterIdx || 0, 0, this.rosters.length - 1);
-      if(side === 'attacker'){
-        this.matchup.attackerRosterIdx = rosterIdx;
-        this.onMatchupRosterChanged('attacker', false);
-        this.matchup.attackerForceIdx = this.clamp(this.selectedForceIdx || 0, 0, Math.max(0, this.matchupAttackerForces.length - 1));
-      }else{
-        this.matchup.defenderRosterIdx = rosterIdx;
-        this.onMatchupRosterChanged('defender', false);
-        this.matchup.defenderForceIdx = this.clamp(this.selectedForceIdx || 0, 0, Math.max(0, this.matchupDefenderForces.length - 1));
-      }
-      if(this.activeView === 'matchups'){
-        this.matchupModalOpen = true;
-        this.rebuildMatchup();
-      }
-    },
-
     swapMatchupSides(){
       const aR = this.matchup.attackerRosterIdx;
       const aF = this.matchup.attackerForceIdx;

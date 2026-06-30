@@ -38,38 +38,78 @@
         <button class="secondary pasteJsonSubmit" type="button" @click="loadPastedRoster()">Submit</button>
       </div>
 
-      <div class="row">
-        <label>
-          Roster
-          <select x-model.number="selectedRosterIdx" @change="refreshForces()">
-            <template x-for="(r, i) in rosters" :key="`roster-${i}`">
-              <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
-            </template>
-            <template x-if="rosters.length === 0">
-              <option value="0">No rosters loaded</option>
-            </template>
-          </select>
-        </label>
+      <div class="calculatorRosterPicker" x-show="activeView === 'calc'" x-cloak>
+        <div class="row">
+          <label>
+            Roster
+            <select x-model.number="selectedRosterIdx" @change="refreshForces()">
+              <template x-for="(r, i) in rosters" :key="`roster-${i}`">
+                <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
+              </template>
+              <template x-if="rosters.length === 0">
+                <option value="0">No rosters loaded</option>
+              </template>
+            </select>
+          </label>
 
-        <button class="secondary" type="button" style="align-self:flex-end" :disabled="rosters.length === 0" @click="removeRoster(selectedRosterIdx)"> Remove roster
-        </button>
+          <button class="secondary" type="button" style="align-self:flex-end" :disabled="rosters.length === 0" @click="removeRoster(selectedRosterIdx)"> Remove roster
+          </button>
+        </div>
+
+        <div class="row forcePickerRow">
+          <label class="forceSelectLabel">
+            Force
+            <select x-model.number="selectedForceIdx" @change="refreshUnits()">
+              <template x-for="(f, i) in forces" :key="`force-${i}`">
+                <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+              </template>
+              <template x-if="forces.length === 0">
+                <option value="0">No forces found</option>
+              </template>
+            </select>
+          </label>
+        </div>
       </div>
 
-      <div class="row forcePickerRow">
-        <label class="forceSelectLabel">
-          Force
-          <select x-model.number="selectedForceIdx" @change="refreshUnits()">
-            <template x-for="(f, i) in forces" :key="`force-${i}`">
-              <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
-            </template>
-            <template x-if="forces.length === 0">
-              <option value="0">No forces found</option>
-            </template>
-          </select>
-        </label>
-        <div class="sidebarMatchupSetters" x-show="activeView === 'matchups'" x-cloak>
-          <button type="button" class="secondary" @click="setCurrentSelectionAsMatchupSide('attacker')">Set Attacker</button>
-          <button type="button" class="secondary" @click="setCurrentSelectionAsMatchupSide('defender')">Set Defender</button>
+      <div class="matchupRosterPicker" x-show="activeView === 'matchups'" x-cloak>
+        <div class="matchupRosterRow">
+          <div class="matchupRosterSide">Attacker</div>
+          <label>
+            Roster
+            <select x-model.number="matchup.attackerRosterIdx" @change="onMatchupRosterChanged('attacker')">
+              <template x-for="(r, i) in rosters" :key="`sidebar-atk-r-${i}`">
+                <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
+              </template>
+            </select>
+          </label>
+          <label>
+            Force
+            <select x-model.number="matchup.attackerForceIdx" @change="rebuildMatchup()">
+              <template x-for="(f, i) in matchupAttackerForces" :key="`sidebar-atk-f-${i}`">
+                <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+              </template>
+            </select>
+          </label>
+        </div>
+
+        <div class="matchupRosterRow">
+          <div class="matchupRosterSide">Defender</div>
+          <label>
+            Roster
+            <select x-model.number="matchup.defenderRosterIdx" @change="onMatchupRosterChanged('defender')">
+              <template x-for="(r, i) in rosters" :key="`sidebar-def-r-${i}`">
+                <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
+              </template>
+            </select>
+          </label>
+          <label>
+            Force
+            <select x-model.number="matchup.defenderForceIdx" @change="rebuildMatchup()">
+              <template x-for="(f, i) in matchupDefenderForces" :key="`sidebar-def-f-${i}`">
+                <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+              </template>
+            </select>
+          </label>
         </div>
       </div>
 
