@@ -2,9 +2,12 @@ function weaponVsDefenseApp(){
   return {
     // ---------------- UI ----------------
     sidebarCollapsed: false,
+    activeView: 'calc',
     matchupOptionsCollapsed: false,
     jsonPaste: '',
     importStatus: { type: '', text: '' },
+    mergeModalOpen: false,
+    mergeFromUnit: null,
 
     // ---------------- Matchups ----------------
     matchupModalOpen: false,
@@ -657,29 +660,62 @@ function weaponVsDefenseApp(){
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
-    // ---------------- Matchup modal ----------------
-    openMatchupModal(){
+    // ---------------- View switching ----------------
+    switchToCalcView(){
+      this.activeView = 'calc';
+      this.matchupModalOpen = false;
+      this.closeMatchupFormula();
+    },
+
+    switchToMatchupView(options={}){
       if(!this.rosters || this.rosters.length === 0){ alert('Load at least one roster first.'); return; }
+      this.activeView = 'matchups';
       this.matchupModalOpen = true;
 
-      // Defaults: attacker = current selection; defender = next roster if present
-      const aR = Number.isFinite(this.selectedRosterIdx) ? this.selectedRosterIdx : 0;
-      const aF = Number.isFinite(this.selectedForceIdx) ? this.selectedForceIdx : 0;
-      const dR = (this.rosters.length > 1) ? (aR === 0 ? 1 : 0) : aR;
+      if(options.reset || !(this.matchup.rows || []).length){
+        // Defaults: attacker = current selection; defender = next roster if present
+        const aR = Number.isFinite(this.selectedRosterIdx) ? this.selectedRosterIdx : 0;
+        const aF = Number.isFinite(this.selectedForceIdx) ? this.selectedForceIdx : 0;
+        const dR = (this.rosters.length > 1) ? (aR === 0 ? 1 : 0) : aR;
 
-      this.matchup.attackerRosterIdx = this.clamp(aR, 0, this.rosters.length-1);
-      this.matchup.attackerForceIdx  = aF;
-      this.matchup.defenderRosterIdx = this.clamp(dR, 0, this.rosters.length-1);
-      this.matchup.defenderForceIdx  = 0;
+        this.matchup.attackerRosterIdx = this.clamp(aR, 0, this.rosters.length-1);
+        this.matchup.attackerForceIdx  = aF;
+        this.matchup.defenderRosterIdx = this.clamp(dR, 0, this.rosters.length-1);
+        this.matchup.defenderForceIdx  = 0;
+      }
 
       this.onMatchupRosterChanged('attacker', false);
       this.onMatchupRosterChanged('defender', false);
       this.rebuildMatchup();
     },
 
+    // Kept for tests and older callers.
+    openMatchupModal(){
+      this.switchToMatchupView({ reset: true });
+    },
+
     closeMatchupModal(){
       this.matchupModalOpen = false;
+      this.activeView = 'calc';
       this.closeMatchupFormula();
+    },
+
+    setCurrentSelectionAsMatchupSide(side){
+      if(!this.rosters || this.rosters.length === 0) return;
+      const rosterIdx = this.clamp(this.selectedRosterIdx || 0, 0, this.rosters.length - 1);
+      if(side === 'attacker'){
+        this.matchup.attackerRosterIdx = rosterIdx;
+        this.onMatchupRosterChanged('attacker', false);
+        this.matchup.attackerForceIdx = this.clamp(this.selectedForceIdx || 0, 0, Math.max(0, this.matchupAttackerForces.length - 1));
+      }else{
+        this.matchup.defenderRosterIdx = rosterIdx;
+        this.onMatchupRosterChanged('defender', false);
+        this.matchup.defenderForceIdx = this.clamp(this.selectedForceIdx || 0, 0, Math.max(0, this.matchupDefenderForces.length - 1));
+      }
+      if(this.activeView === 'matchups'){
+        this.matchupModalOpen = true;
+        this.rebuildMatchup();
+      }
     },
 
     swapMatchupSides(){
@@ -1335,6 +1371,56 @@ function weaponVsDefenseApp(){
 
     mergeOptionLabel(unit){
       return this.unitDropdownLabel(unit);
+    },
+
+    selectedMergeTargets(){
+      const fromKey = this.sourceUnitKey(this.mergeFromUnit || this.activeUnit);
+      return (this.units || []).filter(unit => this.sourceUnitKey(unit) && this.sourceUnitKey(unit) !== fromKey);
+    },
+
+    openMergeUnitModal(){
+      if(!this.activeUnit){ alert('Select a unit first.'); return; }
+      this.mergeFromUnit = this.activeUnit;
+      this.mergeModalOpen = true;
+    },
+
+    closeMergeUnitModal(){
+      this.mergeModalOpen = false;
+      this.mergeFromUnit = null;
+    },
+
+    mergeSelectedUnitInto(targetUnit){
+      const fromUnit = this.mergeFromUnit || this.activeUnit;
+      const force = this.getForceByIdx(this.selectedForceIdx);
+      const fromKey = this.sourceUnitKey(fromUnit);
+      const toKey = this.sourceUnitKey(targetUnit);
+      const ok = window.ArmyImportService?.mergeUnits(force, fromKey, toKey);
+      if(!ok){ alert('Choose two different units to merge.'); return; }
+      this.closeMergeUnitModal();
+      this.refreshUnitsPreservingSelection(toKey);
+      this.onUnitChanged();
+      if(this.activeView === 'matchups'){
+        this.matchupModalOpen = true;
+        this.rebuildMatchup();
+      }else{
+        this.clearMatchupComputationCache();
+      }
+    },
+
+    unmergeActiveUnit(){
+      const unit = this.activeUnit;
+      const force = this.getForceByIdx(this.selectedForceIdx);
+      const targetKey = this.sourceUnitKey(unit);
+      const ok = window.ArmyImportService?.unmergeUnit(force, targetKey);
+      if(!ok){ alert('No uniquely named models or merges found for that unit.'); return; }
+      this.refreshUnitsPreservingSelection(targetKey);
+      this.onUnitChanged();
+      if(this.activeView === 'matchups'){
+        this.matchupModalOpen = true;
+        this.rebuildMatchup();
+      }else{
+        this.clearMatchupComputationCache();
+      }
     },
 
     forceForMatchupSide(side){
