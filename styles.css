@@ -1,9 +1,32 @@
 :root{
   --bg:#0b0f14; --panel:#121822; --muted:#90a4b4; --fg:#e8eef7; --accent:#6ee7ff; --accent2:#a78bfa; --bad:#ff6b6b; --good:#66e28a;
+  --scrollbar-track:#090d12; --scrollbar-thumb:#26384d; --scrollbar-thumb-hover:#3f5f7c;
 }
 
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+html,*{
+  scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width:thin;
+}
+::-webkit-scrollbar{
+  width:12px;
+  height:12px;
+}
+::-webkit-scrollbar-track{
+  background:var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,var(--scrollbar-thumb),#1a293a);
+  border:3px solid var(--scrollbar-track);
+  border-radius:999px;
+}
+::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(180deg,var(--scrollbar-thumb-hover),#26384d);
+}
+::-webkit-scrollbar-corner{
+  background:var(--scrollbar-track);
+}
 html.modalOpen,body.modalOpen{overflow:hidden}
 h1{font-size:20px;margin:0 0 8px}
 h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
