@@ -211,9 +211,23 @@ main{padding:14px;min-width:0;overflow:hidden}
   box-shadow:0 0 0 2px rgba(110,231,255,.13) inset;
 }
 .calculatorRosterPicker,.matchupRosterPicker{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.matchupRosterPicker{position:relative}
 .matchupRosterRow{display:grid;grid-template-columns:68px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:end}
 .matchupRosterSide{color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em;padding-bottom:9px;text-transform:uppercase}
 .matchupRosterRow label{min-width:0}
+.matchupRosterSwapButton{
+  position:absolute;
+  left:12px;
+  top:calc(50% + 16px);
+  z-index:1;
+  width:44px;
+  min-height:0;
+  padding:2px 5px;
+  border-radius:6px;
+  font-size:11px;
+  line-height:16px;
+  transform:translateY(-50%);
+}
 .forcePickerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .forceSelectLabel{min-width:0}
 .unitActionRows{display:flex;flex-direction:column;gap:8px;margin-top:8px}

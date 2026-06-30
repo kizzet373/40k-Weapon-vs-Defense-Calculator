@@ -72,6 +72,7 @@
       </div>
 
       <div class="matchupRosterPicker" x-show="activeView === 'matchups'" x-cloak>
+        <button type="button" class="secondary matchupRosterSwapButton" @click="swapMatchupSides()">Swap</button>
         <div class="matchupRosterRow">
           <div class="matchupRosterSide">Attacker</div>
           <label>
@@ -155,8 +156,6 @@
       <div class="card">
         <div class="matchupToolbar sidebarMatchupToolbar">
           <div class="matchupToggles">
-            <button type="button" class="seg" @click="swapMatchupSides()">Swap sides</button>
-
             <label class="metricSelect">
               <select aria-label="Display metric" :value="matchup.metric" @change="setMatchupMetric($event.target.value)">
                 <option value="damage">Damage</option>
@@ -660,7 +659,7 @@
         <div class="matchupToolbar">
           <div class="matchupToggles">
             <button type="button" class="seg" @click="swapMatchupSides()">
-              Swap sides
+              Swap
             </button>
 
             <label class="metricSelect">
