@@ -338,6 +338,9 @@ const optimalOrderCell = context.window.MatchupEngine.computeCell(
 assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon order is selected by best damage into the current worst legal defensive profile');
 
 const app = context.weaponVsDefenseApp();
+const movementProfileUnit = { label: 'Movement profile', defense: { M: '6"', T: 4, Sv: 3, Inv: 5, W: 2, models: 5 } };
+assert.ok(/^M6" \| T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.profileDefenseHeaderLabel(movementProfileUnit)), 'unit profile modal defense line shows movement before toughness');
+assert.ok(/^T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.matchupDefenseHeaderLabel(movementProfileUnit)), 'matchup grid defense line does not add movement');
 const baseProfiles = app.baseProfilesRosterData();
 const baseProfileUnits = baseProfiles.roster.forces[0]._importedUnits;
 assert.strictEqual(baseProfiles.roster.name, 'Base Profiles', 'base profiles roster is named for generic matchup use');

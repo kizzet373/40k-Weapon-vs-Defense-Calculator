@@ -760,6 +760,50 @@ function weaponVsDefenseApp(){
       return [t, saves, w, fnp, cover, size].filter(Boolean).join(' | ');
     },
 
+    profileDefenseHeaderLabel(u){
+      return this.profileDefenseProfileLines(u).join('\n');
+    },
+
+    profileDefenseProfileLines(u){
+      const profileUnits = (Array.isArray(u?._children) && u._children.length) ? u._children : [u];
+      const order = [];
+      const profiles = new Map();
+      profileUnits.forEach(profileUnit => {
+        const d = this.effectiveDefense(profileUnit);
+        const base = profileUnit?.defense || {};
+        const movement = d.M ?? d.Move ?? d.Movement ?? base.M ?? base.Move ?? base.Movement ?? '';
+        const key = [
+          movement,
+          d.T ?? '',
+          d.Sv ?? '',
+          d.Inv ?? '',
+          d.Fnp ?? '',
+          d.cover ? 'cover' : '',
+          d.W ?? '',
+        ].join('|');
+        const models = parseFloat(d.models ?? profileUnit?.size ?? 1);
+        if(!profiles.has(key)){
+          profiles.set(key, { unit: profileUnit, models: 0, movement });
+          order.push(key);
+        }
+        profiles.get(key).models += Number.isFinite(models) && models > 0 ? models : 1;
+      });
+
+      return order.map(key => {
+        const entry = profiles.get(key);
+        return this.profileDefenseProfileLineForUnit(entry.unit, entry.models, entry.movement);
+      }).filter(Boolean);
+    },
+
+    profileDefenseProfileLineForUnit(unit, modelsOverride=null, movementOverride=''){
+      const d = this.effectiveDefense(unit);
+      const base = unit?.defense || {};
+      const movement = movementOverride || d.M || d.Move || d.Movement || base.M || base.Move || base.Movement || '';
+      const move = movement !== '' && movement != null ? `M${movement}` : '';
+      const line = this.matchupDefenseProfileLineForUnit(unit, modelsOverride);
+      return [move, line].filter(Boolean).join(' | ');
+    },
+
     matchupDefenseProfileLine(d, modelsOverride=null){
       const t = (d.T!=null) ? `T${d.T}` : '';
       const saves = [

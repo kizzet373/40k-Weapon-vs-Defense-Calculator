@@ -162,6 +162,7 @@
     const parts = values.trim().split(/\s+/);
     if(parts.length < 4) return null;
     return {
+      M: parts[0],
       T: parseFloat(parts[1]),
       Sv: parseSave(parts[2]),
       W: parseFloat(parts[3]),
@@ -290,6 +291,7 @@
       label,
       weapons,
       defense: {
+        M: statline.M || null,
         T: Number.isFinite(statline.T) ? statline.T : null,
         Sv: Number.isFinite(statline.Sv) ? statline.Sv : null,
         Inv: invMatch ? parseFloat(invMatch[1]) : null,
@@ -937,6 +939,7 @@
 
   function defenseFromProfile(profile, modelCount){
     const defense = {
+      M: null,
       T: null,
       Sv: null,
       Inv: null,
@@ -945,10 +948,12 @@
       models: modelCount,
     };
     if(!profile) return defense;
+    const movement = profileCharacteristic(profile, ['M', 'Move', 'Movement']);
     const toughness = parseFloat(profileCharacteristic(profile, ['T', 'Toughness']));
     const save = parseSave(profileCharacteristic(profile, ['Sv', 'SV', 'Save']));
     const inv = parseSave(profileCharacteristic(profile, ['InSv', 'Invulnerable Save', 'Invuln']));
     const wounds = parseFloat(profileCharacteristic(profile, ['W', 'Wounds']));
+    if(movement != null && String(movement).trim() !== '') defense.M = String(movement).trim();
     if(Number.isFinite(toughness)) defense.T = toughness;
     if(save != null) defense.Sv = save;
     if(inv != null) defense.Inv = inv;
@@ -958,7 +963,7 @@
 
   function cloneDefenseForModel(parentDefense, modelProfile, count){
     const modelDefense = defenseFromProfile(modelProfile, count);
-    ['T', 'Sv', 'Inv', 'W', 'Fnp'].forEach(key => {
+    ['M', 'T', 'Sv', 'Inv', 'W', 'Fnp'].forEach(key => {
       if(modelDefense[key] == null && parentDefense?.[key] != null) modelDefense[key] = parentDefense[key];
     });
     modelDefense.models = count;
@@ -1199,7 +1204,7 @@
 
     if((parentDefense.T == null || parentDefense.Sv == null || parentDefense.W == null) && children.length){
       const primary = children.find(child => child.defense?.T != null && child.defense?.W != null) || children[0];
-      ['T', 'Sv', 'Inv', 'W'].forEach(key => {
+      ['M', 'T', 'Sv', 'Inv', 'W'].forEach(key => {
         if(parentDefense[key] == null && primary?.defense?.[key] != null) parentDefense[key] = primary.defense[key];
       });
     }

@@ -671,7 +671,7 @@
             <span class="profilePointsText" x-show="unitPointsText(profileUnit)" x-text="unitPointsText(profileUnit)"></span>
             <button type="button" class="secondary inlineEditButton" @click="promptRenameUnit(profileUnit)">Edit</button>
           </div>
-          <div class="muted" style="font-size:12px" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(profileUnit))"></div>
+          <div class="muted" style="font-size:12px" x-html="defenseProfileTextHtml(profileDefenseHeaderLabel(profileUnit))"></div>
           <div class="profileScoreSummary">
             <div x-text="profileOffensiveScoreText(profileUnit)"></div>
             <div>
