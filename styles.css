@@ -198,7 +198,18 @@ main{padding:14px;min-width:0;overflow:hidden}
 
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .viewToggleRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.viewToggleRow button.active{border-color:rgba(110,231,255,.7);box-shadow:0 0 0 2px rgba(110,231,255,.13) inset}
+.viewToggleButton{
+  background:#0f141c;
+  color:var(--fg);
+  border:1px solid #2a3a4f;
+  box-shadow:none;
+}
+.viewToggleButton.active{
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  color:#001016;
+  border-color:rgba(110,231,255,.85);
+  box-shadow:0 0 0 2px rgba(110,231,255,.13) inset;
+}
 .forcePickerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .forceSelectLabel{min-width:0}
 .sidebarMatchupSetters{display:flex;gap:8px;align-items:end}

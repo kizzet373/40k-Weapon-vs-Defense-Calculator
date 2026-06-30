@@ -77,8 +77,8 @@
 
     <div class="card">
       <div class="row viewToggleRow">
-        <button type="button" class="primary" :class="activeView === 'matchups' ? 'active' : ''" @click="switchToMatchupView()">Unit Matchups</button>
-        <button type="button" class="secondary" :class="activeView === 'calc' ? 'active' : ''" @click="switchToCalcView()">W/D Calc</button>
+        <button type="button" class="viewToggleButton" :class="activeView === 'matchups' ? 'active' : ''" @click="switchToMatchupView()">Unit Matchups</button>
+        <button type="button" class="viewToggleButton" :class="activeView === 'calc' ? 'active' : ''" @click="switchToCalcView()">Weapon Damage Calc</button>
       </div>
     </div>
 

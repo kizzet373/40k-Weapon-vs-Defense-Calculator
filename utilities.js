@@ -2,7 +2,7 @@ function weaponVsDefenseApp(){
   return {
     // ---------------- UI ----------------
     sidebarCollapsed: false,
-    activeView: 'calc',
+    activeView: 'matchups',
     matchupOptionsCollapsed: false,
     jsonPaste: '',
     importStatus: { type: '', text: '' },
@@ -236,6 +236,7 @@ function weaponVsDefenseApp(){
       this.addBaseProfilesRoster();
       this.syncModValueDefault();
       this.renderBreakdownChart(null);
+      this.switchToMatchupView({ reset: true });
 
       window.addEventListener('resize', () => {
         if (this.output && Number.isFinite(this.output.dmg)) this.calculate();

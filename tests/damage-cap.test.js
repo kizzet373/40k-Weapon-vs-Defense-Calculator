@@ -342,13 +342,13 @@ const movementProfileUnit = { label: 'Movement profile', defense: { M: '6"', T: 
 assert.ok(/^M6" \| T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.profileDefenseHeaderLabel(movementProfileUnit)), 'unit profile modal defense line shows movement before toughness');
 assert.ok(/^T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.matchupDefenseHeaderLabel(movementProfileUnit)), 'matchup grid defense line does not add movement');
 app.addBaseProfilesRoster();
-assert.strictEqual(app.activeView, 'calc', 'calculator view is active by default');
+assert.strictEqual(app.activeView, 'matchups', 'Unit Matchups view is active by default');
 app.switchToMatchupView({ reset: true });
 assert.strictEqual(app.activeView, 'matchups', 'Unit Matchups switches to the matchup grid view');
 assert.strictEqual(app.matchupModalOpen, true, 'matchup calculations are active when the matchup view is shown');
 assert.ok(app.matchup.rows.length > 0, 'matchup view builds the grid rows');
 app.switchToCalcView();
-assert.strictEqual(app.activeView, 'calc', 'W/D Calc switches back to the calculator view');
+assert.strictEqual(app.activeView, 'calc', 'Weapon Damage Calc switches back to the calculator view');
 assert.strictEqual(app.matchupModalOpen, false, 'leaving the matchup view does not keep a matchup modal active');
 const baseProfiles = app.baseProfilesRosterData();
 const baseProfileUnits = baseProfiles.roster.forces[0]._importedUnits;
