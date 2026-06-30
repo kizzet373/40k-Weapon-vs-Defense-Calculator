@@ -651,6 +651,7 @@ details summary{cursor:pointer}
 .matchupGrid thead th:not(.stickyCol){padding-top:6px;padding-bottom:6px}
 .matchupGrid thead th{position:sticky;top:0;background:rgba(18,24,34,.98);z-index:2}
 .matchupGrid .stickyCol{position:sticky;left:0;background:rgba(18,24,34,.98);z-index:3;width:168px!important;min-width:168px;max-width:168px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere}
+.matchupGrid thead th.stickyCol{top:0;left:0;z-index:6;background:rgba(18,24,34,1)}
 .matchupGrid .stickyCol .profileLink{max-width:118px;white-space:normal;overflow:visible;text-overflow:clip}
 .matchupGrid .stickyCol .attackerProfileLink{display:flex;flex-direction:column;align-items:flex-start;gap:2px;white-space:normal}
 .matchupGrid .stickyCol .attackerProfileLink .profileNameText{max-width:118px;white-space:normal;overflow:visible;text-overflow:clip}
