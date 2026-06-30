@@ -211,19 +211,20 @@ main{padding:14px;min-width:0;overflow:hidden}
   box-shadow:0 0 0 2px rgba(110,231,255,.13) inset;
 }
 .calculatorRosterPicker,.matchupRosterPicker{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.matchupRosterRow{display:grid;grid-template-columns:68px 44px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.matchupRosterRow{display:grid;grid-template-columns:68px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
 .matchupRosterSide{display:flex;align-items:flex-end;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em;padding-bottom:9px;text-transform:uppercase}
+.matchupRosterSideStack{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-width:0}
+.matchupRosterSideStack .matchupRosterSide{padding-bottom:0}
 .matchupRosterRow label{min-width:0}
 .matchupRosterSwapButton{
-  align-self:stretch;
+  align-self:flex-start;
   width:44px;
   min-height:0;
-  padding:0 5px;
+  padding:2px 5px;
   border-radius:6px;
   font-size:11px;
-  line-height:1;
+  line-height:14px;
 }
-.matchupRosterSwapSpacer{width:44px}
 .forcePickerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .forceSelectLabel{min-width:0}
 .unitActionRows{display:flex;flex-direction:column;gap:8px;margin-top:8px}
