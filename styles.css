@@ -971,10 +971,48 @@ details summary{cursor:pointer}
     padding:7px 8px;
   }
 
+  .matchupGrid thead th:not(.stickyCol){
+    padding:4px 7px 2px;
+  }
+
+  .matchupGrid thead th.stickyCol{
+    padding:4px 6px 2px;
+  }
+
+  .matchupCornerHeader{
+    min-height:56px;
+  }
+
   .matchupGrid .stickyCol{
     width:148px!important;
     min-width:148px;
     max-width:148px;
+  }
+
+  .attackerHeaderCell .profileNameRow{
+    padding-right:24px;
+  }
+
+  .attackerHeaderCell .attackerMetaScore{
+    display:block;
+  }
+
+  .attackerHeaderCell .headerMetaDash{
+    display:none;
+  }
+
+  .defenderHeaderCell{
+    column-gap:5px;
+  }
+
+  .defenderHeaderCell .matchupHeaderProfileLink{
+    gap:0;
+    line-height:1.1;
+  }
+
+  .defenderHeaderCell .expandButton{
+    width:22px;
+    height:22px;
   }
 
   .matchupGrid .stickyCol .profileLink,
@@ -994,6 +1032,17 @@ details summary{cursor:pointer}
 
   .matchupCornerHeader .attackerSortSelect{left:32px!important;bottom:0!important}
   .matchupCornerHeader .attackerSortButton{left:102px!important;bottom:0!important;height:28px!important;min-height:28px!important}
+  .matchupCornerHeader .defenderSortButton{
+    top:0!important;
+    right:28px!important;
+    width:28px!important;
+    min-width:28px!important;
+    max-width:28px!important;
+    height:28px!important;
+    min-height:28px!important;
+    max-height:28px!important;
+    aspect-ratio:1/1;
+  }
 
   .matchupCellNote{display:none}
 
@@ -1011,13 +1060,15 @@ details summary{cursor:pointer}
   main{padding-left:8px;padding-right:8px}
   .metrics{grid-template-columns:1fr 1fr}
   .matchupGrid .stickyCol{
-    width:136px!important;
-    min-width:136px;
-    max-width:136px;
+    width:132px!important;
+    min-width:132px;
+    max-width:132px;
   }
   .matchupGrid .stickyCol .profileLink,
   .matchupGrid .stickyCol .attackerProfileLink .profileNameText{
-    max-width:88px;
+    max-width:104px;
   }
-  .matchupGrid .stickyCol .muted{max-width:96px}
+  .matchupGrid .stickyCol .muted{max-width:112px}
+  .matchupCornerHeader .attackerSortSelect{left:28px!important;width:58px!important}
+  .matchupCornerHeader .attackerSortButton{left:90px!important}
 }

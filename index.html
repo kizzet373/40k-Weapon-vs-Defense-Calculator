@@ -545,7 +545,9 @@
                           <template x-if="row.isChild"><span class="childBranchInline">↳</span></template><span x-text="unitLabelText(row.unit, `Atk ${ri+1}`)"></span>
                           </span>
                         </span>
-                        <span class="profileMetaText" x-text="matchupHeaderMeta(row.unit, 'attacker')"></span>
+                        <span class="profileMetaText">
+                          <span x-text="unitPointsText(row.unit)"></span><span class="headerMetaDash"> - </span><span class="attackerMetaScore" x-text="`Atk Score: ${matchupHeaderScore(row.unit, 'attacker')}`"></span>
+                        </span>
                         <span class="muted matchupWeaponTypeText" x-text="matchupWeaponTypeSummary(row.unit)"></span>
                       </button>
                       <button type="button" class="expandButton eyeButton attackerEyeButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" :title="isUnitExpanded(row.unit) ? 'Hide models' : 'Show models'">
@@ -829,7 +831,9 @@
                             <template x-if="row.isChild"><span class="childBranchInline">↳</span></template><span x-text="unitLabelText(row.unit, `Atk ${ri+1}`)"></span>
                             </span>
                           </span>
-                          <span class="profileMetaText" x-text="matchupHeaderMeta(row.unit, 'attacker')"></span>
+                          <span class="profileMetaText">
+                            <span x-text="unitPointsText(row.unit)"></span><span class="headerMetaDash"> - </span><span class="attackerMetaScore" x-text="`Atk Score: ${matchupHeaderScore(row.unit, 'attacker')}`"></span>
+                          </span>
                           <span class="muted matchupWeaponTypeText" x-text="matchupWeaponTypeSummary(row.unit)"></span>
                         </button>
                         <button type="button" class="expandButton eyeButton attackerEyeButton" x-show="!row.isChild && hasChildUnits(row.unit)" @click="toggleUnitExpanded(row.unit)" :title="isUnitExpanded(row.unit) ? 'Hide models' : 'Show models'">
