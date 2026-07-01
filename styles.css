@@ -925,6 +925,23 @@ details summary{cursor:pointer}
     white-space:nowrap;
   }
 
+  .sidebarMatchupToolbar .matchupToggles{
+    flex:1 1 auto;
+    flex-wrap:wrap;
+    min-width:0;
+    height:auto;
+    overflow:visible;
+  }
+
+  .sidebarMatchupToolbar .attackModeButtonRow{
+    flex-wrap:wrap;
+    height:auto;
+  }
+
+  .sidebarMatchupToolbar .inlineMatchupActions{
+    flex-wrap:wrap;
+  }
+
   .actionMenu{
     left:0;
     right:auto;
