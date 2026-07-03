@@ -2954,6 +2954,21 @@ function weaponVsDefenseApp(){
       return `${left}\n\nTotal damage: ${this.formulaNumber(sum, 2)}`;
     },
 
+    formulaTotalEquationHtml(){
+      const sections = this.matchupFormulaSections();
+      const addends = sections
+        .map(section => ({ value: Number(section.damage), name: section.name || 'Profile' }))
+        .filter(addend => Number.isFinite(addend.value));
+      const sum = addends.reduce((total, addend) => total + addend.value, 0);
+      const left = addends.length
+        ? addends.map(addend => [
+            this.escapeFormulaHtml(this.formulaNumber(addend.value, 2)),
+            ` <span class="formulaProfileName">(${this.escapeFormulaHtml(addend.name)})</span>`,
+          ].join('')).join(' + ')
+        : '0';
+      return `${left}\n\nTotal damage: ${this.escapeFormulaHtml(this.formulaNumber(sum, 2))}`;
+    },
+
     matchupFormulaLines(){
       const sectionLines = this.matchupFormulaSections().flatMap(section => [
         section.title,
