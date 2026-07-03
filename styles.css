@@ -506,7 +506,7 @@ details summary{cursor:pointer}
 .formulaSection .formulaLine:last-child,.formulaSummary .formulaLine:last-child{border-bottom:0}
 .formulaPrimary{font-size:15px;font-weight:900;color:var(--accent)}
 .formulaTotalEquation{white-space:pre-line}
-.formulaProfileName{color:var(--text);font-weight:400}
+.formulaTotalEquation .formulaProfileName{color:#fff!important;font-weight:400}
 .formulaStepName,.formulaStepResult{color:#8fd8ff;font-weight:800}
 .modalWide[aria-label="Unit matchups"]{width:calc(100vw - 12px);max-width:1600px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:12px}
 .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}
