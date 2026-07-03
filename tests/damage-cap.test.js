@@ -1122,8 +1122,49 @@ app.formulaCell = {
   ],
 };
 assert.strictEqual(app.matchupFormulaSections().length, 2, 'formula modal keeps multiple weapon profiles separated');
-assert.strictEqual(app.formulaTotalEquation(), '1.25 (weapon a) + 2.5 (weapon b)\n\nTotal damage: 3.75', 'formula modal shows a labeled bottom summation equation');
+assert.strictEqual(app.formulaTotalEquation(), '1.25 (weapon a) + 2.5 (weapon b)\nModels killed: 0\n\nTotal damage: 3.75', 'formula modal shows a labeled bottom summation equation');
 assert.ok(app.formulaTotalEquationHtml().includes('<span class="formulaProfileName">(weapon a)</span>'), 'formula modal styles weapon profile names separately from damage values');
+app.formulaCell = {
+  dmg: 9,
+  pctModelWounds: null,
+  pctUnitKilled: null,
+  weaponName: '2x kill tester',
+  formulaItems: [
+    {
+      weaponName: 'kill tester a',
+      modifierText: '',
+      totalDamage: 6,
+      lines: [
+        {
+          appliedDamage: 4,
+          woundPool: 6,
+          allocation: { appliedDamage: 4, remainingPool: 2 },
+          formula: { defense: { T: 4, sv: 3, inv: 0, W: 2, Fnp: null, cover: false } },
+        },
+        {
+          appliedDamage: 2,
+          woundPool: 2,
+          allocation: { appliedDamage: 2, remainingPool: 0 },
+          formula: { defense: { T: 4, sv: 3, inv: 0, W: 2, Fnp: null, cover: false } },
+        },
+      ],
+    },
+    {
+      weaponName: 'kill tester b',
+      modifierText: '',
+      totalDamage: 3,
+      lines: [
+        {
+          appliedDamage: 3,
+          woundPool: 3,
+          allocation: { appliedDamage: 3, remainingPool: 0 },
+          formula: { defense: { T: 5, sv: 2, inv: 4, W: 3, Fnp: 5, cover: false } },
+        },
+      ],
+    },
+  ],
+};
+assert.strictEqual(app.formulaTotalKillSummaryText(), 'Models killed: 3 (T4 | 3+ 0++ | W2), 1 (T5 | 2+ 4++ | W3 | FNP 5+)', 'formula total result summarizes killed models by defensive profile');
 
 const sharedAbilitySource = {
   label: 'Icon bearer',

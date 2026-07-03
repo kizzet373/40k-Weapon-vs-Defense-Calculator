@@ -2813,6 +2813,64 @@ function weaponVsDefenseApp(){
       };
     },
 
+    formulaDefenseProfileSummaryText(defense={}){
+      return this.matchupDefenseProfileLine({
+        T: defense.T,
+        Sv: defense.sv ?? defense.Sv,
+        Inv: defense.inv ?? defense.Inv,
+        W: defense.W,
+        Fnp: defense.Fnp,
+        cover: !!defense.cover,
+      }, null);
+    },
+
+    formulaActualKilledModels(line){
+      const allocation = line?.allocation || {};
+      if(allocation.overkill) return 0;
+      const modelWounds = Math.max(0, Number(line?.formula?.defense?.W) || 0);
+      if(modelWounds <= 0) return 0;
+      const beforePool = Math.max(0, Number(line?.woundPool) || 0);
+      const afterPool = Math.max(0, Number(allocation.remainingPool) || 0);
+      if(beforePool <= afterPool) return 0;
+      const beforeModels = Math.ceil(beforePool / modelWounds);
+      const afterModels = afterPool > 1e-9 ? Math.ceil(afterPool / modelWounds) : 0;
+      return Math.max(0, beforeModels - afterModels);
+    },
+
+    formulaTotalKillSummaryParts(){
+      const order = [];
+      const profiles = new Map();
+      (this.formulaCell?.formulaItems || []).forEach(item => {
+        (item?.lines || []).forEach(line => {
+          const killed = this.formulaActualKilledModels(line);
+          const defense = line?.formula?.defense;
+          if(killed <= 1e-9 || !defense) return;
+          const label = this.formulaDefenseProfileSummaryText(defense);
+          if(!profiles.has(label)){
+            profiles.set(label, { label, killed: 0 });
+            order.push(label);
+          }
+          profiles.get(label).killed += killed;
+        });
+      });
+      return order.map(label => profiles.get(label)).filter(Boolean);
+    },
+
+    formulaTotalKillSummaryText(){
+      const parts = this.formulaTotalKillSummaryParts();
+      if(!parts.length) return 'Models killed: 0';
+      return `Models killed: ${parts.map(part => `${this.formulaNumber(part.killed)} (${part.label})`).join(', ')}`;
+    },
+
+    formulaTotalKillSummaryHtml(){
+      const parts = this.formulaTotalKillSummaryParts();
+      if(!parts.length) return 'Models killed: 0';
+      return `Models killed: ${parts.map(part => [
+        this.escapeFormulaHtml(this.formulaNumber(part.killed)),
+        ` <span class="formulaProfileName">(${this.escapeFormulaHtml(part.label)})</span>`,
+      ].join('')).join(', ')}`;
+    },
+
     formulaDamageComponentText(parts, { includeRemaining=false }={}){
       const components = [
         parts.wounds > 1e-9 ? `${this.formulaNumber(parts.wounds)} wounds` : '',
@@ -2951,7 +3009,7 @@ function weaponVsDefenseApp(){
       const left = addends.length
         ? addends.map(addend => `${this.formulaNumber(addend.value, 2)} (${addend.name})`).join(' + ')
         : '0';
-      return `${left}\n\nTotal damage: ${this.formulaNumber(sum, 2)}`;
+      return `${left}\n${this.formulaTotalKillSummaryText()}\n\nTotal damage: ${this.formulaNumber(sum, 2)}`;
     },
 
     formulaTotalEquationHtml(){
@@ -2966,7 +3024,7 @@ function weaponVsDefenseApp(){
             ` <span class="formulaProfileName">(${this.escapeFormulaHtml(addend.name)})</span>`,
           ].join('')).join(' + ')
         : '0';
-      return `${left}\n\nTotal damage: ${this.escapeFormulaHtml(this.formulaNumber(sum, 2))}`;
+      return `${left}\n${this.formulaTotalKillSummaryHtml()}\n\nTotal damage: ${this.escapeFormulaHtml(this.formulaNumber(sum, 2))}`;
     },
 
     matchupFormulaLines(){
