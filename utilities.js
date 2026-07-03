@@ -2935,6 +2935,7 @@ function weaponVsDefenseApp(){
     matchupFormulaSections(){
       return (this.formulaCell?.formulaItems || []).map((item, index) => ({
         title: this.formulaItemTitle(item, index),
+        name: item?.weaponName || `Profile ${index + 1}`,
         modifiers: item?.modifierText ? `Modifiers: ${item.modifierText}` : '',
         lines: this.formulaItemLines(item, index),
         damage: this.formulaItemDamage(item),
@@ -2943,12 +2944,14 @@ function weaponVsDefenseApp(){
 
     formulaTotalEquation(){
       const sections = this.matchupFormulaSections();
-      const values = sections
-        .map(section => Number(section.damage))
-        .filter(value => Number.isFinite(value));
-      const sum = values.reduce((total, value) => total + value, 0);
-      const left = values.length ? values.map(value => this.formulaNumber(value, 2)).join(' + ') : '0';
-      return `${left} = ${this.formulaNumber(sum, 2)} total average damage`;
+      const addends = sections
+        .map(section => ({ value: Number(section.damage), name: section.name || 'Profile' }))
+        .filter(addend => Number.isFinite(addend.value));
+      const sum = addends.reduce((total, addend) => total + addend.value, 0);
+      const left = addends.length
+        ? addends.map(addend => `${this.formulaNumber(addend.value, 2)} (${addend.name})`).join(' + ')
+        : '0';
+      return `${left}\n\nTotal damage: ${this.formulaNumber(sum, 2)}`;
     },
 
     matchupFormulaLines(){

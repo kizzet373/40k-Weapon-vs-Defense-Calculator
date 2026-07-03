@@ -1122,7 +1122,7 @@ app.formulaCell = {
   ],
 };
 assert.strictEqual(app.matchupFormulaSections().length, 2, 'formula modal keeps multiple weapon profiles separated');
-assert.strictEqual(app.formulaTotalEquation(), '1.25 + 2.5 = 3.75 total average damage', 'formula modal shows a bottom summation equation');
+assert.strictEqual(app.formulaTotalEquation(), '1.25 (weapon a) + 2.5 (weapon b)\n\nTotal damage: 3.75', 'formula modal shows a labeled bottom summation equation');
 
 const sharedAbilitySource = {
   label: 'Icon bearer',
