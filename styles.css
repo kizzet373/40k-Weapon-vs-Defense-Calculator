@@ -276,7 +276,9 @@ main{padding:14px;min-width:0;overflow:hidden}
 .matchupPage{min-height:calc(100dvh - 70px);min-width:0}
 .matchupPage .matchupGridWrap{height:calc(100dvh - 88px);max-height:none;width:100%;max-width:100%;box-sizing:border-box}
 .renameModalBody{display:flex;flex-direction:column;gap:14px}
-.renameModalActions{display:flex;justify-content:flex-end;gap:8px;align-items:center}
+.renameOverlay.modalOverlayTop{z-index:90}
+.renameModalActions{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.renameModalActionRight{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-left:auto}
 .mergeTargetTable{width:100%;border-collapse:collapse}
 .mergeTargetTable th,.mergeTargetTable td{padding:8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
 .mergeTargetTable th{text-align:left;color:var(--muted);font-size:12px}
@@ -815,6 +817,10 @@ details summary{cursor:pointer}
     align-items:stretch;
     padding:8px;
     z-index:2000;
+  }
+
+  .renameOverlay.modalOverlayTop{
+    z-index:2100;
   }
 
   .modalOverlay:has(.modalWide[aria-label="Unit matchups"]){

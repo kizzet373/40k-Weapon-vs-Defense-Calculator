@@ -637,6 +637,17 @@ function weaponVsDefenseApp(){
       this.openRenameUnitModal(target);
     },
 
+    isModelRenameTarget(){
+      const target = this.renameTargetUnit;
+      if(!target) return false;
+      if(target._parentUnit || target._baseUnit?._parentUnit) return true;
+      return !!(this.profileModalOpen && (this.profileUnit?._children || []).some(child => this.sourceUnitKey(child) === this.sourceUnitKey(target)));
+    },
+
+    renameModalTitle(){
+      return this.isModelRenameTarget() ? 'Rename Model' : 'Rename Unit';
+    },
+
     openRenameUnitModal(unit=null){
       const target = unit || this.activeUnit;
       if(!target) return;
@@ -664,6 +675,31 @@ function weaponVsDefenseApp(){
       if(!target || !label) return;
       this.renameUnit(target, label);
       this.closeRenameUnitModal();
+    },
+
+    deleteRenameTargetModel(){
+      const target = this.renameTargetUnit;
+      if(!target || !this.isModelRenameTarget()) return;
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
+      const parentKey = this.sourceUnitKey(target._parentUnit || target._baseUnit?._parentUnit || this.profileUnit);
+      let deleted = false;
+      this.rosterForces().forEach(force => {
+        if(window.ArmyImportService?.removeUnit(force, target)) deleted = true;
+      });
+      if(!deleted) return;
+      this.closeRenameUnitModal();
+      this.refreshUnitsPreservingSelection(selectedKey);
+      if(this.profileModalOpen){
+        const refreshedParent = parentKey ? this.findDisplayedUnitBySourceKey(parentKey) : null;
+        if(refreshedParent){
+          this.profileUnit = refreshedParent;
+        }else{
+          this.closeUnitProfile();
+        }
+      }
+      this.onUnitChanged();
+      this.clearMatchupComputationCache();
+      if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
     duplicateSelectedUnit(){

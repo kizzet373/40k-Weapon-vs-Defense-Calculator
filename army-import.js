@@ -1503,6 +1503,44 @@
     return null;
   }
 
+  function removeUnitByIdentity(units, unitKey, groupId=''){
+    if(!Array.isArray(units)) return false;
+    let changed = false;
+    for(let i = units.length - 1; i >= 0; i--){
+      const unit = units[i];
+      const key = String(unit?._unitKey || '');
+      const group = String(unit?._groupId || '');
+      if(unitKey ? key === unitKey : (groupId && group === groupId)){
+        units.splice(i, 1);
+        changed = true;
+        continue;
+      }
+      if(removeUnitByIdentity(unit?._children || [], unitKey, groupId)) changed = true;
+    }
+    return changed;
+  }
+
+  function removeSelectionByIdentity(selections, unitKey, groupId=''){
+    if(!Array.isArray(selections)) return false;
+    const genericKey = unitKey.replace(/^generic-/, '');
+    let changed = false;
+    for(let i = selections.length - 1; i >= 0; i--){
+      const selection = selections[i];
+      const selectionKey = String(selection?.id || selection?.entryId || selection?.name || '');
+      const selectionGroup = String(selection?.entryGroupId || selection?.group || selection?.name || '');
+      const matches = unitKey
+        ? (selectionKey === genericKey || selectionKey === unitKey)
+        : (selectionKey === groupId || (groupId && selectionGroup === groupId));
+      if(matches){
+        selections.splice(i, 1);
+        changed = true;
+        continue;
+      }
+      if(removeSelectionByIdentity(selection?.selections || [], unitKey, groupId)) changed = true;
+    }
+    return changed;
+  }
+
   function renameSelectionByIdentity(selections, unitKey, groupId, newLabel){
     const genericKey = unitKey.replace(/^generic-/, '');
     for(const selection of selections || []){
@@ -1589,13 +1627,7 @@
       let changed = false;
 
       if(Array.isArray(force._importedUnits)){
-        const before = force._importedUnits.length;
-        force._importedUnits = force._importedUnits.filter(candidate => {
-          const candidateKey = String(candidate?._unitKey || '');
-          const candidateGroup = String(candidate?._groupId || '');
-          return candidateKey !== unitKey && candidateGroup !== groupId;
-        });
-        changed = force._importedUnits.length !== before;
+        changed = removeUnitByIdentity(force._importedUnits, unitKey, groupId);
       }
 
       if(Array.isArray(force._unitMerges)){
@@ -1603,13 +1635,7 @@
       }
 
       if(!changed && Array.isArray(force.selections)){
-        const genericKey = unitKey.replace(/^generic-/, '');
-        const before = force.selections.length;
-        force.selections = force.selections.filter(selection => {
-          const selectionKey = String(selection?.id || selection?.entryId || selection?.name || '');
-          return selectionKey !== genericKey && selectionKey !== unitKey && selectionKey !== groupId;
-        });
-        changed = force.selections.length !== before;
+        changed = removeSelectionByIdentity(force.selections, unitKey, groupId);
       }
 
       return changed;

@@ -941,13 +941,13 @@
     </div>
   </div>
 
-  <!-- Rename unit modal -->
-  <div class="modalOverlay" x-show="renameModalOpen" x-cloak
+  <!-- Rename unit/model modal -->
+  <div class="modalOverlay renameOverlay" :class="{ modalOverlayTop: profileModalOpen }" x-show="renameModalOpen" x-cloak
        @keydown.escape.window="closeRenameUnitModal()" @click.self="closeRenameUnitModal()">
-    <div class="modal modalSmall" role="dialog" aria-modal="true" aria-label="Rename unit">
+    <div class="modal modalSmall" role="dialog" aria-modal="true" :aria-label="renameModalTitle()">
       <div class="modalHead">
         <div>
-          <div style="font-weight:800">Rename</div>
+          <div style="font-weight:800" x-text="renameModalTitle()"></div>
           <div class="muted" style="font-size:12px" x-text="unitLabelText(renameTargetUnit, 'Unit')"></div>
         </div>
         <button class="secondary" type="button" @click="closeRenameUnitModal()">Close</button>
@@ -958,8 +958,11 @@
           <input type="text" x-ref="renameInput" x-model="renameDraft" />
         </label>
         <div class="renameModalActions">
-          <button type="button" class="secondary" @click="closeRenameUnitModal()">Cancel</button>
-          <button type="submit" class="primary" :disabled="!String(renameDraft || '').trim()">Save</button>
+          <button type="button" class="danger" x-show="isModelRenameTarget()" @click="deleteRenameTargetModel()">Delete Model</button>
+          <div class="renameModalActionRight">
+            <button type="button" class="secondary" @click="closeRenameUnitModal()">Cancel</button>
+            <button type="submit" class="primary" :disabled="!String(renameDraft || '').trim()">Save</button>
+          </div>
         </div>
       </form>
     </div>
