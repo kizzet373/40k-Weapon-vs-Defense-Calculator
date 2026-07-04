@@ -225,26 +225,28 @@ main{padding:14px;min-width:0;overflow:hidden}
   border-color:rgba(110,231,255,.85);
   box-shadow:0 0 0 2px rgba(110,231,255,.13) inset;
 }
-.calculatorRosterPicker,.matchupRosterPicker{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.calculatorRosterPicker,.matchupRosterPicker{display:flex;flex-direction:column;gap:8px}
 .matchupRosterPicker{position:relative}
-.matchupRosterRow{display:grid;grid-template-columns:68px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.matchupSideSection{display:flex;flex-direction:column;gap:6px}
+.matchupSideSectionTitle{margin:0;font-size:13px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.matchupSideCard{display:flex;flex-direction:column;gap:8px}
+.matchupRosterRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
 .matchupRosterSide{display:flex;align-items:flex-end;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em;padding-bottom:9px;text-transform:uppercase}
 .matchupRosterSideText{display:inline-block}
 .matchupRosterSideTextAttacker{color:#ff3b3b}
 .matchupRosterSideTextDefender{color:#34ff6a}
 .matchupRosterRow label{min-width:0}
-.matchupRosterSwapButton{
-  position:absolute;
-  left:34px;
-  top:calc(50% + 12px);
-  z-index:1;
-  width:58px;
+button.secondary.matchupRosterSwapButton{
+  align-self:center;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border-color:rgba(110,231,255,.8);
+  box-shadow:0 0 0 2px rgba(110,231,255,.12) inset;
+  color:#001016;
   min-height:0;
-  padding:4px 7px;
-  border-radius:6px;
+  padding:6px 14px;
+  border-radius:8px;
   font-size:12px;
   line-height:16px;
-  transform:translate(-50%,-50%);
 }
 .forcePickerRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .forceSelectLabel{min-width:0}

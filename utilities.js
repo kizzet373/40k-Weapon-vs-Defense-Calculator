@@ -32,6 +32,8 @@ function weaponVsDefenseApp(){
       showMelee: true,
       showShooting: true,
       metric: 'modelWounds',
+      attackerUnitIdx: 0,
+      defenderUnitIdx: 0,
       opts: {
         separateModels: false,
       },
@@ -43,7 +45,7 @@ function weaponVsDefenseApp(){
       cellCache: {},
       cacheWarmToken: 0,
       loadingMessage: '',
-      customModifiers: [],
+      customModifiers: { attacker: [], defender: [] },
     },
     matchupAttackerForces: [],
     matchupDefenderForces: [],
@@ -64,6 +66,8 @@ function weaponVsDefenseApp(){
       defenderFrom: '',
       defenderTo: '',
     },
+    mergeFromForce: null,
+    mergeCandidateUnits: null,
     profileModalOpen: false,
     profileModalRole: '',
     profileUnit: null,
@@ -780,10 +784,16 @@ function weaponVsDefenseApp(){
     swapMatchupSides(){
       const aR = this.matchup.attackerRosterIdx;
       const aF = this.matchup.attackerForceIdx;
+      const aU = this.matchup.attackerUnitIdx;
+      const aMods = [...this.matchupCustomModifiers('attacker')];
       this.matchup.attackerRosterIdx = this.matchup.defenderRosterIdx;
       this.matchup.attackerForceIdx  = this.matchup.defenderForceIdx;
+      this.matchup.attackerUnitIdx = this.matchup.defenderUnitIdx;
       this.matchup.defenderRosterIdx = aR;
       this.matchup.defenderForceIdx  = aF;
+      this.matchup.defenderUnitIdx = aU;
+      this.matchup.customModifiers.attacker = [...this.matchupCustomModifiers('defender')];
+      this.matchup.customModifiers.defender = aMods;
       this.onMatchupRosterChanged('attacker', false);
       this.onMatchupRosterChanged('defender', false);
       this.rebuildMatchup();
@@ -799,11 +809,39 @@ function weaponVsDefenseApp(){
       if(side === 'attacker'){
         this.matchupAttackerForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
         this.matchup.attackerForceIdx = this.clamp(this.matchup.attackerForceIdx, 0, Math.max(0, this.matchupAttackerForces.length-1));
+        this.matchup.attackerUnitIdx = 0;
       }else{
         this.matchupDefenderForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
         this.matchup.defenderForceIdx = this.clamp(this.matchup.defenderForceIdx, 0, Math.max(0, this.matchupDefenderForces.length-1));
+        this.matchup.defenderUnitIdx = 0;
       }
       if(rebuild && this.matchupModalOpen) this.rebuildMatchup();
+    },
+
+    matchupSideForce(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      return this.getForcesForRoster(rosterIdx)?.[forceIdx] || null;
+    },
+
+    matchupSideBaseUnits(side){
+      return side === 'attacker' ? (this.matchupAttackerBaseUnits || []) : (this.matchupDefenderUnits || []);
+    },
+
+    matchupSideSelectedUnit(side){
+      const units = this.matchupSideBaseUnits(side);
+      const key = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
+      const index = this.clamp(this.matchup[key] || 0, 0, Math.max(0, units.length - 1));
+      if(this.matchup[key] !== index) this.matchup[key] = index;
+      return units[index] || null;
+    },
+
+    matchupSideForUnit(unit){
+      const keys = [unit?._viewKey, unit?._baseUnit?._viewKey, unit?._parentUnit?._viewKey, unit?._baseUnit?._parentUnit?._viewKey]
+        .map(value => String(value || ''));
+      if(keys.some(key => key.startsWith('attacker:'))) return 'attacker';
+      if(keys.some(key => key.startsWith('defender:'))) return 'defender';
+      return '';
     },
 
     matchupDefenseLabel(u){
@@ -1452,23 +1490,29 @@ function weaponVsDefenseApp(){
 
     selectedMergeTargets(){
       const fromKey = this.sourceUnitKey(this.mergeFromUnit || this.activeUnit);
-      return (this.units || []).filter(unit => this.sourceUnitKey(unit) && this.sourceUnitKey(unit) !== fromKey);
+      const candidates = this.mergeCandidateUnits || this.units || [];
+      return candidates.filter(unit => this.sourceUnitKey(unit) && this.sourceUnitKey(unit) !== fromKey);
     },
 
-    openMergeUnitModal(){
-      if(!this.activeUnit){ alert('Select a unit first.'); return; }
-      this.mergeFromUnit = this.activeUnit;
+    openMergeUnitModal(unit=null, force=null, candidates=null){
+      const target = unit || this.activeUnit;
+      if(!target){ alert('Select a unit first.'); return; }
+      this.mergeFromUnit = target;
+      this.mergeFromForce = force || this.getForceByIdx(this.selectedForceIdx);
+      this.mergeCandidateUnits = candidates || this.units || [];
       this.mergeModalOpen = true;
     },
 
     closeMergeUnitModal(){
       this.mergeModalOpen = false;
       this.mergeFromUnit = null;
+      this.mergeFromForce = null;
+      this.mergeCandidateUnits = null;
     },
 
     mergeSelectedUnitInto(targetUnit){
       const fromUnit = this.mergeFromUnit || this.activeUnit;
-      const force = this.getForceByIdx(this.selectedForceIdx);
+      const force = this.mergeFromForce || this.getForceByIdx(this.selectedForceIdx);
       const fromKey = this.sourceUnitKey(fromUnit);
       const toKey = this.sourceUnitKey(targetUnit);
       const ok = window.ArmyImportService?.mergeUnits(force, fromKey, toKey);
@@ -1482,6 +1526,45 @@ function weaponVsDefenseApp(){
       }else{
         this.clearMatchupComputationCache();
       }
+    },
+
+    openMatchupMergeUnitModal(side){
+      const unit = this.matchupSideSelectedUnit(side);
+      const force = this.matchupSideForce(side);
+      const candidates = this.matchupSideBaseUnits(side);
+      if(!unit || !force){ alert('Select a unit first.'); return; }
+      this.openMergeUnitModal(unit, force, candidates);
+    },
+
+    duplicateMatchupUnit(side){
+      const unit = this.matchupSideSelectedUnit(side);
+      const force = this.matchupSideForce(side);
+      if(!unit || !force) return;
+      const duplicated = window.ArmyImportService?.duplicateUnit(force, unit);
+      if(!duplicated) return;
+      const key = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
+      this.matchup[key] = this.matchupSideBaseUnits(side).length;
+      this.rebuildMatchup();
+    },
+
+    deleteMatchupUnit(side){
+      const unit = this.matchupSideSelectedUnit(side);
+      const force = this.matchupSideForce(side);
+      if(!unit || !force) return;
+      const deleted = window.ArmyImportService?.removeUnit(force, unit);
+      if(!deleted) return;
+      const key = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
+      this.matchup[key] = Math.max(0, (this.matchup[key] || 0) - 1);
+      this.rebuildMatchup();
+    },
+
+    unmergeMatchupUnit(side){
+      const unit = this.matchupSideSelectedUnit(side);
+      const force = this.matchupSideForce(side);
+      const targetKey = this.sourceUnitKey(unit);
+      const ok = window.ArmyImportService?.unmergeUnit(force, targetKey);
+      if(!ok){ alert('No uniquely named models or merges found for that unit.'); return; }
+      this.rebuildMatchup();
     },
 
     unmergeActiveUnit(){
@@ -1597,6 +1680,8 @@ function weaponVsDefenseApp(){
           this.matchupAttackerBaseUnits = aUnits;
           this.matchupAttackerUnits = aRows;
           this.matchupDefenderUnits = dUnits;
+          this.matchup.attackerUnitIdx = this.clamp(this.matchup.attackerUnitIdx || 0, 0, Math.max(0, aUnits.length - 1));
+          this.matchup.defenderUnitIdx = this.clamp(this.matchup.defenderUnitIdx || 0, 0, Math.max(0, dUnits.length - 1));
 
           this.matchup.rows = aRows.map(au => ({
             unit: au,
@@ -3352,10 +3437,11 @@ function weaponVsDefenseApp(){
 
     abilityModifierNamesForUnit(unit, context={}){
       const resolvedContext = { ...context, kind: context.kind || 'weapon' };
+      const side = context.matchupSide || this.matchupSideForUnit(unit);
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), resolvedContext),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), resolvedContext),
-        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), resolvedContext),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(side || 'all'), resolvedContext),
       ];
     },
 
@@ -3379,28 +3465,31 @@ function weaponVsDefenseApp(){
 
     defenseModifierNamesForUnit(unit){
       const context = { kind: 'defenseProfile', defender: unit };
+      const side = this.matchupSideForUnit(unit);
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), context),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), context),
-        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), context),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(side || 'all'), context),
       ];
     },
 
     defenseAttackModifierNamesForUnit(unit, context={}){
       const resolvedContext = { ...context, kind: 'defenseAttack', defender: unit };
+      const side = context.matchupSide || this.matchupSideForUnit(unit);
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(unit), resolvedContext),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(unit), resolvedContext),
-        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), resolvedContext),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(side || 'all'), resolvedContext),
       ];
     },
 
     targetDefenseModifierNamesForUnit(attacker, defender){
       const context = { kind: 'targetDefense', attacker, defender };
+      const side = this.matchupSideForUnit(attacker);
       return [
         ...this.modifiersFromRuleNames(this.unitModifierRuleNames(attacker), context),
         ...this.modifierNamesFromSpecs(this.enabledUnitCustomModifierSpecs(attacker), context),
-        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(), context),
+        ...this.modifierNamesFromSpecs(this.enabledMatchupCustomModifierSpecs(side || 'all'), context),
       ];
     },
 
@@ -3703,27 +3792,46 @@ function weaponVsDefenseApp(){
       return this.unitCustomModifierOptions();
     },
 
-    matchupCustomModifiers(){
-      if(!Array.isArray(this.matchup.customModifiers)) this.matchup.customModifiers = [];
+    normalizeMatchupCustomModifierState(){
+      if(Array.isArray(this.matchup.customModifiers)){
+        this.matchup.customModifiers = { attacker: this.matchup.customModifiers, defender: [] };
+      }
+      if(!this.matchup.customModifiers || typeof this.matchup.customModifiers !== 'object'){
+        this.matchup.customModifiers = { attacker: [], defender: [] };
+      }
+      if(!Array.isArray(this.matchup.customModifiers.attacker)) this.matchup.customModifiers.attacker = [];
+      if(!Array.isArray(this.matchup.customModifiers.defender)) this.matchup.customModifiers.defender = [];
       return this.matchup.customModifiers;
     },
 
-    enabledMatchupCustomModifierSpecs(){
-      return this.matchupCustomModifiers()
+    matchupCustomModifiers(side='attacker'){
+      const state = this.normalizeMatchupCustomModifierState();
+      if(side === 'defender') return state.defender;
+      if(side === 'all') return [...state.attacker, ...state.defender];
+      return state.attacker;
+    },
+
+    enabledMatchupCustomModifierSpecs(side='all'){
+      return this.matchupCustomModifiers(side)
         .filter(mod => mod?.enabled !== false && String(mod?.text || '').trim())
         .map(mod => mod.text.trim());
     },
 
-    addMatchupCustomModifier(value){
+    addMatchupCustomModifier(side, value){
+      if(arguments.length === 1){
+        value = side;
+        side = 'attacker';
+      }
       const text = String(value || '').trim();
       if(!text) return;
       const option = this.matchupCustomModifierOptions().find(entry => entry.value === text);
-      const existing = this.matchupCustomModifiers().find(entry => String(entry?.text || '').trim().toLowerCase() === text.toLowerCase());
+      const list = this.matchupCustomModifiers(side);
+      const existing = list.find(entry => String(entry?.text || '').trim().toLowerCase() === text.toLowerCase());
       if(existing){
         existing.enabled = true;
       }else{
-        this.matchupCustomModifiers().push({
-          id: `matchup-custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
+        list.push({
+          id: `matchup-${side}-custom-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
           text,
           label: option?.label || this.customModifierOptionLabel(text),
           enabled: true,
@@ -3733,8 +3841,14 @@ function weaponVsDefenseApp(){
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
-    removeMatchupCustomModifier(id){
-      this.matchup.customModifiers = this.matchupCustomModifiers().filter(entry => entry.id !== id);
+    removeMatchupCustomModifier(side, id){
+      if(arguments.length === 1){
+        id = side;
+        side = 'attacker';
+      }
+      const state = this.normalizeMatchupCustomModifierState();
+      const key = side === 'defender' ? 'defender' : 'attacker';
+      state[key] = this.matchupCustomModifiers(key).filter(entry => entry.id !== id);
       this.clearMatchupComputationCache();
       if(this.matchupModalOpen) this.rebuildMatchup();
     },

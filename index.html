@@ -31,7 +31,18 @@
         <span class="importStatus" :class="importStatus.type" x-show="importStatus.text" x-text="importStatus.text"></span>
       </div>
 
-      <div class="calculatorRosterPicker" x-show="activeView === 'calc'" x-cloak>
+    </div>
+
+    <h2>Views</h2>
+    <div class="card">
+      <div class="row viewToggleRow">
+        <button type="button" class="viewToggleButton" :class="activeView === 'matchups' ? 'active' : ''" @click="switchToMatchupView()">Army Matchups</button>
+        <button type="button" class="viewToggleButton" :class="activeView === 'calc' ? 'active' : ''" @click="switchToCalcView()">Weapon Damage Calc</button>
+      </div>
+    </div>
+
+    <div class="card" x-show="activeView === 'calc'" x-cloak>
+      <div class="calculatorRosterPicker">
         <div class="row">
           <label>
             Roster
@@ -63,84 +74,138 @@
           </label>
         </div>
       </div>
-
-      <div class="matchupRosterPicker" x-show="activeView === 'matchups'" x-cloak>
-        <button type="button" class="secondary matchupRosterSwapButton" @click="swapMatchupSides()">Swap</button>
-        <div class="matchupRosterRow">
-          <div class="matchupRosterSide"><span class="matchupRosterSideText matchupRosterSideTextAttacker">Attacker</span></div>
-          <label>
-            Roster
-            <select x-model.number="matchup.attackerRosterIdx" @change="onMatchupRosterChanged('attacker')">
-              <template x-for="(r, i) in rosters" :key="`sidebar-atk-r-${i}`">
-                <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
-              </template>
-            </select>
-          </label>
-          <label>
-            Force
-            <select x-model.number="matchup.attackerForceIdx" @change="rebuildMatchup()">
-              <template x-for="(f, i) in matchupAttackerForces" :key="`sidebar-atk-f-${i}`">
-                <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
-              </template>
-            </select>
-          </label>
-        </div>
-
-        <div class="matchupRosterRow">
-          <div class="matchupRosterSide"><span class="matchupRosterSideText matchupRosterSideTextDefender">Defender</span></div>
-          <label>
-            Roster
-            <select x-model.number="matchup.defenderRosterIdx" @change="onMatchupRosterChanged('defender')">
-              <template x-for="(r, i) in rosters" :key="`sidebar-def-r-${i}`">
-                <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
-              </template>
-            </select>
-          </label>
-          <label>
-            Force
-            <select x-model.number="matchup.defenderForceIdx" @change="rebuildMatchup()">
-              <template x-for="(f, i) in matchupDefenderForces" :key="`sidebar-def-f-${i}`">
-                <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
-              </template>
-            </select>
-          </label>
-        </div>
-      </div>
-
     </div>
 
-    <div class="card">
-      <div class="row viewToggleRow">
-        <button type="button" class="viewToggleButton" :class="activeView === 'matchups' ? 'active' : ''" @click="switchToMatchupView()">Unit Matchups</button>
-        <button type="button" class="viewToggleButton" :class="activeView === 'calc' ? 'active' : ''" @click="switchToCalcView()">Weapon Damage Calc</button>
-      </div>
+    <div class="matchupRosterPicker" x-show="activeView === 'matchups'" x-cloak>
+      <section class="matchupSideSection">
+        <h2 class="matchupSideSectionTitle matchupRosterSideTextAttacker">ATTACKER</h2>
+        <div class="card matchupSideCard">
+          <div class="matchupRosterRow">
+            <label>
+              Roster
+              <select x-model.number="matchup.attackerRosterIdx" @change="onMatchupRosterChanged('attacker')">
+                <template x-for="(r, i) in rosters" :key="`sidebar-atk-r-${i}`">
+                  <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
+                </template>
+              </select>
+            </label>
+            <label>
+              Force
+              <select x-model.number="matchup.attackerForceIdx" @change="matchup.attackerUnitIdx = 0; rebuildMatchup()">
+                <template x-for="(f, i) in matchupAttackerForces" :key="`sidebar-atk-f-${i}`">
+                  <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+                </template>
+              </select>
+            </label>
+          </div>
+          <label class="unitSelectLabel">
+            Unit
+            <select x-model.number="matchup.attackerUnitIdx">
+              <template x-for="(u, i) in matchupSideBaseUnits('attacker')" :key="`matchup-attacker-unit-${i}`">
+                <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
+              </template>
+              <template x-if="matchupSideBaseUnits('attacker').length === 0">
+                <option value="0">No units found</option>
+              </template>
+            </select>
+          </label>
+          <div class="unitActionRow matchupSideActionRow">
+            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptRenameUnit(matchupSideSelectedUnit('attacker'))">Rename</button>
+            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="duplicateMatchupUnit('attacker')">Duplicate</button>
+            <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 2" @click="openMatchupMergeUnitModal('attacker')">Merge</button>
+            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="unmergeMatchupUnit('attacker')">Unmerge</button>
+            <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="deleteMatchupUnit('attacker')">Delete</button>
+          </div>
+          <div class="matchupCustomModifierTool">
+            <label>
+              Custom Modifier
+              <select @change="addMatchupCustomModifier('attacker', $event.target.value); $event.target.value=''">
+                <option value="">Add modifier...</option>
+                <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-attacker-custom-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
+            </label>
+            <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('attacker').length > 0">
+              <template x-for="mod in matchupCustomModifiers('attacker')" :key="mod.id">
+                <span class="modifier matchupCustomModifierPill">
+                  <span x-text="customModifierLabel(mod)"></span>
+                  <button type="button" class="tagX" @click="removeMatchupCustomModifier('attacker', mod.id)" aria-label="Remove custom modifier">x</button>
+                </span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <button type="button" class="secondary matchupRosterSwapButton" @click="swapMatchupSides()">Swap</button>
+
+      <section class="matchupSideSection">
+        <h2 class="matchupSideSectionTitle matchupRosterSideTextDefender">DEFENDER</h2>
+        <div class="card matchupSideCard">
+          <div class="matchupRosterRow">
+            <label>
+              Roster
+              <select x-model.number="matchup.defenderRosterIdx" @change="onMatchupRosterChanged('defender')">
+                <template x-for="(r, i) in rosters" :key="`sidebar-def-r-${i}`">
+                  <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
+                </template>
+              </select>
+            </label>
+            <label>
+              Force
+              <select x-model.number="matchup.defenderForceIdx" @change="matchup.defenderUnitIdx = 0; rebuildMatchup()">
+                <template x-for="(f, i) in matchupDefenderForces" :key="`sidebar-def-f-${i}`">
+                  <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+                </template>
+              </select>
+            </label>
+          </div>
+          <label class="unitSelectLabel">
+            Unit
+            <select x-model.number="matchup.defenderUnitIdx">
+              <template x-for="(u, i) in matchupSideBaseUnits('defender')" :key="`matchup-defender-unit-${i}`">
+                <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
+              </template>
+              <template x-if="matchupSideBaseUnits('defender').length === 0">
+                <option value="0">No units found</option>
+              </template>
+            </select>
+          </label>
+          <div class="unitActionRow matchupSideActionRow">
+            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptRenameUnit(matchupSideSelectedUnit('defender'))">Rename</button>
+            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="duplicateMatchupUnit('defender')">Duplicate</button>
+            <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 2" @click="openMatchupMergeUnitModal('defender')">Merge</button>
+            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="unmergeMatchupUnit('defender')">Unmerge</button>
+            <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="deleteMatchupUnit('defender')">Delete</button>
+          </div>
+          <div class="matchupCustomModifierTool">
+            <label>
+              Custom Modifier
+              <select @change="addMatchupCustomModifier('defender', $event.target.value); $event.target.value=''">
+                <option value="">Add modifier...</option>
+                <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-defender-custom-${option.value}`">
+                  <option :value="option.value" x-text="option.label"></option>
+                </template>
+              </select>
+            </label>
+            <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('defender').length > 0">
+              <template x-for="mod in matchupCustomModifiers('defender')" :key="mod.id">
+                <span class="modifier matchupCustomModifierPill">
+                  <span x-text="customModifierLabel(mod)"></span>
+                  <button type="button" class="tagX" @click="removeMatchupCustomModifier('defender', mod.id)" aria-label="Remove custom modifier">x</button>
+                </span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
+    <div x-show="activeView === 'calc'" x-cloak>
     <h2>Pick a Unit</h2>
     <div class="card" id="unitPicker">
-      <div class="unitPickerSelectionRow" :class="activeView === 'matchups' ? 'matchupUnitPickerSelectionRow' : 'calcUnitPickerSelectionRow'">
-        <label x-show="activeView === 'matchups'" x-cloak>
-          Roster
-          <select x-model.number="selectedRosterIdx" @change="refreshForces()">
-            <template x-for="(r, i) in rosters" :key="`unit-roster-${i}`">
-              <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
-            </template>
-            <template x-if="rosters.length === 0">
-              <option value="0">No rosters loaded</option>
-            </template>
-          </select>
-        </label>
-        <label x-show="activeView === 'matchups'" x-cloak>
-          Force
-          <select x-model.number="selectedForceIdx" @change="refreshUnits()">
-            <template x-for="(f, i) in forces" :key="`unit-force-${i}`">
-              <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
-            </template>
-            <template x-if="forces.length === 0">
-              <option value="0">No forces found</option>
-            </template>
-          </select>
-        </label>
+      <div class="unitPickerSelectionRow calcUnitPickerSelectionRow">
         <label class="unitSelectLabel">
           Unit
           <select x-model.number="selectedUnitIdx" @change="onUnitChanged()">
@@ -162,6 +227,7 @@
           <button class="danger unitDeleteButton" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
         </div>
       </div>
+    </div>
     </div>
 
     <div class="matchupSidebarTools" x-show="activeView === 'matchups'" x-cloak>
@@ -210,25 +276,6 @@
                   </div>
                 </div>
                 <span class="muted copyStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
-              </div>
-            </div>
-            <div class="matchupCustomModifierTool">
-              <label>
-                Custom Modifier
-                <select @change="addMatchupCustomModifier($event.target.value); $event.target.value=''">
-                  <option value="">Add modifier...</option>
-                  <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-custom-${option.value}`">
-                    <option :value="option.value" x-text="option.label"></option>
-                  </template>
-                </select>
-              </label>
-              <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers().length > 0">
-                <template x-for="mod in matchupCustomModifiers()" :key="mod.id">
-                  <span class="modifier matchupCustomModifierPill">
-                    <span x-text="customModifierLabel(mod)"></span>
-                    <button type="button" class="tagX" @click="removeMatchupCustomModifier(mod.id)" aria-label="Remove custom modifier">x</button>
-                  </span>
-                </template>
               </div>
             </div>
           </div>
@@ -340,7 +387,7 @@
   > ❯ </button>
 
   <main>
-    <h1 style="padding-left:35px" x-text="activeView === 'matchups' ? 'Unit Matchups' : 'Weapon vs Defense Calculator'"></h1>
+    <h1 style="padding-left:35px" x-text="activeView === 'matchups' ? 'Army Matchups' : 'Weapon vs Defense Calculator'"></h1>
 
     <div x-show="activeView === 'calc'" x-cloak>
     <div class="grid">
@@ -583,11 +630,11 @@
     </div>
   </main>
 
-  <!-- Legacy Unit Matchups modal shell retained disabled while the grid lives in the main page. -->
+  <!-- Legacy Army Matchups modal shell retained disabled while the grid lives in the main page. -->
   <div class="modalOverlay" x-show="false" x-cloak>
     <div class="modal modalWide" role="dialog" aria-modal="true" aria-label="Unit matchups">
       <div class="modalHead">
-        <div style="font-weight:800">Unit Matchups</div>
+        <div style="font-weight:800">Army Matchups</div>
         <button class="secondary" type="button" @click="closeMatchupModal()">Close</button>
       </div>
 
