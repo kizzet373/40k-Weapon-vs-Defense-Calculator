@@ -700,6 +700,21 @@ assert.strictEqual(
   JSON.stringify(['Conditional | Fight Phase Mortals: 8D6 4+']),
   'Bloodthirster Relentless Carnage maps to its conditional fight phase mortal wounds'
 );
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Death Hex (Psychic)')),
+  JSON.stringify(['Conditional | Unit-wide | AP +1']),
+  'Death Hex maps to its conditional AP improvement'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Gift of Chaos (Psychic)')),
+  JSON.stringify(['Conditional | Weapon Keyword: Psychic | Post-Damage Mortals: 1D3 100%']),
+  'Gift of Chaos maps to Psychic-gated post-damage mortal wounds'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Warp Storms (Psychic)')),
+  JSON.stringify(['Conditional | Pre-Damage Mortals: 1D3 3+']),
+  'Warp Storms maps to conditional pre-damage mortal wounds'
+);
 assert.strictEqual(JSON.stringify(app.weaponKeywordList({ modifiers: 'Torrent, Ignores Cover' })), JSON.stringify(['Torrent', 'Ignores Cover']), 'main page weapon keyword rows split imported modifiers');
 const mixedMainPageDefense = {
   label: 'Mixed defense unit',
@@ -921,6 +936,62 @@ const carnageSections = app.matchupFormulaSections();
 assert.strictEqual(carnageFormulaCell.formulaItems.at(-1)?.phase, 'postDamage', 'Relentless Carnage is scheduled after weapon damage');
 assert.ok(/^2\. Post-Damage - Relentless Carnage mortal wounds \(x8\) - D:1/i.test(carnageSections.at(-1)?.title || ''), 'Relentless Carnage appears as a Post-Damage formula section');
 assert.ok(carnageSections.at(-1).lines.some(line => /Damage: 8 rolls x 50\.0% x 1 damage = 4 damage/i.test(line.text || line)), 'Relentless Carnage formula shows its eight D6 4+ mortal wound math');
+const deathHexCaster = {
+  label: 'Death Hex caster',
+  abilities: ['Death Hex (Psychic)'],
+  weapons: [{ name: 'Hex bolt', range: '18', A: '6', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'hex-bolt' }],
+  defense: { T: 4, Sv: 4, W: 2, models: 1 },
+  _unitKey: 'death-hex-caster',
+};
+const deathHexTarget = { label: 'Death Hex target', defense: { T: 4, Sv: 3, W: 20, models: 1, totalWounds: 20 }, _unitKey: 'death-hex-target' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+const deathHexOff = app.computeMatchupCell(deathHexCaster, deathHexTarget);
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const deathHexOn = app.computeMatchupCell(deathHexCaster, deathHexTarget);
+assert.ok(deathHexOn.dmg > deathHexOff.dmg, 'Death Hex improves AP and increases damage when conditions are met');
+assert.ok(/AP 1 from 0/.test(deathHexOn.profileModifierText), 'Death Hex calculation data shows the AP improvement');
+const giftCaster = {
+  label: 'Gift caster',
+  abilities: ['Gift of Chaos (Psychic)'],
+  weapons: [{ name: 'Psychic flame', range: '18', A: '1', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: 'Psychic', mode: 'ranged', _weaponKey: 'psychic-flame' }],
+  defense: { T: 4, Sv: 4, W: 2, models: 1 },
+  _unitKey: 'gift-caster',
+};
+const giftNonPsychic = {
+  ...giftCaster,
+  label: 'Gift non-psychic caster',
+  weapons: [{ ...giftCaster.weapons[0], name: 'Mundane flame', modifiers: '', _weaponKey: 'mundane-flame' }],
+  _unitKey: 'gift-non-psychic-caster',
+};
+const giftTarget = { label: 'Gift target', defense: { T: 4, Sv: 7, W: 20, models: 1, totalWounds: 20 }, _unitKey: 'gift-target' };
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const giftNonPsychicDamage = app.computeMatchupCell(giftNonPsychic, giftTarget).dmg;
+const giftPsychicDamage = app.computeMatchupCell(giftCaster, giftTarget).dmg;
+assert.ok(Math.abs((giftPsychicDamage - giftNonPsychicDamage) - 2) < 1e-9, 'Gift of Chaos adds expected D3 mortal wounds only for Psychic attacks');
+const giftFormulaCell = app.computeMatchupCell(giftCaster, giftTarget, { includeFormula: true });
+app.formulaCell = giftFormulaCell;
+const giftSections = app.matchupFormulaSections();
+assert.strictEqual(giftFormulaCell.formulaItems.at(-1)?.phase, 'postDamage', 'Gift of Chaos is scheduled after weapon damage');
+assert.ok(/Post-Damage - Gift of Chaos \(Psychic\) mortal wounds - D:1d3/i.test(giftSections.at(-1)?.title || ''), 'Gift of Chaos appears as a Post-Damage D3 formula section');
+assert.ok(giftSections.at(-1).lines.some(line => /Damage: 100\.0% x 1d3 damage = 2 damage/i.test(line.text || line)), 'Gift of Chaos formula shows its D3 mortal wound math');
+const warpStormUnit = {
+  label: 'Warp storm unit',
+  abilities: ['Warp Storms (Psychic)'],
+  weapons: [],
+  defense: { T: 4, Sv: 4, W: 2, models: 1 },
+  _unitKey: 'warp-storm-unit',
+};
+const warpStormTarget = { label: 'Warp storm target', defense: { T: 4, Sv: 7, W: 20, models: 1, totalWounds: 20 }, _unitKey: 'warp-storm-target' };
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const warpStormCell = app.computeMatchupCell(warpStormUnit, warpStormTarget, { includeFormula: true });
+assert.ok(Math.abs(warpStormCell.dmg - (4 / 3)) < 1e-9, 'Warp Storms adds expected 3+ D3 mortal wounds as pre-damage');
+assert.strictEqual(warpStormCell.formulaItems[0]?.phase, 'preDamage', 'Warp Storms is scheduled before weapon damage');
+app.formulaCell = warpStormCell;
+assert.ok(app.matchupFormulaSections()[0].lines.some(line => /Damage: 66\.7% x 1d3 damage = 1\.333 damage/i.test(line.text || line)), 'Warp Storms formula shows its 3+ D3 mortal wound math');
 app.openMatchupFormula(darkPactHard, darkPactAttacker, hardTarget);
 assert.ok(app.formulaModalOpen, 'clicking a matchup value can open the formula modal state');
 assert.ok((app.formulaCell?.formulaItems || []).length > 0, 'formula modal recomputes detailed formula data on demand');

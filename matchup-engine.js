@@ -266,40 +266,92 @@
     };
   }
 
-  function specialMortalSpecs(unit, attackMode, options){
-    if(attackMode === 'shooting') return [];
+  function specialAbilitySources(unit, options){
+    const seen = new Set();
+    const out = [];
+    [unit, ...leafAttackUnits(unit)].filter(Boolean).forEach(source => {
+      (source?.abilities || []).forEach(ability => {
+        if(!isAbilityEnabled(source, ability, options)) return;
+        const key = `${source?._unitKey || source?.label || 'unit'}|${ability}`;
+        if(seen.has(key)) return;
+        seen.add(key);
+        out.push({ source, ability });
+      });
+    });
+    return out;
+  }
+
+  function unitHasEnabledWeaponKeyword(unit, defenderUnit, keyword, options){
+    const wanted = String(keyword || '').trim();
+    if(!wanted) return true;
+    return leafAttackUnits(unit).some(leaf => (leaf?.weapons || [])
+      .filter(w => !options?.isWeaponEnabled || options.isWeaponEnabled(w))
+      .filter(w => weaponMatchesAttackMode(w, leaf?._attackMode || unit?._attackMode || 'all'))
+      .some(w => {
+        const modifierText = typeof options?.effectiveWeaponModifiers === 'function'
+          ? options.effectiveWeaponModifiers(w, leaf, defenderUnit)
+          : (w?.modifiers || '');
+        const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || w?.modifiers || '', w);
+        return !!kw[String(wanted).toLowerCase()];
+      }));
+  }
+
+  function specialMortalSpecs(unit, defenderUnit, attackMode, options){
     if(!options?.conditionsMet) return [];
-    if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return [];
     const service = window.AbilityModifierService;
     if(!service?.modifiersForRule || !service?.parseModifierSpec) return [];
     const specs = [];
-    (unit?.abilities || []).forEach(ability => {
-      if(!isAbilityEnabled(unit, ability, options)) return;
+    const emittedPhaseMortals = new Set();
+    specialAbilitySources(unit, options).forEach(({ ability }) => {
       service.modifiersForRule(ability).forEach(spec => {
         const parsed = service.parseModifierSpec(spec);
-        if(parsed?.meta?.kind !== 'special' || parsed?.meta?.special !== 'fightPhaseMortals') return;
-        const diceCount = parseInt(parsed.meta.diceCount, 10) || 0;
+        if(parsed?.meta?.kind !== 'special') return;
+        if(parsed?.meta?.weaponKeywords?.length && !parsed.meta.weaponKeywords.some(keyword => unitHasEnabledWeaponKeyword(unit, defenderUnit, keyword, options))) return;
+        if(parsed?.meta?.special === 'fightPhaseMortals'){
+          if(attackMode === 'shooting') return;
+          if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return;
+          const diceCount = parseInt(parsed.meta.diceCount, 10) || 0;
+          const rollTarget = parseInt(parsed.meta.rollTarget, 10) || 0;
+          const successChance = rollTarget > 0 ? (7 - Math.max(2, Math.min(6, rollTarget))) / 6 : 0;
+          const dmg = diceCount * successChance;
+          if(dmg <= 0) return;
+          specs.push({
+            dmg,
+            profile: { name: `${ability} mortal wounds`, count: 1, D: '1' },
+            modifierText: parsed.modifiers?.[0] || 'Fight phase mortal wounds',
+            effect: { count: diceCount, chance: successChance, dice: '1', label: 'rolls' },
+            phase: 'postDamage',
+          });
+          return;
+        }
+        if(parsed?.meta?.special !== 'phaseMortals') return;
+        const key = `${ability}|${parsed.meta.phase}|${parsed.meta.damageDice}|${parsed.meta.rollTarget || parsed.meta.chance}`;
+        if(emittedPhaseMortals.has(key)) return;
+        emittedPhaseMortals.add(key);
+        const dice = parsed.meta.damageDice || '1d3';
         const rollTarget = parseInt(parsed.meta.rollTarget, 10) || 0;
-        const successChance = rollTarget > 0 ? (7 - Math.max(2, Math.min(6, rollTarget))) / 6 : 0;
-        const dmg = diceCount * successChance;
+        const successChance = Number.isFinite(parsed.meta.chance)
+          ? parsed.meta.chance
+          : (rollTarget > 0 ? (7 - Math.max(2, Math.min(6, rollTarget))) / 6 : 1);
+        const dmg = window.WeaponCalc.parseNdX(dice).mean * successChance;
         if(dmg <= 0) return;
         specs.push({
           dmg,
-          profile: { name: `${ability} mortal wounds`, count: 1, D: '1' },
-          modifierText: parsed.modifiers?.[0] || 'Fight phase mortal wounds',
-          effect: { count: diceCount, chance: successChance, dice: '1', label: 'rolls' },
-          phase: 'postDamage',
+          profile: { name: `${ability} mortal wounds`, count: 1, D: dice },
+          modifierText: parsed.modifiers?.[0] || 'Mortal wounds',
+          effect: { count: 1, chance: successChance, dice, label: 'roll' },
+          phase: parsed.meta.phase || 'preDamage',
         });
       });
     });
     return specs;
   }
 
-  function additionalMortalDamage(unit, attackMode, options){
+  function additionalMortalDamage(unit, defenderUnit, attackMode, options){
     const items = [];
     const chargeMortals = chargeMortalDamage(unit, attackMode, options);
     if(chargeMortals.profile) items.push({ ...chargeMortals, modifierText: 'Mortal wounds on charge', phase: chargeMortals.phase || 'preDamage' });
-    items.push(...specialMortalSpecs(unit, attackMode, options));
+    items.push(...specialMortalSpecs(unit, defenderUnit, attackMode, options));
     return items;
   }
 
@@ -957,7 +1009,7 @@
       defenderUnit,
       options
     );
-    additionalMortalDamage(unit, attackMode, options).forEach(item => {
+    additionalMortalDamage(unit, defenderUnit, attackMode, options).forEach(item => {
       groups.push({ type:'mortal', sourceUnit: unit, item });
     });
     return groups;
