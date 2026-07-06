@@ -1034,6 +1034,7 @@
   }
 
   function computeCell(attackerUnit, defenderUnit, options){
+    const metric = options?.metric || 'damage';
     const def = effectiveDefense(defenderUnit, options, attackerUnit);
     const attackMode = attackerUnit?._attackMode || 'all';
     const state = defenderState(defenderUnit, options, attackerUnit);
@@ -1126,11 +1127,12 @@
 
     postDamageGroups.forEach(group => applyMortalGroup(group, 'postDamage'));
 
+    const shouldComputeKillChance = metric === 'unitKill' || options.includeFormula;
     return {
       dmg,
       kills,
       pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
-      pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
+      pctUnitKilled: shouldComputeKillChance && unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
       weaponName: formatProfiles(selectedProfiles),
       profileModifierText: formatProfileModifiers(selectedProfileModifiers),
       profilesUsed: aggregateProfiles(selectedProfiles),

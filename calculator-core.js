@@ -1,19 +1,39 @@
 (function(){
+  const memoLimit = 50000;
+  const ndxCache = new Map();
+  const distributionCache = new Map();
+  const cappedDamageCache = new Map();
+  const keywordCache = new Map();
+
+  function memoGet(cache, key, build){
+    if(cache.has(key)) return cache.get(key);
+    const value = build();
+    cache.set(key, value);
+    if(cache.size > memoLimit){
+      const first = cache.keys().next().value;
+      cache.delete(first);
+    }
+    return value;
+  }
+
   function clamp(x, min, max){
     return Math.max(min, Math.min(max, x));
   }
 
   function parseNdX(expr){
-    if(!expr) return { mean:0, text:'0' };
-    const s = String(expr).replace(/\s+/g,'');
-    if(/^\d+(\.\d+)?$/.test(s)) return { mean: parseFloat(s), text:s };
-    const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
-    if(!m) return { mean: parseFloat(s) || 0, text:s };
-    const n = parseInt(m[1] || '1', 10);
-    const faces = parseInt(m[2], 10);
-    const k = m[3] ? parseInt(m[3], 10) : 0;
-    const modText = k > 0 ? `+${k}` : (k < 0 ? `${k}` : '');
-    return { mean: (n * ((1 + faces) / 2)) + k, text:`${n}d${faces}${modText}` };
+    const key = String(expr ?? '');
+    return memoGet(ndxCache, key, () => {
+      if(!expr) return { mean:0, text:'0' };
+      const s = String(expr).replace(/\s+/g,'');
+      if(/^\d+(\.\d+)?$/.test(s)) return { mean: parseFloat(s), text:s };
+      const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
+      if(!m) return { mean: parseFloat(s) || 0, text:s };
+      const n = parseInt(m[1] || '1', 10);
+      const faces = parseInt(m[2], 10);
+      const k = m[3] ? parseInt(m[3], 10) : 0;
+      const modText = k > 0 ? `+${k}` : (k < 0 ? `${k}` : '');
+      return { mean: (n * ((1 + faces) / 2)) + k, text:`${n}d${faces}${modText}` };
+    });
   }
 
   function modifiedDiceText(expr, flatMod=0, divisor=1){
@@ -28,46 +48,52 @@
   }
 
   function diceDistribution(expr, flatMod=0){
-    const s = String(expr || '').replace(/\s+/g,'');
-    if(/^\d+(\.\d+)?$/.test(s)){
-      return [{ value: parseFloat(s) + flatMod, probability: 1 }];
-    }
-    const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
-    if(!m) return [{ value: (parseFloat(s) || 0) + flatMod, probability: 1 }];
-    const dice = parseInt(m[1] || '1', 10);
-    const faces = parseInt(m[2], 10);
-    const mod = (m[3] ? parseInt(m[3], 10) : 0) + flatMod;
-    if(!Number.isFinite(dice) || dice <= 0 || !Number.isFinite(faces) || faces <= 0){
-      return [{ value: mod, probability: 1 }];
-    }
+    const key = `${expr ?? ''}|${flatMod || 0}`;
+    return memoGet(distributionCache, key, () => {
+      const s = String(expr || '').replace(/\s+/g,'');
+      if(/^\d+(\.\d+)?$/.test(s)){
+        return [{ value: parseFloat(s) + flatMod, probability: 1 }];
+      }
+      const m = s.match(/^(\d+)?[dD](\d+)([\+\-]\d+)?$/);
+      if(!m) return [{ value: (parseFloat(s) || 0) + flatMod, probability: 1 }];
+      const dice = parseInt(m[1] || '1', 10);
+      const faces = parseInt(m[2], 10);
+      const mod = (m[3] ? parseInt(m[3], 10) : 0) + flatMod;
+      if(!Number.isFinite(dice) || dice <= 0 || !Number.isFinite(faces) || faces <= 0){
+        return [{ value: mod, probability: 1 }];
+      }
 
-    let counts = new Map([[0, 1]]);
-    for(let i = 0; i < dice; i++){
-      const next = new Map();
-      counts.forEach((count, sum) => {
-        for(let face = 1; face <= faces; face++){
-          next.set(sum + face, (next.get(sum + face) || 0) + count);
-        }
-      });
-      counts = next;
-    }
-    const total = Math.pow(faces, dice);
-    return [...counts.entries()].map(([sum, count]) => ({
-      value: sum + mod,
-      probability: count / total,
-    }));
+      let counts = new Map([[0, 1]]);
+      for(let i = 0; i < dice; i++){
+        const next = new Map();
+        counts.forEach((count, sum) => {
+          for(let face = 1; face <= faces; face++){
+            next.set(sum + face, (next.get(sum + face) || 0) + count);
+          }
+        });
+        counts = next;
+      }
+      const total = Math.pow(faces, dice);
+      return [...counts.entries()].map(([sum, count]) => ({
+        value: sum + mod,
+        probability: count / total,
+      }));
+    });
   }
 
   function expectedCappedDamage(expr, modelWounds, flatMod=0, divisor=1){
-    const cap = parseFloat(modelWounds);
-    const distribution = diceDistribution(expr, flatMod);
-    const div = parseFloat(divisor);
-    const damageDivisor = Number.isFinite(div) && div > 0 ? div : 1;
-    return distribution.reduce((sum, entry) => {
-      const damage = Math.ceil(Math.max(0, entry.value) / damageDivisor);
-      const effective = Number.isFinite(cap) && cap > 0 ? Math.min(damage, cap) : damage;
-      return sum + effective * entry.probability;
-    }, 0);
+    const key = `${expr ?? ''}|${modelWounds ?? ''}|${flatMod || 0}|${divisor || 1}`;
+    return memoGet(cappedDamageCache, key, () => {
+      const cap = parseFloat(modelWounds);
+      const distribution = diceDistribution(expr, flatMod);
+      const div = parseFloat(divisor);
+      const damageDivisor = Number.isFinite(div) && div > 0 ? div : 1;
+      return distribution.reduce((sum, entry) => {
+        const damage = Math.ceil(Math.max(0, entry.value) / damageDivisor);
+        const effective = Number.isFinite(cap) && cap > 0 ? Math.min(damage, cap) : damage;
+        return sum + effective * entry.probability;
+      }, 0);
+    });
   }
 
   function probAtLeast(target, mod=0, cap=null){
@@ -176,6 +202,11 @@
   }
 
   function parseWeaponKeywords(txt, weapon=null){
+    const weaponContext = weapon
+      ? `${weapon?.range ?? weapon?.Range ?? ''}|${weapon?.mode ?? ''}`
+      : '';
+    const cacheKey = `${txt || ''}|${weaponContext}`;
+    return memoGet(keywordCache, cacheKey, () => {
     const tokens = splitModifierTokens(txt)
       .map(token => modifierAppliesToWeapon(token, weapon))
       .filter(item => item.applies)
@@ -312,6 +343,7 @@
       skillTargetMod,
       defensiveFnp,
     };
+    });
   }
 
   function calcOneWeapon(weapon, def, modifierText, options={}){

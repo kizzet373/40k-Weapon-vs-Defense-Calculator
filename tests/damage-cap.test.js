@@ -1645,15 +1645,14 @@ conditionalOverallSortApp.matchup.rows = [conditionalSortFragile, conditionalSor
   cells: [conditionalOverallSortApp.computeMatchupCell(unit, conditionalSortTarget)],
 }));
 conditionalOverallSortApp.seedAggregateCellCache();
-assert.ok(!conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'overall sort support cells are not present before summary preparation');
-conditionalOverallSortApp.ensureMatchupSortSupportCells(conditionalOverallSortApp.matchupAttackerUnits, conditionalOverallSortApp.matchupDefenderUnits);
 conditionalOverallSortApp.updateMatchupSortSummaries();
-assert.ok(conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'rebuild summary preparation warms the cross-axis cells needed for full scores');
+assert.ok(!conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'Overall Score summary does not warm hidden cross-axis cells');
 conditionalOverallSortApp.computeMatchupCell = () => {
-  throw new Error('Overall Score sorting should use prepared summary cells');
+  throw new Error('Overall Score sorting should use visible summary cells only');
 };
 conditionalOverallSortApp.refreshMatchupPresentation({ computeMissing: false });
-assert.strictEqual(conditionalOverallSortApp.matchupVisibleRows()[0].unit.label, 'Conditional tank', 'Overall Score attacker sorting includes conditional defensive modifiers after Conditions Met');
+assert.strictEqual(conditionalOverallSortApp.matchupVisibleRows()[0].unit.label, 'Conditional tank', 'Overall Score attacker sorting uses the visible grid score after Conditions Met');
+assert.ok(!conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'Overall Score sorting does not create hidden cross-axis cells');
 
 const conditionalDefenderOverallSortApp = context.weaponVsDefenseApp();
 const conditionalSortAttacker = {
@@ -1693,15 +1692,14 @@ conditionalDefenderOverallSortApp.matchup.rows = [{
   cells: [conditionalSortPlainDefender, conditionalSortShooterDefender].map(unit => conditionalDefenderOverallSortApp.computeMatchupCell(conditionalSortAttacker, unit)),
 }];
 conditionalDefenderOverallSortApp.seedAggregateCellCache();
-assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender overall sort support cells are not present before summary preparation');
-conditionalDefenderOverallSortApp.ensureMatchupSortSupportCells(conditionalDefenderOverallSortApp.matchupAttackerUnits, conditionalDefenderOverallSortApp.matchupDefenderUnits);
 conditionalDefenderOverallSortApp.updateMatchupSortSummaries();
-assert.ok(conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'rebuild summary preparation warms defender cross-axis offensive cells');
+assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender Overall Score summary does not warm hidden cross-axis cells');
 conditionalDefenderOverallSortApp.computeMatchupCell = () => {
-  throw new Error('Defender Overall Score sorting should use prepared summary cells');
+  throw new Error('Defender Overall Score sorting should use visible summary cells only');
 };
 conditionalDefenderOverallSortApp.refreshMatchupPresentation({ computeMissing: false });
-assert.strictEqual(conditionalDefenderOverallSortApp.matchupVisibleDefenders()[0].unit.label, 'Conditional shooter defender', 'Overall Score defender sorting includes conditional offensive modifiers after Conditions Met');
+assert.strictEqual(conditionalDefenderOverallSortApp.matchupVisibleDefenders()[0].unit.label, 'Conditional shooter defender', 'Overall Score defender sorting uses the visible grid score after Conditions Met');
+assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender Overall Score sorting does not create hidden cross-axis cells');
 
 const staleBuildApp = context.weaponVsDefenseApp();
 staleBuildApp.addBaseProfilesRoster();
@@ -1771,7 +1769,7 @@ app.matchupDefenderUnits = [profileScoreDefender];
 app.matchup.rows = [{ unit: profileScoreAttacker, cells: [app.computeMatchupCell(profileScoreAttacker, profileScoreDefender)] }];
 app.seedAggregateCellCache();
 app.refreshVisibleMatchup();
-assert.ok(/^Offensive Score: \d+ \(Melee: \d+ \/ Shooting: \d+\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line includes total, melee, and shooting scores');
+assert.ok(/^Offensive Score: \d+ \(Melee: (?:\d+|—) \/ Shooting: (?:\d+|—)\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line uses precomputed score summaries without extra melee/shooting calculations');
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
 
