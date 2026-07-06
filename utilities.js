@@ -70,7 +70,7 @@ function weaponVsDefenseApp(){
     matchupClipboardStatus: '',
     matchupExportFormat: 'visible',
     matchupActionMenu: '',
-    matchupComputationCache: { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {}, ruleSpecs: {}, parsedSpecs: {}, weaponModifierNames: {} },
+    matchupComputationCache: { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {}, ruleSpecs: {}, parsedSpecs: {}, modifierRuleNamesByKind: {}, weaponModifierNames: {}, enabledWeaponModifierNames: {}, unitCustomSpecs: {}, matchupCustomSpecs: {} },
     matchupMerge: {
       attackerFrom: '',
       attackerTo: '',
@@ -1155,6 +1155,8 @@ function weaponVsDefenseApp(){
     },
 
     matchupSideForUnit(unit){
+      const direct = unit?._matchupSide || unit?._baseUnit?._matchupSide || unit?._parentUnit?._matchupSide || unit?._baseUnit?._parentUnit?._matchupSide;
+      if(direct === 'attacker' || direct === 'defender') return direct;
       const keys = [unit?._viewKey, unit?._baseUnit?._viewKey, unit?._parentUnit?._viewKey, unit?._baseUnit?._parentUnit?._viewKey]
         .map(value => String(value || ''));
       if(keys.some(key => key.startsWith('attacker:'))) return 'attacker';
@@ -2304,17 +2306,11 @@ function weaponVsDefenseApp(){
       this.clearMatchupComputationCache();
       const buildToken = (this.matchup.buildToken || 0) + 1;
       this.matchup.buildToken = buildToken;
-      const attackerSelection = this.matchupSideSelectionRef('attacker');
-      const defenderSelection = this.matchupSideSelectionRef('defender');
       const buildState = {
-        attackerRosterIdx: attackerSelection.rosterIdx,
-        attackerRosterKey: attackerSelection.rosterKey,
-        attackerForceIdx: attackerSelection.forceIdx,
-        attackerForceKey: attackerSelection.forceKey,
-        defenderRosterIdx: defenderSelection.rosterIdx,
-        defenderRosterKey: defenderSelection.rosterKey,
-        defenderForceIdx: defenderSelection.forceIdx,
-        defenderForceKey: defenderSelection.forceKey,
+        attackerRosterIdx: Number(this.matchup.attackerRosterIdx) || 0,
+        attackerForceIdx: Number(this.matchup.attackerForceIdx) || 0,
+        defenderRosterIdx: Number(this.matchup.defenderRosterIdx) || 0,
+        defenderForceIdx: Number(this.matchup.defenderForceIdx) || 0,
         combineShootingProfiles: !!this.matchup.combineShootingProfiles,
         conditionsMet: !!this.matchup.conditionsMet,
         showMelee: !!this.matchup.showMelee,
@@ -2322,17 +2318,11 @@ function weaponVsDefenseApp(){
         metric: this.matchup.metric || 'damage',
       };
       const buildIsCurrent = () => {
-        const currentAttacker = this.matchupSideSelectionRef('attacker');
-        const currentDefender = this.matchupSideSelectionRef('defender');
         return buildToken === this.matchup.buildToken
-          && currentAttacker.rosterIdx === buildState.attackerRosterIdx
-          && currentAttacker.rosterKey === buildState.attackerRosterKey
-          && currentAttacker.forceIdx === buildState.attackerForceIdx
-          && currentAttacker.forceKey === buildState.attackerForceKey
-          && currentDefender.rosterIdx === buildState.defenderRosterIdx
-          && currentDefender.rosterKey === buildState.defenderRosterKey
-          && currentDefender.forceIdx === buildState.defenderForceIdx
-          && currentDefender.forceKey === buildState.defenderForceKey
+          && (Number(this.matchup.attackerRosterIdx) || 0) === buildState.attackerRosterIdx
+          && (Number(this.matchup.attackerForceIdx) || 0) === buildState.attackerForceIdx
+          && (Number(this.matchup.defenderRosterIdx) || 0) === buildState.defenderRosterIdx
+          && (Number(this.matchup.defenderForceIdx) || 0) === buildState.defenderForceIdx
           && !!this.matchup.combineShootingProfiles === buildState.combineShootingProfiles
           && !!this.matchup.conditionsMet === buildState.conditionsMet
           && !!this.matchup.showMelee === buildState.showMelee
@@ -2424,18 +2414,24 @@ function weaponVsDefenseApp(){
     prepareMatchupUnits(units, side){
       const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
       const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
-      const selection = this.matchupSideSelectionRef(side);
+      const roster = this.rosters?.[rosterIdx] || null;
+      const force = this.getForcesForRoster(rosterIdx)?.[forceIdx] || null;
+      const sourceRosterKey = roster?.data?._sourceFormat === 'base-profiles'
+        ? 'source:base-profiles'
+        : `roster-index:${Number(rosterIdx) || 0}`;
+      const sourceForceKey = force ? String(force?.name || force?.label || `force-index:${Number(forceIdx) || 0}`) : `force-index:${Number(forceIdx) || 0}`;
       const decorate = (unit, path='unit') => {
         unit._viewKey = `${side}:${rosterIdx}:${forceIdx}:${unit._unitKey || unit.label}:${path}`;
-        unit._sourceRosterKey = selection.rosterKey;
-        unit._sourceRosterIdx = selection.rosterIdx;
-        unit._sourceForceKey = selection.forceKey;
-        unit._sourceForceIdx = selection.forceIdx;
+        unit._matchupSide = side;
+        unit._sourceRosterKey = sourceRosterKey;
+        unit._sourceRosterIdx = Number(rosterIdx) || 0;
+        unit._sourceForceKey = sourceForceKey;
+        unit._sourceForceIdx = Number(forceIdx) || 0;
         (unit._children || []).forEach((child, index) => {
-          child._sourceRosterKey = selection.rosterKey;
-          child._sourceRosterIdx = selection.rosterIdx;
-          child._sourceForceKey = selection.forceKey;
-          child._sourceForceIdx = selection.forceIdx;
+          child._sourceRosterKey = sourceRosterKey;
+          child._sourceRosterIdx = Number(rosterIdx) || 0;
+          child._sourceForceKey = sourceForceKey;
+          child._sourceForceIdx = Number(forceIdx) || 0;
           Object.defineProperty(child, '_parentUnit', {
             value: unit,
             enumerable: false,
@@ -3329,7 +3325,7 @@ function weaponVsDefenseApp(){
     },
 
     clearMatchupComputationCache(){
-      this.matchupComputationCache = { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {}, ruleSpecs: {}, parsedSpecs: {}, weaponModifierNames: {} };
+      this.matchupComputationCache = { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {}, ruleSpecs: {}, parsedSpecs: {}, modifierRuleNamesByKind: {}, weaponModifierNames: {}, enabledWeaponModifierNames: {}, unitCustomSpecs: {}, matchupCustomSpecs: {} };
       if(this.matchup){
         this.matchup.cellCache = {};
         this.matchup.cacheWarmToken = (this.matchup.cacheWarmToken || 0) + 1;
@@ -3337,7 +3333,7 @@ function weaponVsDefenseApp(){
     },
 
     clearMatchupDerivedCaches(){
-      this.matchupComputationCache = { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {}, ruleSpecs: {}, parsedSpecs: {}, weaponModifierNames: {} };
+      this.matchupComputationCache = { weaponModifiers: {}, defenses: {}, ruleNames: {}, sharedRuleNames: {}, modifierNames: {}, ruleSpecs: {}, parsedSpecs: {}, modifierRuleNamesByKind: {}, weaponModifierNames: {}, enabledWeaponModifierNames: {}, unitCustomSpecs: {}, matchupCustomSpecs: {} };
       if(this.matchup) this.matchup.cacheWarmToken = (this.matchup.cacheWarmToken || 0) + 1;
     },
 
@@ -3939,6 +3935,20 @@ function weaponVsDefenseApp(){
       return result;
     },
 
+    enabledWeaponModifierNames(w){
+      const cacheKey = this.weaponStateKey(w);
+      if(cacheKey && this.matchupComputationCache.enabledWeaponModifierNames?.[cacheKey]){
+        return this.matchupComputationCache.enabledWeaponModifierNames[cacheKey];
+      }
+      const state = this.ensureModifierState(w);
+      const result = this.weaponModifierNames(w).filter(mod => {
+        if(!(mod in state)) state[mod] = true;
+        return !!state[mod];
+      });
+      if(cacheKey) this.matchupComputationCache.enabledWeaponModifierNames[cacheKey] = result;
+      return result;
+    },
+
     isWeaponModifierEnabled(w, mod){
       if(!w) return false;
       const state = this.ensureModifierState(w);
@@ -4064,6 +4074,21 @@ function weaponVsDefenseApp(){
       return result;
     },
 
+    modifierRuleNamesForKind(ruleNames, kind='weapon'){
+      if(!(ruleNames || []).length) return [];
+      const normalizedKind = kind || 'weapon';
+      const cacheKey = `${normalizedKind}|${(ruleNames || []).join('~')}`;
+      if(this.matchupComputationCache.modifierRuleNamesByKind?.[cacheKey]){
+        return this.matchupComputationCache.modifierRuleNamesByKind[cacheKey];
+      }
+      const result = (ruleNames || []).filter(name => this.ruleModifierSpecs(name).some(spec => {
+        const parsed = this.parsedModifierSpec(spec);
+        return (parsed.meta?.kind || 'weapon') === normalizedKind;
+      }));
+      this.matchupComputationCache.modifierRuleNamesByKind[cacheKey] = result;
+      return result;
+    },
+
     modifierSpecApplies(parsed, context={}){
       const meta = parsed?.meta || {};
       if(meta.conditional && !this.matchup.conditionsMet) return false;
@@ -4126,10 +4151,12 @@ function weaponVsDefenseApp(){
 
     modifiersFromRuleNames(ruleNames, context={}){
       const kind = context.kind || 'weapon';
+      const matchingRuleNames = this.modifierRuleNamesForKind(ruleNames, kind);
+      if(!matchingRuleNames.length) return [];
       const cacheKey = [
         this.matchup.conditionsMet ? 1 : 0,
         kind,
-        (ruleNames || []).join('~'),
+        matchingRuleNames.join('~'),
         context.weapon ? this.weaponStateKey(context.weapon) : '',
         context.defender ? this.unitKey(context.defender) : '',
         context.attacker ? this.unitKey(context.attacker) : '',
@@ -4138,7 +4165,7 @@ function weaponVsDefenseApp(){
         return this.matchupComputationCache.modifierNames[cacheKey];
       }
       const out = [];
-      (ruleNames || []).forEach(name => {
+      matchingRuleNames.forEach(name => {
         this.ruleModifierSpecs(name).forEach(spec => {
           const parsed = this.parsedModifierSpec(spec);
           if((parsed.meta?.kind || 'weapon') !== kind) return;
@@ -4158,6 +4185,7 @@ function weaponVsDefenseApp(){
     },
 
     modifierNamesFromSpecs(specs, context={}){
+      if(!(specs || []).length) return [];
       const kind = context.kind || 'weapon';
       const out = [];
       (specs || []).forEach(spec => {
@@ -4343,9 +4371,19 @@ function weaponVsDefenseApp(){
         return this.matchupComputationCache.defenses[cacheKey];
       }
       const defense = { ...(unit?.defense || {}) };
-      const ownModifiers = options.includeOwnModifiers === false ? [] : this.defenseModifierNamesForUnit(unit);
+      const ownCacheKey = options.includeOwnModifiers === false
+        ? ''
+        : `${this.matchup.conditionsMet ? 1 : 0}|${this.unitKey(unit)}|own`;
+      let ownDefense = ownCacheKey && this.matchupComputationCache.defenses?.[ownCacheKey]
+        ? this.matchupComputationCache.defenses[ownCacheKey]
+        : null;
+      if(!ownDefense){
+        const ownModifiers = options.includeOwnModifiers === false ? [] : this.defenseModifierNamesForUnit(unit);
+        ownDefense = this.applyDefenseModifiers(defense, ownModifiers);
+        if(ownCacheKey) this.matchupComputationCache.defenses[ownCacheKey] = ownDefense;
+      }
       const targetDebuffs = options.includeTargetDebuffs === false || !opposingUnit ? [] : this.targetDefenseModifierNamesForUnit(opposingUnit, unit);
-      const result = this.applyDefenseModifiers(defense, [...ownModifiers, ...targetDebuffs]);
+      const result = targetDebuffs.length ? this.applyDefenseModifiers(ownDefense, targetDebuffs) : ownDefense;
       if(cacheKey) this.matchupComputationCache.defenses[cacheKey] = result;
       return result;
     },
@@ -4356,7 +4394,7 @@ function weaponVsDefenseApp(){
         return this.matchupComputationCache.weaponModifiers[cacheKey];
       }
       const names = [
-        ...this.weaponModifierNames(w).filter(mod => this.isWeaponModifierEnabled(w, mod)),
+        ...this.enabledWeaponModifierNames(w),
         ...this.abilityModifierNamesForUnit(unit, { weapon: w, attacker: unit, defender }),
         ...this.defenseAttackModifierNamesForUnit(defender, { weapon: w, attacker: unit, defender }),
       ];
@@ -4579,9 +4617,15 @@ function weaponVsDefenseApp(){
     },
 
     enabledMatchupCustomModifierSpecs(side='all'){
-      return this.matchupCustomModifiers(side)
+      const cacheKey = String(side || 'all');
+      if(this.matchupComputationCache.matchupCustomSpecs?.[cacheKey]){
+        return this.matchupComputationCache.matchupCustomSpecs[cacheKey];
+      }
+      const result = this.matchupCustomModifiers(side)
         .filter(mod => mod?.enabled !== false && String(mod?.text || '').trim())
         .map(mod => mod.text.trim());
+      this.matchupComputationCache.matchupCustomSpecs[cacheKey] = result;
+      return result;
     },
 
     addMatchupCustomModifier(side, value){
@@ -4636,15 +4680,21 @@ function weaponVsDefenseApp(){
     },
 
     enabledUnitCustomModifierSpecs(unit){
+      const cacheKey = this.unitStateKey(unit);
+      if(cacheKey && this.matchupComputationCache.unitCustomSpecs?.[cacheKey]){
+        return this.matchupComputationCache.unitCustomSpecs[cacheKey];
+      }
       const specs = [];
       let cursor = unit || null;
       while(cursor){
         specs.push(...this.unitCustomModifiers(cursor));
         cursor = cursor._parentUnit || cursor._baseUnit?._parentUnit || null;
       }
-      return specs
+      const result = specs
         .filter(mod => mod?.enabled !== false && String(mod?.text || '').trim())
         .map(mod => mod.text.trim());
+      if(cacheKey) this.matchupComputationCache.unitCustomSpecs[cacheKey] = result;
+      return result;
     },
 
     addCustomModifier(unit){

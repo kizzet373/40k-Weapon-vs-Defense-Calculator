@@ -1,6 +1,7 @@
 (function(){
   const emptyCell = () => ({ dmg:0, kills:0, pctModelWounds:null, pctUnitKilled:null, weaponName:'', profilesUsed:[] });
   const keywordParseCache = new Map();
+  const weaponCalcKeyCache = new WeakMap();
 
   function parsedWeaponKeywords(modifierText='', weapon=null){
     const key = [
@@ -503,9 +504,11 @@
   }
 
   function defensePayloadForLine(line, fallbackUnit=null){
+    if(line?._defensePayload) return line._defensePayload;
     const def = line?.def || fallbackUnit?.defense || {};
     const unit = line?.unit || fallbackUnit || {};
-    return {
+    const keywords = [...(unit._keywords || []), ...(def.keywords || []), ...(def._keywords || [])];
+    const payload = {
       T: parseFloat(def.T) || 0,
       sv: parseFloat(def.Sv) || 0,
       inv: parseFloat(def.Inv) || 0,
@@ -513,13 +516,25 @@
       Fnp: parseFloat(def.Fnp) || 0,
       cover: !!def.cover,
       models: parseFloat(line?.models ?? def.models) || 1,
-      keywords: [...(unit._keywords || []), ...(def.keywords || []), ...(def._keywords || [])],
+      keywords,
     };
+    payload._cacheKey = [
+      payload.T,
+      payload.sv,
+      payload.inv,
+      payload.W,
+      payload.Fnp,
+      payload.cover ? 1 : 0,
+      payload.models,
+      keywords.map(value => String(value || '').toLowerCase()).sort().join('|'),
+    ].join('~');
+    if(line) line._defensePayload = payload;
+    return payload;
   }
 
-  function calcOneWeaponCacheKey(weapon, def, modifierText, detailMode='base'){
-    return [
-      detailMode || 'base',
+  function weaponCalcProfileKey(weapon){
+    if(weapon && typeof weapon === 'object' && weaponCalcKeyCache.has(weapon)) return weaponCalcKeyCache.get(weapon);
+    const key = [
       weapon?.name || '',
       weapon?.range ?? weapon?.R ?? weapon?.Range ?? '',
       weapon?.A ?? '',
@@ -528,15 +543,26 @@
       weapon?.AP ?? '',
       weapon?.D ?? '',
       weapon?._profileCount ?? weapon?._count ?? '',
+    ].join('~');
+    if(weapon && typeof weapon === 'object') weaponCalcKeyCache.set(weapon, key);
+    return key;
+  }
+
+  function calcOneWeaponCacheKey(weapon, def, modifierText, detailMode='base'){
+    return [
+      detailMode || 'base',
+      weaponCalcProfileKey(weapon),
       modifierText || weapon?.modifiers || '',
-      def?.T ?? '',
-      def?.sv ?? '',
-      def?.inv ?? '',
-      def?.W ?? '',
-      def?.Fnp ?? '',
-      def?.cover ? 1 : 0,
-      def?.models ?? '',
-      (def?.keywords || []).map(value => String(value || '').toLowerCase()).sort().join('|'),
+      def?._cacheKey || [
+        def?.T ?? '',
+        def?.sv ?? '',
+        def?.inv ?? '',
+        def?.W ?? '',
+        def?.Fnp ?? '',
+        def?.cover ? 1 : 0,
+        def?.models ?? '',
+        (def?.keywords || []).map(value => String(value || '').toLowerCase()).sort().join('|'),
+      ].join('~'),
     ].join('~');
   }
 
