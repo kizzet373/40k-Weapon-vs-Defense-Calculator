@@ -2216,6 +2216,54 @@ function weaponVsDefenseApp(){
       queueMicrotask(work);
     },
 
+    shouldChunkMatchupBuild(){
+      return typeof window !== 'undefined'
+        && typeof window.requestAnimationFrame === 'function'
+        && typeof document !== 'undefined';
+    },
+
+    yieldMatchupBuild(){
+      return new Promise(resolve => {
+        if(typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'){
+          window.requestAnimationFrame(() => resolve());
+        }else{
+          setTimeout(resolve, 0);
+        }
+      });
+    },
+
+    buildMatchupRows(aRows, dUnits, buildIsCurrent){
+      if(!this.shouldChunkMatchupBuild()){
+        return aRows.map(au => ({
+          unit: au,
+          cells: dUnits.map(du => this.computeMatchupCell(au, du)),
+        }));
+      }
+      return this.buildMatchupRowsAsync(aRows, dUnits, buildIsCurrent);
+    },
+
+    async buildMatchupRowsAsync(aRows, dUnits, buildIsCurrent){
+      const rows = [];
+      let lastYield = performance.now();
+      for(let rowIndex = 0; rowIndex < aRows.length; rowIndex++){
+        if(!buildIsCurrent()) return null;
+        const au = aRows[rowIndex];
+        const cells = [];
+        for(let colIndex = 0; colIndex < dUnits.length; colIndex++){
+          if(!buildIsCurrent()) return null;
+          cells.push(this.computeMatchupCell(au, dUnits[colIndex]));
+          const now = performance.now();
+          if(now - lastYield > 14){
+            this.matchup.loadingMessage = `Calculating ${rowIndex + 1}/${aRows.length} attackers`;
+            await this.yieldMatchupBuild();
+            lastYield = performance.now();
+          }
+        }
+        rows.push({ unit: au, cells });
+      }
+      return rows;
+    },
+
     rebuildMatchup(){
       if(!this.matchupModalOpen) return;
       this.clearMatchupComputationCache();
@@ -2230,6 +2278,7 @@ function weaponVsDefenseApp(){
         conditionsMet: !!this.matchup.conditionsMet,
         showMelee: !!this.matchup.showMelee,
         showShooting: !!this.matchup.showShooting,
+        metric: this.matchup.metric || 'damage',
       };
       const buildIsCurrent = () => buildToken === this.matchup.buildToken
         && Number(this.matchup.attackerRosterIdx || 0) === buildState.attackerRosterIdx
@@ -2239,7 +2288,8 @@ function weaponVsDefenseApp(){
         && !!this.matchup.combineShootingProfiles === buildState.combineShootingProfiles
         && !!this.matchup.conditionsMet === buildState.conditionsMet
         && !!this.matchup.showMelee === buildState.showMelee
-        && !!this.matchup.showShooting === buildState.showShooting;
+        && !!this.matchup.showShooting === buildState.showShooting
+        && (this.matchup.metric || 'damage') === buildState.metric;
       this.matchup.rows = [];
       this.matchup.visibleRows = [];
       this.matchup.visibleDefenders = [];
@@ -2260,6 +2310,22 @@ function weaponVsDefenseApp(){
       this.matchup.loadingMessage = 'Building matchup matrix';
       this.scheduleMatchupBuild(() => {
         if(!buildIsCurrent()) return;
+        const finishBuild = () => {
+          if(buildToken === this.matchup.buildToken){
+            this.matchup.loading = false;
+            this.matchup.loadingMessage = '';
+          }
+        };
+        const finishRows = (rows, sourceRows, sourceDefenders) => {
+          if(!rows || !buildIsCurrent()) return;
+          this.matchup.rows = rows;
+          this.seedAggregateCellCache();
+          this.updateMatchupSortSummaries(sourceRows, sourceDefenders);
+          this.applyMatchupSorting(false);
+          this.refreshVisibleMatchup();
+          this.syncMatchupMergeSelections();
+          if(buildIsCurrent()) this.saveCachedAppState();
+        };
         try{
           const aUnits = this.prepareMatchupUnits(aForce ? this.collectUnits(aForce) : [], 'attacker');
           const dUnits = this.prepareMatchupUnits(dForce ? this.collectUnits(dForce) : [], 'defender');
@@ -2276,23 +2342,29 @@ function weaponVsDefenseApp(){
           this.restoreMatchupUnitSelection('attacker', aUnits);
           this.restoreMatchupUnitSelection('defender', dUnits);
 
-          this.matchup.rows = aRows.map(au => ({
-            unit: au,
-            cells: dUnits.map(du => this.computeMatchupCell(au, du)),
-          }));
-
-          if(!buildIsCurrent()) return;
-          this.seedAggregateCellCache();
-          this.updateMatchupSortSummaries(aRows, dUnits);
-          this.applyMatchupSorting(false);
-          this.refreshVisibleMatchup();
-          this.syncMatchupMergeSelections();
-          if(buildIsCurrent()) this.saveCachedAppState();
-        }finally{
-          if(buildToken === this.matchup.buildToken){
-            this.matchup.loading = false;
-            this.matchup.loadingMessage = '';
+          const rowsResult = this.buildMatchupRows(aRows, dUnits, buildIsCurrent);
+          if(rowsResult && typeof rowsResult.then === 'function'){
+            rowsResult
+              .then(rows => {
+                try{
+                  finishRows(rows, aRows, dUnits);
+                }catch(err){
+                  console.error(err);
+                }finally{
+                  finishBuild();
+                }
+              })
+              .catch(err => {
+                console.error(err);
+                finishBuild();
+              });
+            return;
           }
+          finishRows(rowsResult, aRows, dUnits);
+          finishBuild();
+        }catch(err){
+          finishBuild();
+          throw err;
         }
       });
     },

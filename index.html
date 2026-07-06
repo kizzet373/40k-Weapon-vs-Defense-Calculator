@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=merge-arrow-fix">
+  <link rel="stylesheet" href="styles.css?v=async-merge-controls">
   <script defer src="calculator-core.js?v=matchup-speed-1"></script>
   <script defer src="ability-modifiers.js?v=state-race-fix"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -1019,6 +1019,9 @@
                       <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
                       <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
                     </span>
+                    <span class="mergeManagerSummaryActions">
+                      <span class="mergeManagerDragBubble">drag</span>
+                    </span>
                   </summary>
                   <div class="mergeManagerChildren">
                     <template x-for="child in mergeManagerChildren(unit)" :key="`merge-from-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
@@ -1026,8 +1029,11 @@
                            draggable="true"
                            @dragstart.stop="mergeManagerDragStart($event, 'model', unit, child)"
                            @dragend="mergeManagerDragEnd()">
-                        <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
-                        <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                        <span class="mergeManagerChildBody">
+                          <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                          <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                        </span>
+                        <span class="mergeManagerDragBubble">drag</span>
                       </div>
                     </template>
                   </div>
@@ -1055,8 +1061,10 @@
                   <div class="mergeManagerChildren">
                     <template x-for="child in mergeManagerChildren(unit)" :key="`merge-to-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
                       <div class="mergeManagerChild mergeManagerChildStatic">
-                        <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
-                        <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                        <span class="mergeManagerChildBody">
+                          <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                          <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                        </span>
                       </div>
                     </template>
                   </div>
@@ -1275,6 +1283,6 @@
 
 </div>
 
-<script src="utilities.js?v=matchup-speed-1"></script>
+<script src="utilities.js?v=async-merge-controls"></script>
 </body>
 </html>

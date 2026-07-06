@@ -345,12 +345,15 @@ button.secondary.matchupRosterSwapButton{
 .mergeManagerDraggableUnit:active{cursor:grabbing}
 .mergeManagerUnit summary{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:9px 10px;cursor:pointer;user-select:none}
 .mergeManagerUnit summary::-webkit-details-marker{display:none}
-.mergeManagerUnit summary::before{content:'▸';flex:0 0 14px;color:var(--accent);font-size:14px;line-height:1}
-.mergeManagerUnit[open] summary::before{content:'▾'}
-.mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mergeManagerUnit summary::after{content:'▸';flex:0 0 24px;color:var(--accent);font-size:24px;line-height:1;text-align:center;margin-left:2px}
+.mergeManagerUnit[open] summary::after{content:'▾'}
+.mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.mergeManagerSummaryActions{display:inline-flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto}
+.mergeManagerDragBubble{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;border-radius:999px;background:rgba(110,231,255,.12);border:1px solid rgba(110,231,255,.34);color:var(--accent);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
 .mergeManagerUnitName,.mergeManagerChildName{font-weight:800;color:var(--fg)}
 .mergeManagerChildren{display:flex;flex-direction:column;gap:6px;padding:0 10px 10px}
-.mergeManagerChild{display:flex;flex-direction:column;gap:2px;padding:8px 9px;border:1px solid rgba(255,255,255,.07);border-radius:8px;background:rgba(255,255,255,.035);cursor:grab}
+.mergeManagerChild{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 9px;border:1px solid rgba(255,255,255,.07);border-radius:8px;background:rgba(255,255,255,.035);cursor:grab}
+.mergeManagerChildBody{display:flex;flex-direction:column;gap:2px;min-width:0}
 .mergeManagerChild:active{cursor:grabbing}
 .mergeManagerChildStatic{cursor:default}
 .mergeManagerDropUnit{outline:1px solid rgba(102,226,138,.08)}

@@ -5,9 +5,13 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const stylesCss = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
 assert.ok(!/mergeDropHint|>\s*Drop\s*</i.test(indexHtml), 'merge manager target units do not show a Drop label');
 assert.ok(!/mergeDragHandle|>\s*Drag unit\s*</i.test(indexHtml), 'merge manager source units do not show a Drag unit label');
 assert.ok(/mergeManagerDraggableUnit[\s\S]*draggable="true"[\s\S]*mergeManagerDragStart\(\$event, 'unit', unit\)/.test(indexHtml), 'merge manager source unit rows are draggable');
+assert.ok(/mergeManagerDragBubble[\s\S]*>\s*drag\s*</i.test(indexHtml), 'merge manager source units and models show a compact drag bubble');
+assert.ok(/mergeManagerUnit summary::after[\s\S]*font-size:24px/.test(stylesCss), 'merge manager collapsible arrow is a larger right-side affordance');
+assert.ok(!/mergeManagerUnit summary::before/.test(stylesCss), 'merge manager collapsible arrow is not left-side before content');
 
 const context = {
   window: {},
