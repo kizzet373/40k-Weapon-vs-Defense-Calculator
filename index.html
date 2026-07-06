@@ -46,7 +46,7 @@
         <div class="row">
           <label>
             Roster
-            <select x-model.number="selectedRosterIdx" @change="refreshForces()">
+            <select x-model.number="selectedRosterIdx" @change="refreshForces({ persist: true })">
               <template x-for="(r, i) in rosters" :key="`roster-${i}`">
                 <option :value="i" x-text="r.label || `Roster ${i+1}`"></option>
               </template>
@@ -63,7 +63,7 @@
         <div class="row forcePickerRow">
           <label class="forceSelectLabel">
             Force
-            <select x-model.number="selectedForceIdx" @change="refreshUnits()">
+            <select x-model.number="selectedForceIdx" @change="refreshUnits(); saveCachedAppState()">
               <template x-for="(f, i) in forces" :key="`force-${i}`">
                 <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
               </template>
@@ -91,7 +91,7 @@
             </label>
             <label>
               Force
-              <select x-model.number="matchup.attackerForceIdx" @change="matchup.attackerUnitIdx = 0; rebuildMatchup()">
+              <select x-model.number="matchup.attackerForceIdx" @change="onMatchupForceChanged('attacker')">
                 <template x-for="(f, i) in matchupAttackerForces" :key="`sidebar-atk-f-${i}`">
                   <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
                 </template>
@@ -103,7 +103,7 @@
             <div class="matchupSideOptionsBody">
               <label class="unitSelectLabel">
                 Unit
-                <select x-model.number="matchup.attackerUnitIdx">
+                <select x-model.number="matchup.attackerUnitIdx" @change="saveCachedAppState()">
                   <template x-for="(u, i) in matchupSideBaseUnits('attacker')" :key="`matchup-attacker-unit-${i}`">
                     <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
                   </template>
@@ -158,7 +158,7 @@
             </label>
             <label>
               Force
-              <select x-model.number="matchup.defenderForceIdx" @change="matchup.defenderUnitIdx = 0; rebuildMatchup()">
+              <select x-model.number="matchup.defenderForceIdx" @change="onMatchupForceChanged('defender')">
                 <template x-for="(f, i) in matchupDefenderForces" :key="`sidebar-def-f-${i}`">
                   <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
                 </template>
@@ -170,7 +170,7 @@
             <div class="matchupSideOptionsBody">
               <label class="unitSelectLabel">
                 Unit
-                <select x-model.number="matchup.defenderUnitIdx">
+                <select x-model.number="matchup.defenderUnitIdx" @change="saveCachedAppState()">
                   <template x-for="(u, i) in matchupSideBaseUnits('defender')" :key="`matchup-defender-unit-${i}`">
                     <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
                   </template>
@@ -216,7 +216,7 @@
       <div class="unitPickerSelectionRow calcUnitPickerSelectionRow">
         <label class="unitSelectLabel">
           Unit
-          <select x-model.number="selectedUnitIdx" @change="onUnitChanged()">
+          <select x-model.number="selectedUnitIdx" @change="onUnitChanged(); saveCachedAppState()">
             <template x-for="(u, i) in units" :key="`unit-${i}`">
               <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
             </template>
@@ -672,7 +672,7 @@
               </label>
               <label>
                 Force
-                <select x-model.number="matchup.attackerForceIdx" @change="rebuildMatchup()">
+                <select x-model.number="matchup.attackerForceIdx" @change="onMatchupForceChanged('attacker')">
                   <template x-for="(f, i) in matchupAttackerForces" :key="`m-atk-f-${i}`">
                     <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
                   </template>
@@ -697,7 +697,7 @@
               </label>
               <label>
                 Force
-                <select x-model.number="matchup.defenderForceIdx" @change="rebuildMatchup()">
+                <select x-model.number="matchup.defenderForceIdx" @change="onMatchupForceChanged('defender')">
                   <template x-for="(f, i) in matchupDefenderForces" :key="`m-def-f-${i}`">
                     <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
                   </template>

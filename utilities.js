@@ -60,6 +60,7 @@ function weaponVsDefenseApp(){
     matchupAttackerBaseUnits: [],
     matchupAttackerUnits: [],
     matchupDefenderUnits: [],
+    pendingMatchupUnitKeys: { attacker: '', defender: '' },
     expandedUnitKeys: {},
     modifierToggleState: {},
     unitToggleState: {},
@@ -249,9 +250,14 @@ function weaponVsDefenseApp(){
     init(){
       this.addBaseProfilesRoster();
       this.loadCachedRosters();
+      const restoredAppState = this.loadCachedAppState();
       this.syncModValueDefault();
       this.renderBreakdownChart(null);
-      this.switchToMatchupView({ reset: true });
+      if(restoredAppState && this.activeView === 'calc'){
+        this.switchToCalcView();
+      }else{
+        this.switchToMatchupView({ reset: !restoredAppState, preserveMatchupSelection: restoredAppState });
+      }
 
       window.addEventListener('resize', () => {
         if (this.output && Number.isFinite(this.output.dmg)) this.calculate();
@@ -438,6 +444,10 @@ function weaponVsDefenseApp(){
       return '40kWeaponDefenseCalculator.rosters.v1';
     },
 
+    appStateCacheKey(){
+      return '40kWeaponDefenseCalculator.appState.v1';
+    },
+
     canUseRosterCache(){
       try{
         return typeof window !== 'undefined' && !!window.localStorage;
@@ -471,9 +481,159 @@ function weaponVsDefenseApp(){
       };
       try{
         window.localStorage.setItem(this.rosterCacheKey(), JSON.stringify(payload));
+        this.saveCachedAppState();
       }catch(err){
         console.warn('Unable to cache rosters in browser storage.', err);
       }
+    },
+
+    rosterStateRef(index=this.selectedRosterIdx){
+      const roster = this.rosters?.[index] || null;
+      if(!roster) return { index: 0, key: '', label: '', name: '', sourceFormat: '' };
+      const sourceFormat = roster?.data?._sourceFormat || '';
+      const name = roster?.data?.roster?.name || roster?.data?.name || roster?.label || '';
+      const label = roster?.label || name || '';
+      const key = sourceFormat === 'base-profiles'
+        ? 'source:base-profiles'
+        : `roster:${label}|${name}|${sourceFormat}`;
+      return { index, key, label, name, sourceFormat };
+    },
+
+    forceStateRef(rosterIdx, forceIdx){
+      const force = this.getForcesForRoster(rosterIdx)?.[forceIdx] || null;
+      const name = force?.name || force?.label || '';
+      return {
+        index: Number.isFinite(forceIdx) ? forceIdx : 0,
+        key: name ? `force:${name}` : `force-index:${forceIdx || 0}`,
+        name,
+      };
+    },
+
+    findRosterIndexFromState(ref={}, fallback=0){
+      const rosters = this.rosters || [];
+      if(!rosters.length) return 0;
+      const candidates = [
+        roster => ref.key && this.rosterStateRef(rosters.indexOf(roster)).key === ref.key,
+        roster => ref.sourceFormat && roster?.data?._sourceFormat === ref.sourceFormat && (roster.label === ref.label || roster?.data?.roster?.name === ref.name),
+        roster => ref.label && roster?.label === ref.label,
+        roster => ref.name && (roster?.data?.roster?.name === ref.name || roster?.data?.name === ref.name),
+      ];
+      for(const matcher of candidates){
+        const index = rosters.findIndex(matcher);
+        if(index >= 0) return index;
+      }
+      return this.clamp(Number.isFinite(fallback) ? fallback : 0, 0, rosters.length - 1);
+    },
+
+    findForceIndexFromState(rosterIdx, ref={}, fallback=0){
+      const forces = this.getForcesForRoster(rosterIdx) || [];
+      if(!forces.length) return 0;
+      const byName = ref.name ? forces.findIndex(force => (force?.name || force?.label || '') === ref.name) : -1;
+      if(byName >= 0) return byName;
+      return this.clamp(Number.isFinite(fallback) ? fallback : 0, 0, forces.length - 1);
+    },
+
+    matchupSideState(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      const unitIdx = side === 'attacker' ? this.matchup.attackerUnitIdx : this.matchup.defenderUnitIdx;
+      const unit = this.matchupSideBaseUnits(side)?.[unitIdx] || null;
+      return {
+        roster: this.rosterStateRef(rosterIdx),
+        force: this.forceStateRef(rosterIdx, forceIdx),
+        unitKey: this.sourceUnitKey(unit),
+      };
+    },
+
+    saveCachedAppState(){
+      if(!this.canUseRosterCache()) return;
+      const payload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        activeView: this.activeView || 'matchups',
+        selected: {
+          roster: this.rosterStateRef(this.selectedRosterIdx),
+          force: this.forceStateRef(this.selectedRosterIdx, this.selectedForceIdx),
+          unitKey: this.sourceUnitKey(this.activeUnit),
+        },
+        matchup: {
+          attacker: this.matchupSideState('attacker'),
+          defender: this.matchupSideState('defender'),
+          metric: this.matchup.metric || 'modelWounds',
+          conditionsMet: !!this.matchup.conditionsMet,
+          combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+          showMelee: !!this.matchup.showMelee,
+          showShooting: !!this.matchup.showShooting,
+          sortAttackers: this.matchup.sortAttackers || 'overallDamage',
+          sortAttackersDirection: this.matchup.sortAttackersDirection || 'desc',
+          sortDefenders: this.matchup.sortDefenders || 'overallDamage',
+          sortDefendersDirection: this.matchup.sortDefendersDirection || 'desc',
+          customModifiers: {
+            attacker: [...this.matchupCustomModifiers('attacker')],
+            defender: [...this.matchupCustomModifiers('defender')],
+          },
+        },
+      };
+      try{
+        window.localStorage.setItem(this.appStateCacheKey(), JSON.stringify(payload));
+      }catch(err){
+        console.warn('Unable to cache app state in browser storage.', err);
+      }
+    },
+
+    loadCachedAppState(){
+      if(!this.canUseRosterCache()) return false;
+      let payload = null;
+      try{
+        const raw = window.localStorage.getItem(this.appStateCacheKey());
+        payload = raw ? JSON.parse(raw) : null;
+      }catch(err){
+        console.warn('Unable to read cached app state from browser storage.', err);
+        return false;
+      }
+      if(!payload || payload.version !== 1) return false;
+
+      const selectedRosterIdx = this.findRosterIndexFromState(payload.selected?.roster, this.selectedRosterIdx);
+      this.selectedRosterIdx = selectedRosterIdx;
+      this.refreshForces({ preserveSelection: true, persist: false });
+      this.selectedForceIdx = this.findForceIndexFromState(selectedRosterIdx, payload.selected?.force, this.selectedForceIdx);
+      this.refreshUnits();
+      const selectedUnitKey = payload.selected?.unitKey || '';
+      if(selectedUnitKey){
+        const unitIndex = this.units.findIndex(unit => this.sourceUnitKey(unit) === selectedUnitKey);
+        if(unitIndex >= 0) this.selectedUnitIdx = unitIndex;
+      }
+
+      const applySide = side => {
+        const sideState = payload.matchup?.[side] || {};
+        const rosterKey = side === 'attacker' ? 'attackerRosterIdx' : 'defenderRosterIdx';
+        const forceKey = side === 'attacker' ? 'attackerForceIdx' : 'defenderForceIdx';
+        const unitKey = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
+        const rosterIdx = this.findRosterIndexFromState(sideState.roster, this.matchup[rosterKey]);
+        this.matchup[rosterKey] = rosterIdx;
+        this.matchup[forceKey] = this.findForceIndexFromState(rosterIdx, sideState.force, this.matchup[forceKey]);
+        this.matchup[unitKey] = 0;
+        this.pendingMatchupUnitKeys[side] = sideState.unitKey || '';
+      };
+      applySide('attacker');
+      applySide('defender');
+
+      const matchup = payload.matchup || {};
+      this.matchup.metric = ['damage', 'modelWounds', 'unitKill'].includes(matchup.metric) ? matchup.metric : this.matchup.metric;
+      this.matchup.conditionsMet = !!matchup.conditionsMet;
+      this.matchup.combineShootingProfiles = matchup.combineShootingProfiles !== false;
+      this.matchup.showMelee = matchup.showMelee !== false;
+      this.matchup.showShooting = matchup.showShooting !== false;
+      this.matchup.sortAttackers = this.normalizeMatchupSideSortMode(matchup.sortAttackers || this.matchup.sortAttackers);
+      this.matchup.sortAttackersDirection = matchup.sortAttackersDirection === 'asc' ? 'asc' : 'desc';
+      this.matchup.sortDefenders = this.normalizeMatchupSideSortMode(matchup.sortDefenders || this.matchup.sortDefenders);
+      this.matchup.sortDefendersDirection = matchup.sortDefendersDirection === 'asc' ? 'asc' : 'desc';
+      this.matchup.customModifiers = {
+        attacker: Array.isArray(matchup.customModifiers?.attacker) ? matchup.customModifiers.attacker : [],
+        defender: Array.isArray(matchup.customModifiers?.defender) ? matchup.customModifiers.defender : [],
+      };
+      this.activeView = payload.activeView === 'calc' ? 'calc' : 'matchups';
+      return true;
     },
 
     loadCachedRosters(){
@@ -512,7 +672,7 @@ function weaponVsDefenseApp(){
       const cachedSelected = parseInt(payload?.selectedRosterIdx, 10);
       const restoredOffset = Number.isFinite(cachedSelected) ? this.clamp(cachedSelected, 0, restored.length - 1) : 0;
       this.selectedRosterIdx = firstRestoredIndex + restoredOffset;
-      this.refreshForces();
+      this.refreshForces({ persist: false });
       return restored.length;
     },
 
@@ -626,12 +786,19 @@ function weaponVsDefenseApp(){
       else this.clearCachedRostersIfEmpty();
     },
 
-    refreshForces(){
+    refreshForces(options={}){
+      return this.refreshForcesWithOptions(options);
+    },
+
+    refreshForcesWithOptions(options={}){
       const obj = this.activeRosterData;
       this.forces = (obj?.roster?.forces) || (obj?.forces) || [];
 
-      this.selectedForceIdx = 0;
+      this.selectedForceIdx = options.preserveSelection
+        ? this.clamp(this.selectedForceIdx || 0, 0, Math.max(0, this.forces.length - 1))
+        : 0;
       this.refreshUnits();
+      if(options.persist === true) this.saveCachedAppState();
     },
 
     refreshUnits(){
@@ -853,6 +1020,7 @@ function weaponVsDefenseApp(){
       this.activeView = 'calc';
       this.matchupModalOpen = false;
       this.closeMatchupFormula();
+      this.saveCachedAppState();
     },
 
     switchToMatchupView(options={}){
@@ -860,7 +1028,7 @@ function weaponVsDefenseApp(){
       this.activeView = 'matchups';
       this.matchupModalOpen = true;
 
-      if(options.reset || !(this.matchup.rows || []).length){
+      if(options.reset || (!options.preserveMatchupSelection && !(this.matchup.rows || []).length)){
         // Defaults: attacker = current selection; defender = next roster if present
         const aR = Number.isFinite(this.selectedRosterIdx) ? this.selectedRosterIdx : 0;
         const aF = Number.isFinite(this.selectedForceIdx) ? this.selectedForceIdx : 0;
@@ -874,6 +1042,7 @@ function weaponVsDefenseApp(){
 
       this.onMatchupRosterChanged('attacker', false);
       this.onMatchupRosterChanged('defender', false);
+      if(!options.preserveMatchupSelection) this.saveCachedAppState();
       this.rebuildMatchup();
     },
 
@@ -903,6 +1072,7 @@ function weaponVsDefenseApp(){
       this.matchup.customModifiers.defender = aMods;
       this.onMatchupRosterChanged('attacker', false);
       this.onMatchupRosterChanged('defender', false);
+      this.saveCachedAppState();
       this.rebuildMatchup();
     },
 
@@ -917,12 +1087,43 @@ function weaponVsDefenseApp(){
         this.matchupAttackerForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
         this.matchup.attackerForceIdx = this.clamp(this.matchup.attackerForceIdx, 0, Math.max(0, this.matchupAttackerForces.length-1));
         this.matchup.attackerUnitIdx = 0;
+        if(rebuild) this.pendingMatchupUnitKeys.attacker = '';
       }else{
         this.matchupDefenderForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
         this.matchup.defenderForceIdx = this.clamp(this.matchup.defenderForceIdx, 0, Math.max(0, this.matchupDefenderForces.length-1));
         this.matchup.defenderUnitIdx = 0;
+        if(rebuild) this.pendingMatchupUnitKeys.defender = '';
       }
+      if(rebuild) this.saveCachedAppState();
       if(rebuild && this.matchupModalOpen) this.rebuildMatchup();
+    },
+
+    onMatchupForceChanged(side){
+      if(side === 'attacker'){
+        this.matchup.attackerForceIdx = this.clamp(this.matchup.attackerForceIdx || 0, 0, Math.max(0, this.matchupAttackerForces.length - 1));
+        this.matchup.attackerUnitIdx = 0;
+        this.pendingMatchupUnitKeys.attacker = '';
+      }else{
+        this.matchup.defenderForceIdx = this.clamp(this.matchup.defenderForceIdx || 0, 0, Math.max(0, this.matchupDefenderForces.length - 1));
+        this.matchup.defenderUnitIdx = 0;
+        this.pendingMatchupUnitKeys.defender = '';
+      }
+      this.saveCachedAppState();
+      this.rebuildMatchup();
+    },
+
+    restoreMatchupUnitSelection(side, units){
+      const keyName = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
+      const pendingKey = this.pendingMatchupUnitKeys?.[side] || '';
+      if(pendingKey){
+        const restoredIndex = (units || []).findIndex(unit => this.sourceUnitKey(unit) === pendingKey);
+        if(restoredIndex >= 0){
+          this.matchup[keyName] = restoredIndex;
+          this.pendingMatchupUnitKeys[side] = '';
+          return;
+        }
+      }
+      this.matchup[keyName] = this.clamp(this.matchup[keyName] || 0, 0, Math.max(0, (units || []).length - 1));
     },
 
     matchupSideForce(side){
@@ -1954,8 +2155,8 @@ function weaponVsDefenseApp(){
           this.matchupAttackerBaseUnits = aUnits;
           this.matchupAttackerUnits = aRows;
           this.matchupDefenderUnits = dUnits;
-          this.matchup.attackerUnitIdx = this.clamp(this.matchup.attackerUnitIdx || 0, 0, Math.max(0, aUnits.length - 1));
-          this.matchup.defenderUnitIdx = this.clamp(this.matchup.defenderUnitIdx || 0, 0, Math.max(0, dUnits.length - 1));
+          this.restoreMatchupUnitSelection('attacker', aUnits);
+          this.restoreMatchupUnitSelection('defender', dUnits);
 
           this.matchup.rows = aRows.map(au => ({
             unit: au,
@@ -1966,6 +2167,7 @@ function weaponVsDefenseApp(){
           this.applyMatchupSorting(false);
           this.refreshVisibleMatchup();
           this.syncMatchupMergeSelections();
+          this.saveCachedAppState();
         }finally{
           this.matchup.loading = false;
           this.matchup.loadingMessage = '';
@@ -2126,6 +2328,7 @@ function weaponVsDefenseApp(){
         this.matchup.sortDefenders = this.matchup.sortDefenders || 'overallDamage';
         this.matchup.sortDefendersDirection = this.matchup.sortDefendersDirection || 'desc';
       }
+      this.saveCachedAppState();
       this.refreshMatchupPresentation({ computeMissing: false });
     },
 
@@ -2140,6 +2343,7 @@ function weaponVsDefenseApp(){
       const anchorKey = isAttacker ? 'sortAttackersColumnKey' : 'sortDefendersRowKey';
       this.matchup[modeKey] = this.normalizeMatchupSideSortMode(mode);
       this.matchup[anchorKey] = '';
+      this.saveCachedAppState();
       this.refreshMatchupPresentation({ computeMissing: false });
     },
 
@@ -2149,6 +2353,7 @@ function weaponVsDefenseApp(){
       const defaultDirection = 'desc';
       const direction = this.matchup[directionKey] || defaultDirection;
       this.matchup[directionKey] = direction === 'asc' ? 'desc' : 'asc';
+      this.saveCachedAppState();
       this.refreshMatchupPresentation({ computeMissing: false });
     },
 
@@ -2186,6 +2391,7 @@ function weaponVsDefenseApp(){
       this.matchup.sortDefendersDirection = next;
       this.matchup.sortAttackersColumnKey = '';
       this.matchup.sortDefendersRowKey = '';
+      this.saveCachedAppState();
       this.refreshMatchupPresentation({ computeMissing: false });
     },
 
@@ -2195,6 +2401,7 @@ function weaponVsDefenseApp(){
       this.matchup.sortAttackers = 'column';
       this.matchup.sortAttackersColumnKey = key;
       this.matchup.sortAttackersDirection = active ? this.toggleDirection(this.matchup.sortAttackersDirection, 'desc') : 'desc';
+      this.saveCachedAppState();
       this.refreshMatchupPresentation({ computeMissing: false });
     },
 
@@ -2204,6 +2411,7 @@ function weaponVsDefenseApp(){
       this.matchup.sortDefenders = 'row';
       this.matchup.sortDefendersRowKey = key;
       this.matchup.sortDefendersDirection = active ? this.toggleDirection(this.matchup.sortDefendersDirection, 'asc') : 'desc';
+      this.saveCachedAppState();
       this.refreshMatchupPresentation({ computeMissing: false });
     },
 
@@ -2230,12 +2438,14 @@ function weaponVsDefenseApp(){
     toggleMatchupRecomputeOption(key){
       if(!(key in this.matchup)) return;
       this.matchup[key] = !this.matchup[key];
+      this.saveCachedAppState();
       this.rebuildMatchup();
     },
 
     setMatchupRecomputeOption(key, value){
       if(!(key in this.matchup)) return;
       this.matchup[key] = !!value;
+      this.saveCachedAppState();
       this.rebuildMatchup();
     },
 
@@ -2259,6 +2469,7 @@ function weaponVsDefenseApp(){
 
     setMatchupMetric(metric){
       this.matchup.metric = metric;
+      this.saveCachedAppState();
       this.refreshMatchupPresentation();
     },
 
@@ -4115,6 +4326,7 @@ function weaponVsDefenseApp(){
         });
       }
       this.clearMatchupComputationCache();
+      this.saveCachedAppState();
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
@@ -4127,6 +4339,7 @@ function weaponVsDefenseApp(){
       const key = side === 'defender' ? 'defender' : 'attacker';
       state[key] = this.matchupCustomModifiers(key).filter(entry => entry.id !== id);
       this.clearMatchupComputationCache();
+      this.saveCachedAppState();
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 

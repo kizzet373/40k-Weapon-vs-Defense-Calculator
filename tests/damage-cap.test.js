@@ -1793,7 +1793,7 @@ cacheImportApp.addRoster({
         _unitKey: 'cached-unit',
         _groupId: 'cached-unit',
         _points: 55,
-        weapons: [],
+        weapons: [{ name: 'Cached blade', range: 'Melee', A: '4', skill: '3', S: '5', AP: '1', D: '1', mode: 'melee', modifiers: '', _weaponKey: 'cached-blade' }],
         abilities: [],
         defense: { T: 4, Sv: 3, W: 2, models: 1 },
         _children: [],
@@ -1802,14 +1802,44 @@ cacheImportApp.addRoster({
     }],
   },
 }, 'Cached Army');
+cacheImportApp.addRoster({
+  roster: {
+    name: 'Other Cached Army',
+    forces: [{
+      name: 'Other Force',
+      _importedUnits: [{
+        label: 'Other Cached Unit',
+        _unitKey: 'other-cached-unit',
+        _groupId: 'other-cached-unit',
+        _points: 60,
+        weapons: [{ name: 'Other blade', range: 'Melee', A: '2', skill: '3', S: '4', AP: '0', D: '1', mode: 'melee', modifiers: '', _weaponKey: 'other-blade' }],
+        abilities: [],
+        defense: { T: 4, Sv: 3, W: 2, models: 1 },
+        _children: [],
+      }],
+      _unitMerges: [],
+    }],
+  },
+}, 'Other Cached Army');
+cacheImportApp.matchup.attackerRosterIdx = cacheImportApp.rosters.findIndex(roster => roster.label === 'Cached Army');
+cacheImportApp.matchup.attackerForceIdx = 0;
+cacheImportApp.matchup.defenderRosterIdx = cacheImportApp.rosters.findIndex(roster => roster.label === 'Base Profiles');
+cacheImportApp.matchup.defenderForceIdx = 0;
+cacheImportApp.onMatchupRosterChanged('attacker', false);
+cacheImportApp.onMatchupRosterChanged('defender', false);
+cacheImportApp.saveCachedAppState();
 const cachedPayload = JSON.parse(localStorageStore.get(cacheImportApp.rosterCacheKey()));
-assert.strictEqual(cachedPayload.rosters.length, 1, 'browser roster cache stores imported armies');
+assert.strictEqual(cachedPayload.rosters.length, 2, 'browser roster cache stores imported armies');
 assert.strictEqual(cachedPayload.rosters[0].label, 'Cached Army', 'browser roster cache does not store built-in Base Profiles');
 
 const restoredCacheApp = context.weaponVsDefenseApp();
 restoredCacheApp.addBaseProfilesRoster();
-assert.strictEqual(restoredCacheApp.loadCachedRosters(), 1, 'fresh app restores cached armies from browser storage');
+assert.strictEqual(restoredCacheApp.loadCachedRosters(), 2, 'fresh app restores cached armies from browser storage');
 assert.ok(restoredCacheApp.rosters.some(roster => roster.label === 'Cached Army'), 'restored cache includes the imported army');
+assert.ok(restoredCacheApp.loadCachedAppState(), 'fresh app restores cached sidebar and matchup state');
+restoredCacheApp.switchToMatchupView({ preserveMatchupSelection: true });
+assert.strictEqual(restoredCacheApp.rosters[restoredCacheApp.matchup.attackerRosterIdx].label, 'Cached Army', 'restored attacker roster dropdown matches the cached attacker grid roster');
+assert.strictEqual(restoredCacheApp.matchupVisibleRows()[0].unit.label, 'Cached Unit', 'restored attacker grid rows come from the same roster selected in the sidebar');
 restoredCacheApp.selectedRosterIdx = restoredCacheApp.rosters.findIndex(roster => roster.label === 'Cached Army');
 restoredCacheApp.refreshForces();
 restoredCacheApp.renameUnit(restoredCacheApp.activeUnit, 'Renamed Cached Unit');
