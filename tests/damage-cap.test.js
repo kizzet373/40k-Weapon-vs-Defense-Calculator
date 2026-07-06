@@ -1146,6 +1146,59 @@ assert.ok(/Dice cannon \(x1\).*D:1d6/.test(diceSection.title), 'formula title ke
 assert.ok(diceLines.some(line => /Damage: .* x \(1d6\) damage/i.test(line)), 'damage step keeps dice damage in the equation');
 assert.ok(diceLines.some(line => /Hits: .*66\.7% base \+ 11\.1% Reroll Hits of 1 \+ 38\.9% sustained hits \(1d3\) = 116\.7% hit/i), 'hit formula shows base, reroll, sustained, and final hit-rate percentages as one equation');
 
+const attackDiceFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Attack dice attacker',
+    weapons: [{ name: 'Variable cannon', range: '24', A: '2d6+1', skill: 'auto', S: '8', AP: '6', D: 'D6+2', modifiers: '', mode: 'ranged' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Attack dice target', defense: { T: 4, Sv: 7, W: 3, models: 10, totalWounds: 30 } },
+  { includeFormula: true }
+);
+app.formulaCell = attackDiceFormulaCell;
+const attackDiceSection = app.matchupFormulaSections()[0];
+const attackDiceLines = attackDiceSection.lines.map(line => line.text || line);
+assert.ok(/Variable cannon \(x1\).*A:2d6\+1 Skill:auto S:8 AP:6 D:1d6\+2/.test(attackDiceSection.title), 'formula title keeps dice attacks and dice damage as dice text');
+assert.ok(attackDiceLines.some(line => /^Hits: 2d6\+1 \(8 avg\) attacks x/i.test(line)), 'formula hit step shows variable attacks while using the averaged attack count');
+const diceProfileWeapon = { name: 'Profile dice gun', range: '24', A: '2d6+1', skill: '3', S: '8', AP: '2', D: 'D6+2', modifiers: 'Damage +1', mode: 'ranged' };
+const diceProfileUnit = { label: 'Profile dice unit', weapons: [diceProfileWeapon], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'profile-dice-unit' };
+assert.strictEqual(app.weaponEffectiveStat(diceProfileWeapon, 'A', diceProfileUnit).text, '2d6+1', 'profile modal keeps dice attacks as dice text');
+assert.strictEqual(app.weaponEffectiveStat(diceProfileWeapon, 'D', diceProfileUnit).text, '1d6+3', 'profile modal keeps modified dice damage as dice text');
+const repairImportApp = context.weaponVsDefenseApp();
+repairImportApp.addRoster({
+  schema: '40k-roster-matchup-import',
+  rosterLabel: 'Dice repair import',
+  forceName: 'Dice repair force',
+  sourceRoster: {
+    roster: {
+      forces: [{
+        selections: [{
+          name: 'Dice repair source',
+          profiles: [{
+            name: 'Variable gun',
+            typeName: 'Ranged Weapons',
+            characteristics: [
+              { name: 'Range', $text: '24"' },
+              { name: 'A', $text: 'D6' },
+              { name: 'BS', $text: '3+' },
+              { name: 'S', $text: '8' },
+              { name: 'AP', $text: '-2' },
+              { name: 'D', $text: 'D3' },
+              { name: 'Keywords', $text: 'Psychic' },
+            ],
+          }],
+        }],
+      }],
+    },
+  },
+  postMergeUnits: [{
+    label: 'Dice repair unit',
+    weapons: [{ name: 'Variable gun', range: '24"', A: '3.5', skill: '3', S: '8', AP: '2', D: 'D3', modifiers: 'Psychic', mode: 'ranged', count: 1 }],
+    defense: { T: 4, Sv: 3, W: 2, models: 1 },
+  }],
+}, 'Dice repair import');
+assert.strictEqual(repairImportApp.units[0].weapons[0].A, '1d6', 'matchup roster import repairs older flattened attack dice when source profile data is available');
+
 const lethalDevFormulaCell = app.computeMatchupCell(
   {
     label: 'Lethal dev attacker',
@@ -1226,7 +1279,7 @@ const reorderedModifierCell = context.window.MatchupEngine.computeCell(
 app.formulaCell = reorderedModifierCell;
 const reorderedModifierSections = app.matchupFormulaSections();
 assert.strictEqual(reorderedModifierSections.length, 1, 'identical weapon profiles with reordered modifiers are grouped into one formula section');
-assert.ok(/Slashing claws \(x2\).*A:16 Skill:3 S:6 AP:1 D:1 \+ 1/.test(reorderedModifierSections[0].title), 'grouped reordered modifier profile shows combined model count and effective statline');
+assert.ok(/Slashing claws \(x2\).*A:16 Skill:3 S:6 AP:1 D:2/.test(reorderedModifierSections[0].title), 'grouped reordered modifier profile shows combined model count and effective statline');
 
 const overkillFormulaCell = app.computeMatchupCell(
   {

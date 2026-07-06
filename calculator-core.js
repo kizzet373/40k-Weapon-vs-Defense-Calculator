@@ -36,15 +36,84 @@
     });
   }
 
+  function fmtDiceNumber(value){
+    const n = Number(value);
+    if(!Number.isFinite(n)) return '0';
+    return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
+  }
+
+  function simpleDiceParts(expr){
+    const s = String(expr ?? '').replace(/\s+/g,'');
+    if(!s) return { dice: 0, faces: null, constant: 0 };
+    if(/^[+-]?\d+(\.\d+)?$/.test(s)){
+      return { dice: 0, faces: null, constant: parseFloat(s) };
+    }
+    const m = s.match(/^(\d+)?[dD](\d+)([+\-]\d+)?$/);
+    if(!m) return null;
+    return {
+      dice: parseInt(m[1] || '1', 10),
+      faces: parseInt(m[2], 10),
+      constant: m[3] ? parseInt(m[3], 10) : 0,
+    };
+  }
+
+  function formatDiceParts(parts){
+    if(!parts) return '';
+    const dice = Number(parts.dice) || 0;
+    const faces = Number(parts.faces) || 0;
+    const constant = Number(parts.constant) || 0;
+    if(dice > 0 && faces > 0){
+      const modText = constant > 0 ? `+${fmtDiceNumber(constant)}` : (constant < 0 ? fmtDiceNumber(constant) : '');
+      return `${dice}d${faces}${modText}`;
+    }
+    return fmtDiceNumber(constant);
+  }
+
   function modifiedDiceText(expr, flatMod=0, divisor=1){
-    const parsed = parseNdX(expr);
-    const parts = [parsed.text || '0'];
     const mod = Number(flatMod) || 0;
-    if(mod > 0) parts.push(`+ ${mod}`);
-    if(mod < 0) parts.push(`- ${Math.abs(mod)}`);
+    const parsedParts = simpleDiceParts(expr);
+    let text = '';
+    if(parsedParts){
+      text = formatDiceParts({ ...parsedParts, constant: (parsedParts.constant || 0) + mod });
+    }else{
+      const parsed = parseNdX(expr);
+      const pieces = [parsed.text || '0'];
+      if(mod > 0) pieces.push(`+ ${fmtDiceNumber(mod)}`);
+      if(mod < 0) pieces.push(`- ${fmtDiceNumber(Math.abs(mod))}`);
+      text = pieces.join(' ');
+    }
     const div = Number(divisor) || 1;
-    if(div > 1) parts.push(`/ ${div}`);
-    return parts.join(' ');
+    if(div > 1) return `${text} / ${fmtDiceNumber(div)}`;
+    return text;
+  }
+
+  function multiplyDiceText(expr, count=1){
+    const multiplier = Math.max(0, Number(count) || 0);
+    const parsedParts = simpleDiceParts(expr);
+    if(parsedParts){
+      return formatDiceParts({
+        dice: (parsedParts.dice || 0) * multiplier,
+        faces: parsedParts.faces,
+        constant: (parsedParts.constant || 0) * multiplier,
+      });
+    }
+    return fmtDiceNumber((parseNdX(expr).mean || 0) * multiplier);
+  }
+
+  function addDiceTexts(...exprs){
+    const values = exprs.flat().filter(value => value != null && String(value).trim() !== '');
+    if(!values.length) return '0';
+    const parsed = values.map(simpleDiceParts);
+    const allSimple = parsed.every(Boolean);
+    const faces = [...new Set(parsed.filter(part => part && part.dice > 0).map(part => part.faces))];
+    if(allSimple && faces.length <= 1){
+      return formatDiceParts(parsed.reduce((sum, part) => ({
+        dice: sum.dice + (part.dice || 0),
+        faces: sum.faces || part.faces,
+        constant: sum.constant + (part.constant || 0),
+      }), { dice: 0, faces: faces[0] || null, constant: 0 }));
+    }
+    return fmtDiceNumber(values.reduce((sum, value) => sum + (parseNdX(value).mean || 0), 0));
   }
 
   function diceDistribution(expr, flatMod=0){
@@ -451,6 +520,7 @@
         weaponName: weapon?.name || 'Weapon',
         modifierText: modifierText || weapon?.modifiers || '',
         attacks: A,
+        attacksText: modifiedDiceText(weapon?.A, totalAttacksAdd, 1),
         skill,
         strength: S,
         ap: AP,
@@ -600,6 +670,9 @@
   window.WeaponCalc = {
     clamp,
     parseNdX,
+    modifiedDiceText,
+    multiplyDiceText,
+    addDiceTexts,
     expectedCappedDamage,
     probAtLeast,
     applyRerolls,

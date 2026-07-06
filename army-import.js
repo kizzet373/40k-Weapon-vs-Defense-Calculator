@@ -70,6 +70,16 @@
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
 
+  function multiplyDiceText(expr, count=1){
+    if(window.WeaponCalc?.multiplyDiceText) return window.WeaponCalc.multiplyDiceText(expr, count);
+    return fmtNumber(averageDice(expr) * (Number(count) || 1));
+  }
+
+  function addDiceTexts(...exprs){
+    if(window.WeaponCalc?.addDiceTexts) return window.WeaponCalc.addDiceTexts(...exprs);
+    return fmtNumber(exprs.flat().reduce((sum, expr) => sum + averageDice(expr), 0));
+  }
+
   function splitModifiers(raw){
     const s = String(raw || '').trim();
     if(!s) return [];
@@ -325,7 +335,7 @@
         return;
       }
       const current = map.get(key);
-      current.A = fmtNumber(averageDice(current.A) + averageDice(w.A));
+      current.A = addDiceTexts(current.A, w.A);
       current._profileCount = countOf(current) + countOf(w);
     });
     return [...map.values()];
@@ -714,13 +724,13 @@
         const found = characteristics.find(x => String(x.name || '').toLowerCase() === String(name).toLowerCase());
         return found ? (found.$text || '') : '';
       };
-      const attacks = averageDice(get('A') || get('Attacks') || '') * count;
+      const attacks = multiplyDiceText(get('A') || get('Attacks') || '', count);
       const modifiers = get('modifiers') || get('Keywords');
 
       list.push({
         name: cleanProfileName(profile.name),
         range: get('Range'),
-        A: fmtNumber(attacks),
+        A: attacks,
         skill: (get('BS') || get('WS') || '').replace('+','').replace(/^N\/A$/i, 'auto') || '',
         S: get('S'),
         AP: (get('AP') || '').replace('-',''),
@@ -1121,11 +1131,11 @@
       .filter(profile => /ranged weapons|melee weapons/i.test(profile?.typeName || ''))
       .map((profile, profileIndex) => {
         const typeName = String(profile?.typeName || '');
-        const attacks = averageDice(profileCharacteristic(profile, ['A', 'Attacks'])) * count;
+        const attacks = multiplyDiceText(profileCharacteristic(profile, ['A', 'Attacks']), count);
         return {
           name: cleanProfileName(profile?.name),
           range: profileCharacteristic(profile, 'Range'),
-          A: fmtNumber(attacks),
+          A: attacks,
           skill: (profileCharacteristic(profile, ['BS', 'WS']) || '').replace('+','').replace(/^N\/A$/i, 'auto'),
           S: profileCharacteristic(profile, 'S'),
           AP: String(profileCharacteristic(profile, 'AP') || '').replace('-', ''),
@@ -1399,6 +1409,51 @@
     return repairs;
   }
 
+  function weaponRepairKey({ name='', range='', skill='', S='', AP='', D='', mode='' }={}){
+    return [
+      cleanProfileName(name).toLowerCase(),
+      String(range || '').trim().toLowerCase(),
+      String(skill || '').replace('+','').replace(/^N\/A$/i, 'auto').trim().toLowerCase(),
+      String(S || '').trim().toLowerCase(),
+      String(AP || '').replace('-', '').trim().toLowerCase(),
+      String(D || '').trim().toLowerCase(),
+      String(mode || '').trim().toLowerCase(),
+    ].join('|');
+  }
+
+  function sourceWeaponRepairMap(sourceRoster){
+    const repairs = new Map();
+    const visit = node => {
+      if(!node || typeof node !== 'object') return;
+      if(Array.isArray(node)){
+        node.forEach(visit);
+        return;
+      }
+      const profiles = Array.isArray(node.profiles) ? node.profiles : [];
+      profiles.forEach(profile => {
+        const typeName = String(profile?.typeName || '');
+        if(!/ranged weapons|melee weapons/i.test(typeName)) return;
+        const entry = {
+          name: cleanProfileName(profile?.name),
+          range: profileCharacteristic(profile, 'Range'),
+          A: profileCharacteristic(profile, ['A', 'Attacks']),
+          skill: (profileCharacteristic(profile, ['BS', 'WS']) || '').replace('+','').replace(/^N\/A$/i, 'auto'),
+          S: profileCharacteristic(profile, 'S'),
+          AP: String(profileCharacteristic(profile, 'AP') || '').replace('-', ''),
+          D: profileCharacteristic(profile, 'D'),
+          mode: /melee weapons/i.test(typeName) ? 'melee' : 'ranged',
+        };
+        const key = weaponRepairKey(entry);
+        if(!repairs.has(key) || /d/i.test(String(entry.A || entry.D || ''))){
+          repairs.set(key, entry);
+        }
+      });
+      Object.values(node).forEach(visit);
+    };
+    visit(sourceRoster);
+    return repairs;
+  }
+
   function applySourceDefenseRepair(unit, repairs){
     if(!unit || !repairs?.size) return unit;
     const repair = unitLookupKeys(unit).map(key => repairs.get(key)).find(Boolean);
@@ -1413,29 +1468,49 @@
     return unit;
   }
 
-  function parseMatchupImportUnit(unit, repairs=new Map()){
+  function repairMatchupImportWeapon(weapon, weaponRepairs=new Map()){
+    const profileCount = Math.max(1, parseInt(weapon.count ?? weapon._profileCount ?? 1, 10) || 1);
+    const repaired = {
+      name: weapon.name || '',
+      range: weapon.range || '',
+      A: weapon.A || '',
+      skill: weapon.skill || '',
+      S: weapon.S || '',
+      AP: weapon.AP || '',
+      D: weapon.D || '',
+      modifiers: weapon.modifiers || '',
+      mode: weapon.mode || '',
+      _profileCount: profileCount,
+      _count: Math.max(1, parseInt(weapon.count ?? weapon._count ?? 1, 10) || 1),
+    };
+    const source = weaponRepairs.get(weaponRepairKey(repaired));
+    if(source){
+      const sourceAttacks = multiplyDiceText(source.A, profileCount);
+      if(/d/i.test(String(sourceAttacks || '')) && !/d/i.test(String(repaired.A || ''))){
+        const sourceMean = averageDice(sourceAttacks);
+        const importedMean = averageDice(repaired.A);
+        if(Math.abs(sourceMean - importedMean) < 1e-6) repaired.A = sourceAttacks;
+      }
+      if(/d/i.test(String(source.D || '')) && !/d/i.test(String(repaired.D || ''))){
+        const sourceMean = averageDice(source.D);
+        const importedMean = averageDice(repaired.D);
+        if(Math.abs(sourceMean - importedMean) < 1e-6) repaired.D = source.D;
+      }
+    }
+    return repaired;
+  }
+
+  function parseMatchupImportUnit(unit, repairs=new Map(), weaponRepairs=new Map()){
     const enhancements = (unit?.enhancements || unit?._enhancements || []).map(enh => ({ ...enh }));
     const parsed = allocateUnitPointRemainder({
       label: cleanName(unit?.label) || 'Imported unit',
-      weapons: (unit?.weapons || []).map(weapon => ({
-        name: weapon.name || '',
-        range: weapon.range || '',
-        A: weapon.A || '',
-        skill: weapon.skill || '',
-        S: weapon.S || '',
-        AP: weapon.AP || '',
-        D: weapon.D || '',
-        modifiers: weapon.modifiers || '',
-        mode: weapon.mode || '',
-        _profileCount: Math.max(1, parseInt(weapon.count ?? weapon._profileCount ?? 1, 10) || 1),
-        _count: Math.max(1, parseInt(weapon.count ?? weapon._count ?? 1, 10) || 1),
-      })),
+      weapons: (unit?.weapons || []).map(weapon => repairMatchupImportWeapon(weapon, weaponRepairs)),
       defense: { ...(unit?.defense || {}) },
       abilities: normalizeAbilityNamesWithoutEnhancements(unit?.abilities || [], enhancements),
       _abilityDescriptions: { ...(unit?.abilityDescriptions || unit?._abilityDescriptions || {}) },
       _rules: mergeRuleEntries(unit?.rules || unit?._rules || []),
       _ruleDescriptions: { ...(unit?.ruleDescriptions || unit?._ruleDescriptions || {}) },
-      _children: (unit?.children || unit?._children || []).map(child => parseMatchupImportUnit(child, repairs)),
+      _children: (unit?.children || unit?._children || []).map(child => parseMatchupImportUnit(child, repairs, weaponRepairs)),
       _tags: [...(unit?._tags || [])],
       _keywords: [...(unit?.keywords || unit?._keywords || [])],
       _points: unit?.points ?? unit?._points ?? null,
@@ -1455,8 +1530,9 @@
 
   function parseMatchupRosterImport(obj, label){
     const repairs = sourceDefenseRepairMap(obj?.sourceRoster);
+    const weaponRepairs = sourceWeaponRepairMap(obj?.sourceRoster);
     const units = (obj?.postMergeUnits || obj?.gridUnits || [])
-      .map(unit => parseMatchupImportUnit(unit, repairs))
+      .map(unit => parseMatchupImportUnit(unit, repairs, weaponRepairs))
       .filter(Boolean);
     return {
       roster: {

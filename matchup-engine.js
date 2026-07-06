@@ -109,10 +109,12 @@
   function multipliedWeaponProfile(weapon, count){
     const profileCount = Math.max(1, parseInt(count, 10) || 1);
     if(profileCount <= 1) return { ...weapon };
-    const attacks = window.WeaponCalc.parseNdX(weapon?.A).mean * profileCount;
+    const attacks = window.WeaponCalc.multiplyDiceText
+      ? window.WeaponCalc.multiplyDiceText(weapon?.A, profileCount)
+      : String(window.WeaponCalc.parseNdX(weapon?.A).mean * profileCount);
     return {
       ...weapon,
-      A: Number.isInteger(attacks) ? String(attacks) : String(attacks),
+      A: attacks,
       _profileCount: weaponProfileCount(weapon) * profileCount,
     };
   }

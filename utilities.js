@@ -395,6 +395,8 @@ function weaponVsDefenseApp(){
       };
       const diceMean = value => window.WeaponCalc.parseNdX(value).mean || 0;
       const numeric = value => parseFloat(String(value ?? '').replace('+', ''));
+      const targetModels = parseFloat(defender?.defense?.models ?? defender?.models);
+      const blastAttacksAdd = (kw.blastDice || 0) * Math.floor(Math.max(0, Number.isFinite(targetModels) ? targetModels : 0) / 5);
       const profileValue = (field, effective, baseText=base[field], comparableBase=baseText) => {
         const text = this.fmtProfileNumber(effective);
         const baseComparable = this.fmtProfileNumber(comparableBase);
@@ -404,14 +406,28 @@ function weaponVsDefenseApp(){
           changed: text !== baseComparable && String(baseText ?? '') !== '',
         };
       };
+      const diceProfileValue = (field, flatMod=0) => {
+        const baseMean = diceMean(base[field]);
+        const effective = Math.max(0, baseMean + (Number(flatMod) || 0));
+        const text = Math.abs(effective) <= 1e-9
+          ? '0'
+          : (window.WeaponCalc.modifiedDiceText
+              ? window.WeaponCalc.modifiedDiceText(base[field], flatMod, 1)
+              : this.fmtProfileNumber(effective));
+        return {
+          text,
+          base: base[field],
+          changed: Math.abs(effective - baseMean) > 1e-9 && String(base[field] ?? '') !== '',
+        };
+      };
 
       return {
         range: { text: base.range, base: base.range, changed: false },
-        A: profileValue('A', Math.max(0, diceMean(w?.A) + (kw.attacksAdd || 0))),
+        A: diceProfileValue('A', (kw.attacksAdd || 0) + blastAttacksAdd),
         skill: profileValue('skill', Math.max(0, (numeric(w?.skill) || 0) + (kw.skillTargetMod || 0))),
         S: profileValue('S', Math.max(0, (numeric(w?.S) || 0) + (kw.strengthAdd || 0))),
         AP: profileValue('AP', Math.max(0, Math.abs(numeric(w?.AP) || 0) + (kw.apAdd || 0)), base.AP, Math.abs(numeric(w?.AP) || 0)),
-        D: profileValue('D', Math.max(0, diceMean(w?.D) + (kw.damageAdd || 0))),
+        D: diceProfileValue('D', kw.damageAdd || 0),
       };
     },
 
@@ -3664,8 +3680,9 @@ function weaponVsDefenseApp(){
       const firstFormula = (item?.lines || []).find(line => line?.formula)?.formula || {};
       const skillText = Number(firstFormula.skill) === 0 ? 'auto' : this.formulaNumber(firstFormula.skill);
       const damageText = firstFormula.damageText || this.formulaNumber(firstFormula.damage);
+      const attacksText = firstFormula.attacksText || this.formulaNumber(firstFormula.attacks);
       const statText = firstFormula.attacks != null
-        ? ` - A:${this.formulaNumber(firstFormula.attacks)} Skill:${skillText} S:${this.formulaNumber(firstFormula.strength)} AP:${this.formulaNumber(firstFormula.ap)} D:${damageText}`
+        ? ` - A:${attacksText} Skill:${skillText} S:${this.formulaNumber(firstFormula.strength)} AP:${this.formulaNumber(firstFormula.ap)} D:${damageText}`
         : '';
       const count = Math.max(1, parseInt(item?.profileCount ?? 1, 10) || 1);
       return `${index + 1}. ${item?.weaponName || `Profile ${index + 1}`} (x${count})${statText}`;
@@ -3882,9 +3899,13 @@ function weaponVsDefenseApp(){
           const hitResult = lethalHits > 1e-9
             ? `${this.formulaNumber(lethalHits)} lethal hits + ${this.formulaNumber(normalHits)} normal hits`
             : `${this.formulaNumber(hits)} hits`;
+          const attacksText = String(f.attacksText || '').trim();
+          const attackBodyText = attacksText && Math.abs(scale - 1) <= 1e-9 && attacksText !== this.formulaNumber(attacks)
+            ? `${attacksText} (${this.formulaNumber(attacks)} avg)`
+            : this.formulaNumber(attacks);
           lines.push(this.formulaLineEntry(
             'Hits',
-            `${this.formulaNumber(attacks)} attacks x (${this.formulaHitRateEquation(probs)})`,
+            `${attackBodyText} attacks x (${this.formulaHitRateEquation(probs)})`,
             hitResult
           ));
         }
