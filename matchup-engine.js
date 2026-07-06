@@ -1,5 +1,18 @@
 (function(){
   const emptyCell = () => ({ dmg:0, kills:0, pctModelWounds:null, pctUnitKilled:null, weaponName:'', profilesUsed:[] });
+  const keywordParseCache = new Map();
+
+  function parsedWeaponKeywords(modifierText='', weapon=null){
+    const key = [
+      modifierText || '',
+      weapon?.range ?? weapon?.R ?? weapon?.Range ?? '',
+      weapon?.mode ?? weapon?.type ?? '',
+    ].join('|');
+    if(keywordParseCache.has(key)) return keywordParseCache.get(key);
+    const parsed = window.WeaponCalc.parseWeaponKeywords(modifierText || '', weapon);
+    keywordParseCache.set(key, parsed);
+    return parsed;
+  }
 
   function isMeleeWeapon(w){
     const r = (w?.range ?? w?.R ?? w?.Range ?? '').toString().trim().toLowerCase();
@@ -127,7 +140,7 @@
   }
 
   function changedProfileStats(weapon, modifierText, defense=null){
-    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || '', weapon);
+    const kw = parsedWeaponKeywords(modifierText || '', weapon);
     const diceMean = value => window.WeaponCalc.parseNdX(value).mean || 0;
     const numeric = value => parseFloat(String(value ?? '').replace('+', ''));
     const targetModels = parseFloat(defense?.models);
@@ -291,7 +304,7 @@
         const modifierText = typeof options?.effectiveWeaponModifiers === 'function'
           ? options.effectiveWeaponModifiers(w, leaf, defenderUnit)
           : (w?.modifiers || '');
-        const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || w?.modifiers || '', w);
+        const kw = parsedWeaponKeywords(modifierText || w?.modifiers || '', w);
         return !!kw[String(wanted).toLowerCase()];
       }));
   }
@@ -387,6 +400,14 @@
     return false;
   }
 
+  function unitIdentity(unit){
+    return String(unit?._unitKey || unit?._viewKey || unit?._groupId || unit?.label || '');
+  }
+
+  function cloneTargetLine(line){
+    return line ? { ...line, units: Array.isArray(line.units) ? [...line.units] : line.units } : line;
+  }
+
   function defenderWoundPool(def, defenderUnit){
     const W = parseFloat(def?.W) || 0;
     const size = def?.models != null
@@ -404,6 +425,12 @@
   }
 
   function defenderTargetLines(defenderUnit, precision=false, options={}, attackerUnit=null){
+    const cacheKey = options?._targetLinesCache
+      ? `${precision ? 1 : 0}|${unitIdentity(defenderUnit)}|${unitIdentity(attackerUnit)}|${options.conditionsMet ? 1 : 0}`
+      : '';
+    if(cacheKey && options._targetLinesCache.has(cacheKey)){
+      return options._targetLinesCache.get(cacheKey).map(cloneTargetLine);
+    }
     const children = Array.isArray(defenderUnit?._children) ? defenderUnit._children : [];
     const units = children.length ? children : [defenderUnit];
     const rawLines = units
@@ -452,21 +479,27 @@
     });
     const lines = order.map(key => grouped.get(key));
 
-    if(!lines.length) return [{
+    if(!lines.length){
+      const fallback = [{
       unit: defenderUnit,
       index: 0,
       def: effectiveDefense(defenderUnit, options, attackerUnit),
       pool: defenderWoundPool(effectiveDefense(defenderUnit, options, attackerUnit), defenderUnit),
       models: parseFloat(effectiveDefense(defenderUnit, options, attackerUnit)?.models) || 1,
       isCharacter: isCharacterTarget(defenderUnit),
-    }];
+      }];
+      if(cacheKey) options._targetLinesCache.set(cacheKey, fallback.map(cloneTargetLine));
+      return fallback;
+    }
 
-    return lines.sort((a, b) => {
+    const sorted = lines.sort((a, b) => {
       if(a.isCharacter !== b.isCharacter){
         return precision ? (a.isCharacter ? -1 : 1) : (a.isCharacter ? 1 : -1);
       }
       return a.index - b.index;
     });
+    if(cacheKey) options._targetLinesCache.set(cacheKey, sorted.map(cloneTargetLine));
+    return sorted;
   }
 
   function defensePayloadForLine(line, fallbackUnit=null){
@@ -484,9 +517,9 @@
     };
   }
 
-  function calcOneWeaponCacheKey(weapon, def, modifierText, includeFormula=false){
+  function calcOneWeaponCacheKey(weapon, def, modifierText, detailMode='base'){
     return [
-      includeFormula ? 'formula' : 'base',
+      detailMode || 'base',
       weapon?.name || '',
       weapon?.range ?? weapon?.R ?? weapon?.Range ?? '',
       weapon?.A ?? '',
@@ -507,22 +540,28 @@
     ].join('~');
   }
 
-  function calcOneWeaponCached(weapon, def, modifierText, options={}, includeFormula=false){
+  function calcOneWeaponCached(weapon, def, modifierText, options={}, detailMode='base'){
     if(!options?._weaponCalcCache){
-      return window.WeaponCalc.calcOneWeapon(weapon, def, modifierText, { includeFormula });
+      return window.WeaponCalc.calcOneWeapon(weapon, def, modifierText, {
+        includeFormula: detailMode === 'formula',
+        includeAllocation: detailMode === 'allocation',
+      });
     }
-    const key = calcOneWeaponCacheKey(weapon, def, modifierText, includeFormula);
+    const key = calcOneWeaponCacheKey(weapon, def, modifierText, detailMode);
     if(options._weaponCalcCache.has(key)) return options._weaponCalcCache.get(key);
-    const result = window.WeaponCalc.calcOneWeapon(weapon, def, modifierText, { includeFormula });
+    const result = window.WeaponCalc.calcOneWeapon(weapon, def, modifierText, {
+      includeFormula: detailMode === 'formula',
+      includeAllocation: detailMode === 'allocation',
+    });
     options._weaponCalcCache.set(key, result);
     return result;
   }
 
   function calcOneWeaponIntoDefender(weapon, defenderUnit, modifierText, options={}, attackerUnit=null){
-    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
+    const kw = parsedWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
     const lines = defenderTargetLines(defenderUnit, !!kw.precision, options, attackerUnit);
     if(lines.length <= 1){
-      const result = calcOneWeaponCached(weapon, defensePayloadForLine(lines[0], defenderUnit), modifierText, options, !!options.includeFormula);
+      const result = calcOneWeaponCached(weapon, defensePayloadForLine(lines[0], defenderUnit), modifierText, options, options.includeFormula ? 'formula' : 'allocation');
       if(!options.includeFormula) return result;
       return {
         ...result,
@@ -549,7 +588,7 @@
       if(remainingFraction <= 1e-9) break;
       const def = line.def || {};
       const W = parseFloat(def.W) || 0;
-      const result = calcOneWeaponCached(weapon, defensePayloadForLine(line, defenderUnit), modifierText, options, !!options.includeFormula);
+      const result = calcOneWeaponCached(weapon, defensePayloadForLine(line, defenderUnit), modifierText, options, options.includeFormula ? 'formula' : 'allocation');
       const lineDamage = (result.dmg || 0) * remainingFraction;
       if(lineDamage <= 0) break;
       const capacity = Number.isFinite(line.pool) && line.pool > 0 ? line.pool : lineDamage;
@@ -616,12 +655,12 @@
       defensePayloadForLine(line),
       modifierText,
       options,
-      false
+      'allocation'
     ).dmg || 0;
   }
 
   function orderedStateLinesForWeapon(state, weapon, modifierText, options={}, attackerUnit=null){
-    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
+    const kw = parsedWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
     const alive = aliveStateLines(state);
     if(!alive.length){
       const overkill = overkillStateLine(state);
@@ -654,7 +693,7 @@
           weapon,
           sourceUnit,
           text,
-          kw: window.WeaponCalc.parseWeaponKeywords(text, weapon),
+          kw: parsedWeaponKeywords(text, weapon),
           firstLine,
           firstTargetDamage: firstLine ? lineDamageValue(weapon, firstLine, text, options) : 0,
         };
@@ -679,12 +718,13 @@
         defensePayloadForLine(line),
         choice.text,
         options,
-        true
+        options.includeFormula ? 'formula' : 'allocation'
       );
+      const formula = result.formula || result.allocation || {};
       const capacity = Math.max(0, line.remainingPool || 0);
       const W = parseFloat(line.def?.W) || 0;
       const modelsLeft = line.overkill ? 0 : aliveModelCount(capacity, W);
-      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, result.formula, remainingFraction, !!line.overkill, !line.overkill && aliveStateLines(state).length <= 1);
+      const allocated = allocateWeaponProfileDamage(weapon, choice.text, line, formula, remainingFraction, !!line.overkill, !line.overkill && aliveStateLines(state).length <= 1);
       const applied = allocated.appliedDamage;
       if(applied <= 0) continue;
       if(!line.overkill){
@@ -704,7 +744,7 @@
           modelsLeft,
           appliedDamage: applied,
           allocation: allocated,
-          formula: result.formula,
+          formula,
         });
       }
       remainingFraction = allocated.remainingFraction;
@@ -741,7 +781,7 @@
   function allocateWeaponProfileDamage(weapon, modifierText, line, formula={}, scale=1, overkill=false, finalTarget=false){
     const totals = formula?.totals || {};
     const probs = formula?.probabilities || {};
-    const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
+    const kw = parsedWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
     const modelWounds = parseFloat(line?.def?.W) || parseFloat(formula?.defense?.W) || 0;
     const startPool = Math.max(0, Number(line?.remainingPool) || 0);
     const scaleFactor = Math.max(0, Math.min(1, Number(scale) || 0));
@@ -1020,7 +1060,7 @@
       const extra = [];
       const normal = [];
       melee.forEach(weapon => {
-        const kw = window.WeaponCalc.parseWeaponKeywords(weapon?.modifiers || '', weapon);
+        const kw = parsedWeaponKeywords(weapon?.modifiers || '', weapon);
         (kw.extraAttacks ? extra : normal).push({ weapon, sourceUnit: unit });
       });
       if(normal.length) groups.push({ type:'weaponChoice', sourceUnit: unit, alternatives: normal });
@@ -1041,10 +1081,13 @@
 
   function weaponChoiceSignature(item, defenderUnit, options){
     const weapon = item?.weapon || {};
-    const modifierText = options.effectiveWeaponModifiers
-      ? options.effectiveWeaponModifiers(weapon, item.sourceUnit, defenderUnit)
-      : (weapon?.modifiers || '');
+    const source = item?.sourceUnit || {};
+    const sourceRules = [
+      ...(source?.abilities || []),
+      ...(source?._enhancements || []).map(enh => enh?.name || enh),
+    ].map(value => String(value || '').trim().toLowerCase()).filter(Boolean).sort().join('~');
     return JSON.stringify({
+      weaponKey: String(weapon?._weaponKey || ''),
       name: String(weapon.name || ''),
       range: String(weapon.range ?? weapon.R ?? weapon.Range ?? ''),
       A: String(weapon.A ?? ''),
@@ -1053,9 +1096,10 @@
       AP: String(weapon.AP ?? ''),
       D: String(weapon.D ?? ''),
       mode: String(weapon.mode ?? weapon.type ?? ''),
-      modifiers: canonicalModifierKey(modifierText),
+      modifiers: canonicalModifierKey(weapon?.modifiers || ''),
+      sourceRules,
       melee: isMeleeWeapon(weapon),
-      extra: !!window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon).extraAttacks,
+      extra: !!parsedWeaponKeywords(weapon?.modifiers || '', weapon).extraAttacks,
     });
   }
 
@@ -1129,6 +1173,7 @@
 
   function computeCell(attackerUnit, defenderUnit, options){
     if(options && !options._weaponCalcCache) options._weaponCalcCache = new Map();
+    if(options && !options._targetLinesCache) options._targetLinesCache = new Map();
     const metric = options?.metric || 'damage';
     const def = effectiveDefense(defenderUnit, options, attackerUnit);
     const attackMode = attackerUnit?._attackMode || 'all';

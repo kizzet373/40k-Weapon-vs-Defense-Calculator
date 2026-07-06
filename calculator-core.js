@@ -446,8 +446,8 @@
       dmg: totalDamage,
       kills: def.W > 0 ? (totalDamage / def.W) : 0,
     };
-    if(options.includeFormula){
-      result.formula = {
+    if(options.includeFormula || options.includeAllocation){
+      const detail = {
         weaponName: weapon?.name || 'Weapon',
         modifierText: modifierText || weapon?.modifiers || '',
         attacks: A,
@@ -485,6 +485,8 @@
         },
         totals: { expectedHits, lethalWounds, expectedWoundsFromRolls, expectedWounds, normalWounds, criticalWounds, unsavedNormal, mortals, totalDamage },
       };
+      if(options.includeFormula) result.formula = detail;
+      else result.allocation = detail;
     }
     return result;
   }

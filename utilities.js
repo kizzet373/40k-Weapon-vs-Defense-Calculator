@@ -2273,7 +2273,7 @@ function weaponVsDefenseApp(){
           if(!buildIsCurrent()) return null;
           cells.push(this.computeMatchupCell(au, dUnits[colIndex]));
           const now = performance.now();
-          if(now - lastYield > 50){
+          if(now - lastYield > 150){
             this.matchup.loadingMessage = `Calculating ${rowIndex + 1}/${aRows.length} attackers`;
             await this.yieldMatchupBuild();
             lastYield = performance.now();
