@@ -484,11 +484,45 @@
     };
   }
 
+  function calcOneWeaponCacheKey(weapon, def, modifierText, includeFormula=false){
+    return [
+      includeFormula ? 'formula' : 'base',
+      weapon?.name || '',
+      weapon?.range ?? weapon?.R ?? weapon?.Range ?? '',
+      weapon?.A ?? '',
+      weapon?.skill ?? '',
+      weapon?.S ?? '',
+      weapon?.AP ?? '',
+      weapon?.D ?? '',
+      weapon?._profileCount ?? weapon?._count ?? '',
+      modifierText || weapon?.modifiers || '',
+      def?.T ?? '',
+      def?.sv ?? '',
+      def?.inv ?? '',
+      def?.W ?? '',
+      def?.Fnp ?? '',
+      def?.cover ? 1 : 0,
+      def?.models ?? '',
+      (def?.keywords || []).map(value => String(value || '').toLowerCase()).sort().join('|'),
+    ].join('~');
+  }
+
+  function calcOneWeaponCached(weapon, def, modifierText, options={}, includeFormula=false){
+    if(!options?._weaponCalcCache){
+      return window.WeaponCalc.calcOneWeapon(weapon, def, modifierText, { includeFormula });
+    }
+    const key = calcOneWeaponCacheKey(weapon, def, modifierText, includeFormula);
+    if(options._weaponCalcCache.has(key)) return options._weaponCalcCache.get(key);
+    const result = window.WeaponCalc.calcOneWeapon(weapon, def, modifierText, { includeFormula });
+    options._weaponCalcCache.set(key, result);
+    return result;
+  }
+
   function calcOneWeaponIntoDefender(weapon, defenderUnit, modifierText, options={}, attackerUnit=null){
     const kw = window.WeaponCalc.parseWeaponKeywords(modifierText || weapon?.modifiers || '', weapon);
     const lines = defenderTargetLines(defenderUnit, !!kw.precision, options, attackerUnit);
     if(lines.length <= 1){
-      const result = window.WeaponCalc.calcOneWeapon(weapon, defensePayloadForLine(lines[0], defenderUnit), modifierText, { includeFormula: !!options.includeFormula });
+      const result = calcOneWeaponCached(weapon, defensePayloadForLine(lines[0], defenderUnit), modifierText, options, !!options.includeFormula);
       if(!options.includeFormula) return result;
       return {
         ...result,
@@ -515,7 +549,7 @@
       if(remainingFraction <= 1e-9) break;
       const def = line.def || {};
       const W = parseFloat(def.W) || 0;
-      const result = window.WeaponCalc.calcOneWeapon(weapon, defensePayloadForLine(line, defenderUnit), modifierText, { includeFormula: !!options.includeFormula });
+      const result = calcOneWeaponCached(weapon, defensePayloadForLine(line, defenderUnit), modifierText, options, !!options.includeFormula);
       const lineDamage = (result.dmg || 0) * remainingFraction;
       if(lineDamage <= 0) break;
       const capacity = Number.isFinite(line.pool) && line.pool > 0 ? line.pool : lineDamage;
@@ -577,11 +611,12 @@
 
   function lineDamageValue(weapon, line, modifierText, options={}){
     if(!line) return 0;
-    return window.WeaponCalc.calcOneWeapon(
+    return calcOneWeaponCached(
       weapon,
       defensePayloadForLine(line),
       modifierText,
-      { includeFormula: false }
+      options,
+      false
     ).dmg || 0;
   }
 
@@ -639,11 +674,12 @@
       if(!line) break;
       if(remainingFraction <= 1e-9) break;
       if((line.remainingPool || 0) <= 1e-9) break;
-      const result = window.WeaponCalc.calcOneWeapon(
+      const result = calcOneWeaponCached(
         weapon,
         defensePayloadForLine(line),
         choice.text,
-        { includeFormula: true }
+        options,
+        true
       );
       const capacity = Math.max(0, line.remainingPool || 0);
       const W = parseFloat(line.def?.W) || 0;
@@ -745,8 +781,10 @@
           ) * fnpMultiplier
         : rawDamagePerHit;
 
-      while(instancesRemaining >= 1 - 1e-9 && remainingPool > 1e-9){
+      const consumePartialModelWithFullInstance = () => {
+        if(instancesRemaining < 1 - 1e-9 || remainingPool <= 1e-9 || modelWounds <= 0) return false;
         const modelRemaining = currentModelRemaining(remainingPool, modelWounds);
+        if(modelRemaining >= modelWounds - 1e-9) return false;
         const attackDamage = modelWounds > 0
           ? window.WeaponCalc.expectedCappedDamage(
               weapon?.D,
@@ -756,21 +794,41 @@
             ) * fnpMultiplier
           : rawDamagePerHit;
         const applied = Math.min(Math.max(0, attackDamage), remainingPool);
-        if(applied <= 1e-9) break;
+        if(applied <= 1e-9) return false;
         rawSpillLoss += Math.max(0, rawDamagePerHit - applied);
         appliedDamage += applied;
         remainingPool = Math.max(0, remainingPool - applied);
         instancesRemaining -= 1;
+        return true;
+      };
+
+      consumePartialModelWithFullInstance();
+
+      if(modelWounds > 0 && fullModelDamage > 1e-9 && instancesRemaining >= 1 - 1e-9 && remainingPool >= modelWounds - 1e-9){
+        const instancesPerModel = Math.max(1, Math.ceil(modelWounds / fullModelDamage - 1e-9));
+        const fullModelsAvailable = Math.floor((remainingPool + 1e-9) / modelWounds);
+        const fullModelsFromInstances = Math.floor((instancesRemaining + 1e-9) / instancesPerModel);
+        const modelsToResolve = Math.min(fullModelsAvailable, fullModelsFromInstances);
+        if(modelsToResolve > 0){
+          const spentInstances = modelsToResolve * instancesPerModel;
+          const applied = modelsToResolve * modelWounds;
+          appliedDamage += applied;
+          rawSpillLoss += Math.max(0, (spentInstances * rawDamagePerHit) - applied);
+          remainingPool = Math.max(0, remainingPool - applied);
+          instancesRemaining = Math.max(0, instancesRemaining - spentInstances);
+        }
       }
 
+      consumePartialModelWithFullInstance();
+
       if(instancesRemaining > 1e-9 && remainingPool > 1e-9 && fullModelDamage > 1e-9){
-        const attackPortion = Math.min(1, instancesRemaining);
+        const attackPortion = instancesRemaining;
         const possibleApplied = Math.max(0, fullModelDamage * attackPortion);
         const applied = Math.min(possibleApplied, remainingPool);
         const usedPortion = possibleApplied > 1e-9
           ? Math.min(attackPortion, attackPortion * (applied / possibleApplied))
           : attackPortion;
-        rawSpillLoss += Math.max(0, (rawDamagePerHit - fullModelDamage) * usedPortion);
+        rawSpillLoss += Math.max(0, (rawDamagePerHit * usedPortion) - applied);
         appliedDamage += applied;
         remainingPool = Math.max(0, remainingPool - applied);
         instancesRemaining -= usedPortion;
@@ -1070,6 +1128,7 @@
   }
 
   function computeCell(attackerUnit, defenderUnit, options){
+    if(options && !options._weaponCalcCache) options._weaponCalcCache = new Map();
     const metric = options?.metric || 'damage';
     const def = effectiveDefense(defenderUnit, options, attackerUnit);
     const attackMode = attackerUnit?._attackMode || 'all';

@@ -347,6 +347,10 @@ const optimalOrderCell = context.window.MatchupEngine.computeCell(
 assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon order is selected by best damage into the current worst legal defensive profile');
 
 const app = context.weaponVsDefenseApp();
+const scoreScaleUnit = { label: 'Score scale check', _unitKey: 'score-scale-check', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+app.matchup.metric = 'modelWounds';
+assert.strictEqual(Math.round(app.scoreFromMetricTotal(scoreScaleUnit, 1, 'attacker')), 12, 'attacker scores are scaled to one tenth of the previous calibrated value');
+assert.strictEqual(Math.round(app.scoreFromMetricTotal(scoreScaleUnit, 1, 'defender')), 5, 'defender scores are scaled to one tenth of the previous calibrated value');
 const hammerIntoOneWoundModels = app.computeMatchupCell(
   {
     label: 'Daemon hammer attacker',

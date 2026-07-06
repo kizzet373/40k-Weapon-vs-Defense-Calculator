@@ -1417,14 +1417,15 @@ function weaponVsDefenseApp(){
 
     efficiencyScoreMultiplier(side){
       const mode = this.matchup.metric || 'damage';
+      const scale = 0.1;
       if(side === 'defender'){
-        if(mode === 'damage') return 38400;
-        if(mode === 'unitKill') return 11520;
-        return 4800;
+        if(mode === 'damage') return 38400 * scale;
+        if(mode === 'unitKill') return 11520 * scale;
+        return 4800 * scale;
       }
-      if(mode === 'damage') return 1800;
-      if(mode === 'unitKill') return 28800;
-      return 11700;
+      if(mode === 'damage') return 1800 * scale;
+      if(mode === 'unitKill') return 28800 * scale;
+      return 11700 * scale;
     },
 
     updateMatchupScoreMaps(rows=this.matchup.visibleRows || [], defenders=this.matchup.visibleDefenders || []){
@@ -2272,7 +2273,7 @@ function weaponVsDefenseApp(){
           if(!buildIsCurrent()) return null;
           cells.push(this.computeMatchupCell(au, dUnits[colIndex]));
           const now = performance.now();
-          if(now - lastYield > 14){
+          if(now - lastYield > 50){
             this.matchup.loadingMessage = `Calculating ${rowIndex + 1}/${aRows.length} attackers`;
             await this.yieldMatchupBuild();
             lastYield = performance.now();
@@ -2661,6 +2662,21 @@ function weaponVsDefenseApp(){
     },
 
     computeMatchupCell(attackerUnit, defenderUnit, options={}){
+      const modifierCache = new Map();
+      const defenseCache = new Map();
+      const modifierKeyFor = (w, unit, defender) => [
+        this.unitStateKey(unit),
+        w?._weaponKey || w?.name || '',
+        w?._profileCount ?? w?._count ?? '',
+        w?.A ?? '',
+        w?.skill ?? '',
+        w?.S ?? '',
+        w?.AP ?? '',
+        w?.D ?? '',
+        w?.modifiers || '',
+        this.unitStateKey(defender),
+      ].join('~');
+      const defenseKeyFor = (unit, opposingUnit) => `${this.matchup.conditionsMet ? 1 : 0}|${this.unitStateKey(unit)}|${this.unitStateKey(opposingUnit)}`;
       return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
         includeFormula: !!options.includeFormula,
         metric: options.metric || this.matchup.metric || 'damage',
@@ -2668,8 +2684,20 @@ function weaponVsDefenseApp(){
         conditionsMet: !!this.matchup.conditionsMet,
         isWeaponEnabled: w => this.isWeaponEnabledByToggles(w),
         isMeleeEnabled: () => !!this.matchup.showMelee,
-        effectiveWeaponModifiers: (w, unit, defender) => this.effectiveWeaponModifiers(w, unit, defender),
-        effectiveDefense: (unit, opposingUnit) => this.effectiveDefense(unit, opposingUnit),
+        effectiveWeaponModifiers: (w, unit, defender) => {
+          const key = modifierKeyFor(w, unit, defender);
+          if(modifierCache.has(key)) return modifierCache.get(key);
+          const value = this.effectiveWeaponModifiers(w, unit, defender);
+          modifierCache.set(key, value);
+          return value;
+        },
+        effectiveDefense: (unit, opposingUnit) => {
+          const key = defenseKeyFor(unit, opposingUnit);
+          if(defenseCache.has(key)) return defenseCache.get(key);
+          const value = this.effectiveDefense(unit, opposingUnit);
+          defenseCache.set(key, value);
+          return value;
+        },
         isAbilityEnabled: (unit, ability) => this.isUnitAbilityEnabled(unit, ability),
         isEnhancementEnabled: (unit, enhancement) => this.isUnitEnhancementEnabled(unit, enhancement),
       });
