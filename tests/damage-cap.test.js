@@ -1774,6 +1774,28 @@ mergeManagerApp.submitMergeManager();
 assert.ok(mergeManagerApp.mergeModalOpen, 'merge manager stays open after submit so the refreshed lists are visible');
 assert.strictEqual(mergeManagerApp.mergeManager.moves.length, 0, 'merge manager clears staged moves after submit');
 assert.ok(mergeManagerApp.mergeManagerUnits().some(unit => unit._unitKey === 'target-leader' && unit._children?.some(child => child.label === 'Champion')), 'merge manager refreshes its unit list after submit');
+const mergeManagerRealTarget = context.window.ArmyImportService.collectImportedUnits(moveModelForce).find(unit => unit._unitKey === 'target-leader');
+assert.ok(mergeManagerRealTarget._children?.some(child => child.label === 'Champion'), 'merge manager submit applies staged unit merge to the real army');
+mergeManagerApp.openMergeUnitModal(null, moveModelForce, context.window.ArmyImportService.collectImportedUnits(moveModelForce));
+const reopenedKeys = mergeManagerApp.mergeManagerUnits().map(unit => unit._unitKey).sort();
+assert.strictEqual(JSON.stringify(reopenedKeys), JSON.stringify(['source-squad', 'target-leader']), 'merge manager reopens with the current full merged unit list on both sides');
+mergeManagerApp.mergeManagerStageMove({
+  kind: 'model',
+  fromKey: 'target-leader',
+  childKey: 'champion',
+  toKey: 'source-squad',
+  action: 'merge',
+  label: 'Champion',
+  fromLabel: 'Target Leader',
+  toLabel: 'Source Squad',
+});
+const stagedSquad = mergeManagerApp.mergeManagerUnits().find(unit => unit._unitKey === 'source-squad');
+assert.ok(stagedSquad._children?.some(child => child.label === 'Champion'), 'merge manager can stage moving a merged model into another unit');
+const actualSquadBeforeSecondSubmit = context.window.ArmyImportService.collectImportedUnits(moveModelForce).find(unit => unit._unitKey === 'source-squad');
+assert.ok(!actualSquadBeforeSecondSubmit._children?.some(child => child.label === 'Champion'), 'staged model move still does not mutate the real army before submit');
+mergeManagerApp.submitMergeManager();
+const actualSquadAfterSecondSubmit = context.window.ArmyImportService.collectImportedUnits(moveModelForce).find(unit => unit._unitKey === 'source-squad');
+assert.ok(actualSquadAfterSecondSubmit._children?.some(child => child.label === 'Champion'), 'merge manager submit applies staged model move/unmerge to the real army');
 
 const localStorageStore = new Map();
 context.localStorage = {
@@ -1821,6 +1843,26 @@ cacheImportApp.addRoster({
     }],
   },
 }, 'Other Cached Army');
+cacheImportApp.addRoster({
+  roster: {
+    name: 'Cached Army',
+    forces: [{
+      name: 'Cached Force',
+      _importedUnits: [{
+        label: 'Cached Unit',
+        _unitKey: 'cached-unit',
+        _groupId: 'cached-unit',
+        _points: 55,
+        weapons: [{ name: 'Cached blade', range: 'Melee', A: '4', skill: '3', S: '5', AP: '1', D: '1', mode: 'melee', modifiers: '', _weaponKey: 'cached-blade' }],
+        abilities: [],
+        defense: { T: 4, Sv: 3, W: 2, models: 1 },
+        _children: [],
+      }],
+      _unitMerges: [],
+    }],
+  },
+}, 'Cached Army');
+assert.strictEqual(cacheImportApp.rosters.filter(roster => /^Cached Army(?: \d+)?$/.test(roster.label)).length, 1, 'uploading the same roster again updates the existing roster instead of creating a suffixed duplicate');
 cacheImportApp.matchup.attackerRosterIdx = cacheImportApp.rosters.findIndex(roster => roster.label === 'Cached Army');
 cacheImportApp.matchup.attackerForceIdx = 0;
 cacheImportApp.matchup.defenderRosterIdx = cacheImportApp.rosters.findIndex(roster => roster.label === 'Base Profiles');

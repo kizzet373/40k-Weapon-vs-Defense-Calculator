@@ -460,6 +460,54 @@ function weaponVsDefenseApp(){
       return (this.rosters || []).filter(roster => roster?.data?._sourceFormat !== 'base-profiles');
     },
 
+    stableJsonStringify(value){
+      const seen = new WeakSet();
+      const normalize = entry => {
+        if(entry == null || typeof entry !== 'object') return entry;
+        if(seen.has(entry)) return null;
+        seen.add(entry);
+        if(Array.isArray(entry)) return entry.map(normalize);
+        return Object.keys(entry).sort().reduce((out, key) => {
+          if(key.startsWith('_view') || key === '_parentUnit' || key === '_baseUnit') return out;
+          out[key] = normalize(entry[key]);
+          return out;
+        }, {});
+      };
+      try{
+        return JSON.stringify(normalize(value));
+      }catch(_err){
+        return '';
+      }
+    },
+
+    rosterIdentityKey(rosterOrData, fallbackLabel=''){
+      const data = rosterOrData?.data || rosterOrData || {};
+      const sourceFormat = data?._sourceFormat || '';
+      if(sourceFormat === 'base-profiles') return 'source:base-profiles';
+      const name = String(data?.roster?.name || data?.name || fallbackLabel || rosterOrData?.label || '').trim().toLowerCase();
+      const forces = data?.roster?.forces || data?.forces || [];
+      const forceSignature = (forces || []).map(force => [
+        String(force?.name || force?.label || '').trim().toLowerCase(),
+        ...(force?._importedUnits || []).map(unit => String(unit?._unitKey || unit?._groupId || unit?.label || '').trim().toLowerCase()).sort(),
+      ].join(':')).sort().join('|');
+      const json = this.stableJsonStringify(data);
+      let hash = 0;
+      for(let i = 0; i < json.length; i++){
+        hash = ((hash << 5) - hash + json.charCodeAt(i)) | 0;
+      }
+      return `roster:${name}|${forceSignature}|${hash}`;
+    },
+
+    dedupeRostersByIdentity(rosters=this.rosters || []){
+      const seen = new Set();
+      return (rosters || []).filter(roster => {
+        const key = this.rosterIdentityKey(roster, roster?.label);
+        if(!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    },
+
     selectedCacheableRosterIndex(){
       const selected = this.rosters?.[this.selectedRosterIdx] || null;
       if(!selected || selected?.data?._sourceFormat === 'base-profiles') return 0;
@@ -469,6 +517,16 @@ function weaponVsDefenseApp(){
 
     saveCachedRosters(){
       if(!this.canUseRosterCache()) return;
+      const selectedKey = this.rosterIdentityKey(this.rosters?.[this.selectedRosterIdx], this.rosters?.[this.selectedRosterIdx]?.label);
+      const attackerKey = this.rosterIdentityKey(this.rosters?.[this.matchup.attackerRosterIdx], this.rosters?.[this.matchup.attackerRosterIdx]?.label);
+      const defenderKey = this.rosterIdentityKey(this.rosters?.[this.matchup.defenderRosterIdx], this.rosters?.[this.matchup.defenderRosterIdx]?.label);
+      this.rosters = this.dedupeRostersByIdentity(this.rosters);
+      const restoredSelectedIdx = this.rosters.findIndex(roster => this.rosterIdentityKey(roster, roster?.label) === selectedKey);
+      if(restoredSelectedIdx >= 0) this.selectedRosterIdx = restoredSelectedIdx;
+      const restoredAttackerIdx = this.rosters.findIndex(roster => this.rosterIdentityKey(roster, roster?.label) === attackerKey);
+      const restoredDefenderIdx = this.rosters.findIndex(roster => this.rosterIdentityKey(roster, roster?.label) === defenderKey);
+      if(restoredAttackerIdx >= 0) this.matchup.attackerRosterIdx = restoredAttackerIdx;
+      if(restoredDefenderIdx >= 0) this.matchup.defenderRosterIdx = restoredDefenderIdx;
       const rosters = this.cacheableRosters().map(roster => ({
         label: roster.label,
         data: roster.data,
@@ -493,9 +551,7 @@ function weaponVsDefenseApp(){
       const sourceFormat = roster?.data?._sourceFormat || '';
       const name = roster?.data?.roster?.name || roster?.data?.name || roster?.label || '';
       const label = roster?.label || name || '';
-      const key = sourceFormat === 'base-profiles'
-        ? 'source:base-profiles'
-        : `roster:${label}|${name}|${sourceFormat}`;
+      const key = this.rosterIdentityKey(roster, label);
       return { index, key, label, name, sourceFormat };
     },
 
@@ -650,16 +706,20 @@ function weaponVsDefenseApp(){
       if(!cached.length) return 0;
 
       const existingLabels = new Set((this.rosters || []).map(roster => roster.label));
+      const existingKeys = new Set((this.rosters || []).map(roster => this.rosterIdentityKey(roster, roster?.label)));
       const restored = [];
       cached.forEach((entry, index) => {
         try{
           const normalized = window.ArmyImportService?.normalizeRosterData(entry.data, entry.label) || entry.data;
           if(!normalized || normalized?._sourceFormat === 'base-profiles') return;
+          const identityKey = this.rosterIdentityKey(normalized, entry.label);
+          if(existingKeys.has(identityKey)) return;
           let label = (entry.label || normalized?.roster?.name || normalized?.name || `Cached roster ${index + 1}`).trim();
           const base = label;
           let suffix = 2;
           while(existingLabels.has(label)) label = `${base} ${suffix++}`;
           existingLabels.add(label);
+          existingKeys.add(identityKey);
           restored.push({ label, data: normalized });
         }catch(err){
           console.warn('Unable to restore cached roster.', err);
@@ -755,6 +815,16 @@ function weaponVsDefenseApp(){
     addRoster(obj, providedLabel){
       const normalized = window.ArmyImportService?.normalizeRosterData(obj, providedLabel) || obj;
       const label = (normalized?.roster?.name || providedLabel || `Roster ${this.rosters.length+1}`).trim();
+      const identityKey = this.rosterIdentityKey(normalized, label);
+      const existingIndex = this.rosters.findIndex(roster => this.rosterIdentityKey(roster, roster?.label) === identityKey);
+
+      if(existingIndex >= 0){
+        this.rosters[existingIndex] = { label, data: normalized };
+        this.selectedRosterIdx = existingIndex;
+        this.refreshForces();
+        if(normalized?._sourceFormat !== 'base-profiles') this.saveCachedRosters();
+        return label;
+      }
 
       this.rosters.push({ label, data: normalized });
       this.selectedRosterIdx = this.rosters.length - 1;
