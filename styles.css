@@ -331,7 +331,8 @@ button.secondary.matchupRosterSwapButton{
 .mergeTargetTable tr:last-child td{border-bottom:0}
 .clickableMergeRow{cursor:pointer}
 .clickableMergeRow:hover td{background:rgba(110,231,255,.06)}
-.mergeManagerModal{max-width:1280px}
+.mergeManagerModal{width:calc(100vw - 24px);max-width:1280px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:12px}
+.mergeManagerModal .modalBody{min-height:0}
 .mergeManagerBody{display:flex;flex-direction:column;gap:12px;overflow:hidden;flex:1 1 auto}
 .mergeManagerColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0;flex:1 1 0}
 .mergeManagerPanel{border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
@@ -919,7 +920,7 @@ details summary{cursor:pointer}
   .modalSmall{max-width:100%}
 
   .mergeManagerBody{
-    overflow:auto;
+    overflow:hidden;
   }
 
   .mergeManagerColumns{
@@ -929,6 +930,15 @@ details summary{cursor:pointer}
   .mergeManagerList{
     max-height:none;
     min-height:160px;
+  }
+
+  .mergeManagerModal{
+    width:100vw;
+    max-width:100vw;
+    height:100dvh;
+    max-height:100dvh;
+    border-radius:0;
+    box-sizing:border-box;
   }
 
   .modalWide[aria-label="Unit matchups"]{
