@@ -1425,7 +1425,7 @@ function weaponVsDefenseApp(){
     },
 
     efficiencyScoreMultiplier(side){
-      return side === 'defender' ? 41600 : 5060;
+      return side === 'defender' ? 80000 : 1000;
     },
 
     updateMatchupScoreMaps(rows=this.matchup.visibleRows || [], defenders=this.matchup.visibleDefenders || []){

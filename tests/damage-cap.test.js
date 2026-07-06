@@ -354,8 +354,8 @@ assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon ord
 const app = context.weaponVsDefenseApp();
 const scoreScaleUnit = { label: 'Score scale check', _unitKey: 'score-scale-check', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
 app.matchup.metric = 'modelWounds';
-assert.strictEqual(Math.round(app.offensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 51, 'attacker scores are based on average damage per point');
-assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 416, 'defender scores are based on inverse average incoming damage per point');
+assert.strictEqual(Math.round(app.offensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 10, 'attacker scores are based on average damage per point');
+assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 800, 'defender scores are based on inverse average incoming damage per point');
 const hammerIntoOneWoundModels = app.computeMatchupCell(
   {
     label: 'Daemon hammer attacker',
