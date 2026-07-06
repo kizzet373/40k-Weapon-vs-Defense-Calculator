@@ -3,28 +3,33 @@
   --scrollbar-track:#090d12; --scrollbar-thumb:#26384d; --scrollbar-thumb-hover:#3f5f7c;
 }
 
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-html,*{
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overscroll-behavior:none}
+html,body,*{
   scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track);
   scrollbar-width:thin;
 }
-::-webkit-scrollbar{
+::-webkit-scrollbar,
+*::-webkit-scrollbar{
   width:12px;
   height:12px;
 }
-::-webkit-scrollbar-track{
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track{
   background:var(--scrollbar-track);
 }
-::-webkit-scrollbar-thumb{
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb{
   background:linear-gradient(180deg,var(--scrollbar-thumb),#1a293a);
   border:3px solid var(--scrollbar-track);
   border-radius:999px;
 }
-::-webkit-scrollbar-thumb:hover{
+::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover{
   background:linear-gradient(180deg,var(--scrollbar-thumb-hover),#26384d);
 }
-::-webkit-scrollbar-corner{
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner{
   background:var(--scrollbar-track);
 }
 html.modalOpen,body.modalOpen{overflow:hidden}
@@ -44,7 +49,8 @@ h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
     grid-template-columns: 1fr !important;
     gap: 0;
     width: 100%;
-    min-height:100dvh;
+    height:100dvh;
+    min-height:0;
     overflow-x:hidden;
   }
 
@@ -190,8 +196,10 @@ h2{font-size:16px;margin:16px 0 8px;color:var(--accent)}
   display:grid;
   grid-template-columns:500px 1fr;
   gap:14px;
-  min-height:100%;
+  height:100dvh;
+  min-height:0;
   transition:grid-template-columns 180ms ease;
+  overflow:hidden;
 }
 
 aside{
@@ -200,9 +208,13 @@ aside{
   box-shadow:0 0 0 1px #182333 inset;
   transition:transform 180ms ease,opacity 180ms ease;
   will-change:transform;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
 }
 
-main{padding:14px;min-width:0;overflow:hidden}
+main{padding:14px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}
 
 .card{
   background:var(--panel);
