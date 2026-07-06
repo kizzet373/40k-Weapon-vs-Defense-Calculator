@@ -63,7 +63,7 @@
         <div class="row forcePickerRow">
           <label class="forceSelectLabel">
             Force
-            <select x-model.number="selectedForceIdx" @change="refreshUnits(); saveCachedAppState()">
+            <select x-model.number="selectedForceIdx" @change="refreshUnits()">
               <template x-for="(f, i) in forces" :key="`force-${i}`">
                 <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
               </template>
@@ -103,7 +103,7 @@
             <div class="matchupSideOptionsBody">
               <label class="unitSelectLabel">
                 Unit
-                <select x-model.number="matchup.attackerUnitIdx" @change="saveCachedAppState()">
+                <select x-model.number="matchup.attackerUnitIdx">
                   <template x-for="(u, i) in matchupSideBaseUnits('attacker')" :key="`matchup-attacker-unit-${i}`">
                     <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
                   </template>
@@ -170,7 +170,7 @@
             <div class="matchupSideOptionsBody">
               <label class="unitSelectLabel">
                 Unit
-                <select x-model.number="matchup.defenderUnitIdx" @change="saveCachedAppState()">
+                <select x-model.number="matchup.defenderUnitIdx">
                   <template x-for="(u, i) in matchupSideBaseUnits('defender')" :key="`matchup-defender-unit-${i}`">
                     <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
                   </template>
@@ -216,7 +216,7 @@
       <div class="unitPickerSelectionRow calcUnitPickerSelectionRow">
         <label class="unitSelectLabel">
           Unit
-          <select x-model.number="selectedUnitIdx" @change="onUnitChanged(); saveCachedAppState()">
+          <select x-model.number="selectedUnitIdx" @change="onUnitChanged()">
             <template x-for="(u, i) in units" :key="`unit-${i}`">
               <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
             </template>
@@ -1275,6 +1275,6 @@
 
 </div>
 
-<script src="utilities.js?v=sort-summary-state-fix"></script>
+<script src="utilities.js?v=no-app-state-cache"></script>
 </body>
 </html>
