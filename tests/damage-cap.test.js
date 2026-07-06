@@ -354,8 +354,8 @@ assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon ord
 const app = context.weaponVsDefenseApp();
 const scoreScaleUnit = { label: 'Score scale check', _unitKey: 'score-scale-check', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
 app.matchup.metric = 'modelWounds';
-assert.strictEqual(Math.round(app.scoreFromMetricTotal(scoreScaleUnit, 1, 'attacker')), 12, 'attacker scores are scaled to one tenth of the previous calibrated value');
-assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 33, 'defender Damage % scores are calibrated to visible whole-number ranges');
+assert.strictEqual(Math.round(app.offensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 51, 'attacker scores are based on average damage per point');
+assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 416, 'defender scores are based on inverse average incoming damage per point');
 const hammerIntoOneWoundModels = app.computeMatchupCell(
   {
     label: 'Daemon hammer attacker',
@@ -1884,6 +1884,27 @@ assert.ok(Math.round(app.profileDefensiveScoreRaw(profileScoreDefender)) > 1, 'd
 assert.ok(/^Offensive Score: \d+ \(Melee: (?:\d+|—) \/ Shooting: (?:\d+|—)\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line uses precomputed score summaries without extra melee/shooting calculations');
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
+const preMetricSwitchScores = {
+  offense: app.profileOffensiveScoreRaw(profileScoreAttacker),
+  melee: app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'),
+  shooting: app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'),
+  defense: app.profileDefensiveScoreRaw(profileScoreAttacker),
+  overall: app.profileOverallScoreRaw(profileScoreAttacker),
+};
+let metricSwitchRecalcCount = 0;
+const originalMetricSwitchCompute = app.computeMatchupCell.bind(app);
+app.computeMatchupCell = (...args) => {
+  metricSwitchRecalcCount += 1;
+  return originalMetricSwitchCompute(...args);
+};
+app.setMatchupMetric('unitKill');
+assert.strictEqual(metricSwitchRecalcCount, 0, 'changing the display metric refreshes presentation without recalculating cells');
+assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker), preMetricSwitchScores.offense, 'display metric changes do not alter offensive scores');
+assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'), preMetricSwitchScores.melee, 'display metric changes do not alter melee scores');
+assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'), preMetricSwitchScores.shooting, 'display metric changes do not alter shooting scores');
+assert.strictEqual(app.profileDefensiveScoreRaw(profileScoreAttacker), preMetricSwitchScores.defense, 'display metric changes do not alter defensive scores');
+assert.strictEqual(app.profileOverallScoreRaw(profileScoreAttacker), preMetricSwitchScores.overall, 'display metric changes do not alter overall scores');
+app.computeMatchupCell = originalMetricSwitchCompute;
 
 const realScoreAuditApp = context.weaponVsDefenseApp();
 const realScoreAuditPath = path.join(root, 'list data', '11th-daemons-options-import.json');
