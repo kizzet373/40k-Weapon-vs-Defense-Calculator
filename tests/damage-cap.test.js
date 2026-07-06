@@ -1859,7 +1859,9 @@ const profileScoreDefender = {
   _unitKey: 'profile-score-defender',
   _viewKey: 'profile-score-defender',
   _points: 80,
-  weapons: [],
+  weapons: [
+    { name: 'Return blade', range: 'Melee', A: '3', skill: 'auto', S: '4', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'return-blade' },
+  ],
   defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 },
 };
 app.matchup.metric = 'damage';
@@ -1872,7 +1874,11 @@ app.matchupAttackerUnits = [profileScoreAttacker];
 app.matchupDefenderUnits = [profileScoreDefender];
 app.matchup.rows = [{ unit: profileScoreAttacker, cells: [app.computeMatchupCell(profileScoreAttacker, profileScoreDefender)] }];
 app.seedAggregateCellCache();
+app.updateMatchupSortSummaries([profileScoreAttacker], [profileScoreDefender]);
 app.refreshVisibleMatchup();
+assert.notStrictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'), app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'), 'unit profile modal shows distinct melee and shooting scores');
+assert.ok(Number.isFinite(app.profileDefensiveScoreRaw(profileScoreAttacker)), 'unit profile modal shows the attacker defensive score from the opposing force offense');
+assert.ok(Number.isFinite(app.profileOffensiveScoreRaw(profileScoreDefender)), 'unit profile modal shows the defender offensive score from the reverse matchup');
 assert.ok(/^Offensive Score: \d+ \(Melee: (?:\d+|—) \/ Shooting: (?:\d+|—)\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line uses precomputed score summaries without extra melee/shooting calculations');
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');

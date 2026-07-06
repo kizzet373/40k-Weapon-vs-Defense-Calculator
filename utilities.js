@@ -1463,8 +1463,14 @@ function weaponVsDefenseApp(){
       });
 
       this.matchup.scoreMaps = {
-        attackers: this.rawEfficiencyScores(attackerItems),
-        defenders: this.rawEfficiencyScores(defenderItems),
+        attackers: {
+          ...(this.matchup.scoreMaps?.attackers || {}),
+          ...this.rawEfficiencyScores(attackerItems),
+        },
+        defenders: {
+          ...(this.matchup.scoreMaps?.defenders || {}),
+          ...this.rawEfficiencyScores(defenderItems),
+        },
       };
       return this.matchup.scoreMaps;
     },
@@ -1498,58 +1504,101 @@ function weaponVsDefenseApp(){
       return (metricTotal / points) * this.efficiencyScoreMultiplier('attacker');
     },
 
+    matchupMetricStats(values){
+      const finite = (values || []).filter(value => Number.isFinite(value));
+      return {
+        totalMetric: finite.reduce((sum, value) => sum + value, 0),
+        maxMetric: Math.max(0, ...finite),
+        focusMetric: finite.length ? finite[0] : 0,
+        averageMetric: this.averageFinite(finite),
+      };
+    },
+
+    scoreSummaryFromValues(unit, values, side){
+      const finite = (values || []).filter(value => Number.isFinite(value));
+      const stats = this.matchupMetricStats(values);
+      return {
+        ...stats,
+        score: finite.length ? this.scoreFromMetricTotal(unit, stats.totalMetric, side) : null,
+      };
+    },
+
+    matchupScoreCell(attacker, defender, calculationCache=null){
+      return this.cachedMatchupCell(attacker, defender, calculationCache ? { calculationCache } : {});
+    },
+
+    offensiveScoreSummary(unit, defenders, calculationCache=null){
+      if(!unit || !this.hasMatchupWeaponProfiles(unit)) return this.scoreSummaryFromValues(unit, [], 'attacker');
+      const values = (defenders || []).map(defender => this.matchupCellMetric(this.matchupScoreCell(unit, defender, calculationCache)));
+      return this.scoreSummaryFromValues(unit, values, 'attacker');
+    },
+
+    defensiveScoreSummary(unit, attackers, calculationCache=null){
+      const values = (attackers || [])
+        .filter(attacker => this.hasMatchupWeaponProfiles(attacker))
+        .map(attacker => this.matchupCellMetric(this.matchupScoreCell(attacker, unit, calculationCache)));
+      return this.scoreSummaryFromValues(unit, values, 'defender');
+    },
+
+    attackModeScore(unit, attackMode, defenders, calculationCache=null){
+      const variant = this.attackModeVariant(unit, attackMode);
+      if(!variant || !this.hasMatchupWeaponProfiles(variant)) return null;
+      return this.offensiveScoreSummary(variant, defenders, calculationCache).score;
+    },
+
+    composeMatchupScoreSummary(unit, offensiveTargets, defensiveAttackers, side, calculationCache=null){
+      const offense = this.offensiveScoreSummary(unit, offensiveTargets, calculationCache);
+      const defense = this.defensiveScoreSummary(unit, defensiveAttackers, calculationCache);
+      const offensiveScore = offense.score;
+      const defensiveScore = defense.score;
+      return {
+        totalMetric: side === 'defender' ? defense.totalMetric : offense.totalMetric,
+        maxMetric: side === 'defender' ? defense.maxMetric : offense.maxMetric,
+        focusMetric: side === 'defender' ? defense.focusMetric : offense.focusMetric,
+        averageMetric: side === 'defender' ? defense.averageMetric : offense.averageMetric,
+        score: side === 'defender' ? defensiveScore : offensiveScore,
+        offensiveScore,
+        meleeScore: this.attackModeScore(unit, 'melee', offensiveTargets, calculationCache),
+        shootingScore: this.attackModeScore(unit, 'shooting', offensiveTargets, calculationCache),
+        defensiveScore,
+        overallScore: this.averageFinite([offensiveScore, defensiveScore]),
+      };
+    },
+
     updateMatchupSortSummaries(attackers=this.matchupAttackerUnits || [], defenders=this.matchupDefenderUnits || []){
       const attackerRows = (attackers || []).filter(unit => this.hasMatchupWeaponProfiles(unit));
       const defenderCols = [...(defenders || [])];
-      const metricFor = (attacker, defender) => this.matchupCellMetric(this.presentationMatchupCell(attacker, defender));
-      const finiteValues = values => (values || []).filter(value => Number.isFinite(value));
-      const total = values => finiteValues(values).reduce((sum, value) => sum + value, 0);
-      const max = values => Math.max(0, ...finiteValues(values));
-      const average = values => this.averageFinite(values);
+      const attackerBases = (this.matchupAttackerBaseUnits || []).length ? this.matchupAttackerBaseUnits : attackerRows;
+      const defenderAttackers = defenderCols.flatMap(unit => this.attackModeVariants(unit)).filter(unit => this.hasMatchupWeaponProfiles(unit));
+      const calculationCache = this.createMatchupCalculationCache();
       const attackerSummaries = {};
       const defenderSummaries = {};
       const scoreMaps = { attackers: {}, defenders: {} };
 
       attackerRows.forEach(attacker => {
-        const rowValues = defenderCols.map(defender => metricFor(attacker, defender));
-        const totalMetric = total(rowValues);
-        const score = this.scoreFromMetricTotal(attacker, totalMetric, 'attacker');
-        const summary = {
-          totalMetric,
-          maxMetric: max(rowValues),
-          focusMetric: rowValues.length ? rowValues[0] : 0,
-          averageMetric: average(rowValues),
-          score,
-          offensiveScore: score,
-          defensiveScore: null,
-          overallScore: score,
-        };
+        const summary = this.composeMatchupScoreSummary(attacker, defenderCols, defenderAttackers, 'attacker', calculationCache);
         this.matchupSummaryMapSet(attackerSummaries, attacker, summary);
-        if(Number.isFinite(score)){
-          scoreMaps.attackers[this.unitKey(attacker)] = score;
-          if(attacker._unitKey) scoreMaps.attackers[String(attacker._unitKey)] = score;
+        if(Number.isFinite(summary.score)){
+          scoreMaps.attackers[this.unitKey(attacker)] = summary.score;
+          if(attacker._unitKey) scoreMaps.attackers[String(attacker._unitKey)] = summary.score;
+        }
+      });
+
+      attackerBases.forEach(unit => {
+        const summary = this.composeMatchupScoreSummary(unit, defenderCols, defenderAttackers, 'attacker', calculationCache);
+        this.matchupSummaryMapSet(attackerSummaries, unit, summary);
+        if(Number.isFinite(summary.score)){
+          scoreMaps.attackers[this.unitKey(unit)] = summary.score;
+          if(unit._unitKey) scoreMaps.attackers[String(unit._unitKey)] = summary.score;
         }
       });
 
       defenderCols.forEach(defender => {
-        const incomingValues = attackerRows.map(attacker => metricFor(attacker, defender));
-        const totalMetric = total(incomingValues);
-        const score = this.scoreFromMetricTotal(defender, totalMetric, 'defender');
-        const focusValue = incomingValues.length ? incomingValues[0] : 0;
-        const summary = {
-          totalMetric,
-          maxMetric: max(incomingValues),
-          focusMetric: Number.isFinite(focusValue) ? focusValue : 0,
-          averageMetric: average(incomingValues),
-          score,
-          offensiveScore: null,
-          defensiveScore: score,
-          overallScore: score,
-        };
+        const summary = this.composeMatchupScoreSummary(defender, attackerBases, attackerRows, 'defender', calculationCache);
         this.matchupSummaryMapSet(defenderSummaries, defender, summary);
-        if(Number.isFinite(score)){
-          scoreMaps.defenders[this.unitKey(defender)] = score;
-          if(defender._unitKey) scoreMaps.defenders[String(defender._unitKey)] = score;
+        if(Number.isFinite(summary.score)){
+          scoreMaps.defenders[this.unitKey(defender)] = summary.score;
+          if(defender._unitKey) scoreMaps.defenders[String(defender._unitKey)] = summary.score;
         }
       });
 
@@ -1579,6 +1628,19 @@ function weaponVsDefenseApp(){
       return unit?._baseUnit || unit || null;
     },
 
+    profileScoreSummary(unit){
+      const base = this.profileScoreBaseUnit(unit);
+      if(!base) return null;
+      const preferred = base?._matchupSide === 'defender' || unit?._matchupSide === 'defender'
+        ? ['defender', 'attacker']
+        : ['attacker', 'defender'];
+      for(const side of preferred){
+        const summary = this.matchupSummaryFor(unit, side) || this.matchupSummaryFor(base, side);
+        if(summary) return summary;
+      }
+      return null;
+    },
+
     profileScoreDefenders(){
       const visible = this.matchupVisibleDefenders?.() || [];
       if(visible.length) return visible.map(col => col.unit).filter(Boolean);
@@ -1606,35 +1668,18 @@ function weaponVsDefenseApp(){
     },
 
     profileOffensiveScoreRaw(unit, attackMode='all'){
-      const base = this.profileScoreBaseUnit(unit);
-      if(!base) return null;
-      if(attackMode && attackMode !== 'all'){
-        const summary = this.matchupSummaryFor(this.attackModeVariant(base, attackMode), 'attacker');
-        return summary?.score ?? null;
-      }
-      return this.matchupSummaryFor(unit, 'attacker')?.score
-        ?? this.matchupSummaryFor(base, 'attacker')?.score
-        ?? this.matchup.scoreMaps?.attackers?.[this.unitKey(unit)]
-        ?? this.matchup.scoreMaps?.attackers?.[this.unitKey(base)]
-        ?? (unit?._unitKey ? this.matchup.scoreMaps?.attackers?.[String(unit._unitKey)] : null)
-        ?? (base?._unitKey ? this.matchup.scoreMaps?.attackers?.[String(base._unitKey)] : null)
-        ?? null;
+      const summary = this.profileScoreSummary(unit);
+      if(attackMode === 'melee') return summary?.meleeScore ?? null;
+      if(attackMode === 'shooting') return summary?.shootingScore ?? null;
+      return summary?.offensiveScore ?? summary?.score ?? null;
     },
 
     profileDefensiveScoreRaw(unit){
-      const base = this.profileScoreBaseUnit(unit);
-      if(!base) return null;
-      return this.matchupSummaryFor(unit, 'defender')?.score
-        ?? this.matchupSummaryFor(base, 'defender')?.score
-        ?? this.matchup.scoreMaps?.defenders?.[this.unitKey(unit)]
-        ?? this.matchup.scoreMaps?.defenders?.[this.unitKey(base)]
-        ?? (unit?._unitKey ? this.matchup.scoreMaps?.defenders?.[String(unit._unitKey)] : null)
-        ?? (base?._unitKey ? this.matchup.scoreMaps?.defenders?.[String(base._unitKey)] : null)
-        ?? null;
+      return this.profileScoreSummary(unit)?.defensiveScore ?? null;
     },
 
     profileOverallScoreRaw(unit){
-      return this.averageFinite([
+      return this.profileScoreSummary(unit)?.overallScore ?? this.averageFinite([
         this.profileOffensiveScoreRaw(unit),
         this.profileDefensiveScoreRaw(unit),
       ]);
@@ -1767,11 +1812,11 @@ function weaponVsDefenseApp(){
       setTimeout(processChunk, 0);
     },
 
-    cachedMatchupCell(attacker, defender){
+    cachedMatchupCell(attacker, defender, options={}){
       const key = this.cellCacheKey(attacker, defender);
       if(!this.matchup.cellCache) this.matchup.cellCache = {};
       if(!this.matchup.cellCache[key]){
-        this.matchup.cellCache[key] = this.computeMatchupCell(attacker, defender);
+        this.matchup.cellCache[key] = this.computeMatchupCell(attacker, defender, options);
       }
       return this.matchup.cellCache[key];
     },
