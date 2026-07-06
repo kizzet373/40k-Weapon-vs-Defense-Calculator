@@ -586,6 +586,29 @@ function weaponVsDefenseApp(){
       return this.clamp(Number.isFinite(fallback) ? fallback : 0, 0, forces.length - 1);
     },
 
+    matchupSideSelectionRef(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      const roster = this.rosters?.[rosterIdx] || null;
+      const force = this.getForcesForRoster(rosterIdx)?.[forceIdx] || null;
+      return {
+        rosterIdx: Number(rosterIdx) || 0,
+        rosterKey: this.rosterIdentityKey(roster, roster?.label),
+        forceIdx: Number(forceIdx) || 0,
+        forceKey: force ? `${force?.name || force?.label || ''}` : '',
+      };
+    },
+
+    normalizeMatchupSelectionState(){
+      const maxRoster = Math.max(0, (this.rosters || []).length - 1);
+      this.matchup.attackerRosterIdx = this.clamp(Number(this.matchup.attackerRosterIdx) || 0, 0, maxRoster);
+      this.matchup.defenderRosterIdx = this.clamp(Number(this.matchup.defenderRosterIdx) || 0, 0, maxRoster);
+      this.matchupAttackerForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
+      this.matchupDefenderForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
+      this.matchup.attackerForceIdx = this.clamp(Number(this.matchup.attackerForceIdx) || 0, 0, Math.max(0, this.matchupAttackerForces.length - 1));
+      this.matchup.defenderForceIdx = this.clamp(Number(this.matchup.defenderForceIdx) || 0, 0, Math.max(0, this.matchupDefenderForces.length - 1));
+    },
+
     matchupSideState(side){
       const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
       const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
@@ -1020,17 +1043,13 @@ function weaponVsDefenseApp(){
       this.matchupModalOpen = true;
 
       if(options.reset || (!options.preserveMatchupSelection && !(this.matchup.rows || []).length)){
-        // Defaults: attacker = current selection; defender = next roster if present
-        const aR = Number.isFinite(this.selectedRosterIdx) ? this.selectedRosterIdx : 0;
-        const aF = Number.isFinite(this.selectedForceIdx) ? this.selectedForceIdx : 0;
-        const dR = (this.rosters.length > 1) ? (aR === 0 ? 1 : 0) : aR;
-
-        this.matchup.attackerRosterIdx = this.clamp(aR, 0, this.rosters.length-1);
-        this.matchup.attackerForceIdx  = aF;
-        this.matchup.defenderRosterIdx = this.clamp(dR, 0, this.rosters.length-1);
+        this.matchup.attackerRosterIdx = 0;
+        this.matchup.attackerForceIdx  = 0;
+        this.matchup.defenderRosterIdx = 0;
         this.matchup.defenderForceIdx  = 0;
       }
 
+      this.normalizeMatchupSelectionState();
       this.onMatchupRosterChanged('attacker', false);
       this.onMatchupRosterChanged('defender', false);
       if(!options.preserveMatchupSelection) this.saveCachedAppState();
@@ -2266,30 +2285,45 @@ function weaponVsDefenseApp(){
 
     rebuildMatchup(){
       if(!this.matchupModalOpen) return;
+      this.normalizeMatchupSelectionState();
       this.clearMatchupComputationCache();
       const buildToken = (this.matchup.buildToken || 0) + 1;
       this.matchup.buildToken = buildToken;
+      const attackerSelection = this.matchupSideSelectionRef('attacker');
+      const defenderSelection = this.matchupSideSelectionRef('defender');
       const buildState = {
-        attackerRosterIdx: Number(this.matchup.attackerRosterIdx || 0),
-        attackerForceIdx: Number(this.matchup.attackerForceIdx || 0),
-        defenderRosterIdx: Number(this.matchup.defenderRosterIdx || 0),
-        defenderForceIdx: Number(this.matchup.defenderForceIdx || 0),
+        attackerRosterIdx: attackerSelection.rosterIdx,
+        attackerRosterKey: attackerSelection.rosterKey,
+        attackerForceIdx: attackerSelection.forceIdx,
+        attackerForceKey: attackerSelection.forceKey,
+        defenderRosterIdx: defenderSelection.rosterIdx,
+        defenderRosterKey: defenderSelection.rosterKey,
+        defenderForceIdx: defenderSelection.forceIdx,
+        defenderForceKey: defenderSelection.forceKey,
         combineShootingProfiles: !!this.matchup.combineShootingProfiles,
         conditionsMet: !!this.matchup.conditionsMet,
         showMelee: !!this.matchup.showMelee,
         showShooting: !!this.matchup.showShooting,
         metric: this.matchup.metric || 'damage',
       };
-      const buildIsCurrent = () => buildToken === this.matchup.buildToken
-        && Number(this.matchup.attackerRosterIdx || 0) === buildState.attackerRosterIdx
-        && Number(this.matchup.attackerForceIdx || 0) === buildState.attackerForceIdx
-        && Number(this.matchup.defenderRosterIdx || 0) === buildState.defenderRosterIdx
-        && Number(this.matchup.defenderForceIdx || 0) === buildState.defenderForceIdx
-        && !!this.matchup.combineShootingProfiles === buildState.combineShootingProfiles
-        && !!this.matchup.conditionsMet === buildState.conditionsMet
-        && !!this.matchup.showMelee === buildState.showMelee
-        && !!this.matchup.showShooting === buildState.showShooting
-        && (this.matchup.metric || 'damage') === buildState.metric;
+      const buildIsCurrent = () => {
+        const currentAttacker = this.matchupSideSelectionRef('attacker');
+        const currentDefender = this.matchupSideSelectionRef('defender');
+        return buildToken === this.matchup.buildToken
+          && currentAttacker.rosterIdx === buildState.attackerRosterIdx
+          && currentAttacker.rosterKey === buildState.attackerRosterKey
+          && currentAttacker.forceIdx === buildState.attackerForceIdx
+          && currentAttacker.forceKey === buildState.attackerForceKey
+          && currentDefender.rosterIdx === buildState.defenderRosterIdx
+          && currentDefender.rosterKey === buildState.defenderRosterKey
+          && currentDefender.forceIdx === buildState.defenderForceIdx
+          && currentDefender.forceKey === buildState.defenderForceKey
+          && !!this.matchup.combineShootingProfiles === buildState.combineShootingProfiles
+          && !!this.matchup.conditionsMet === buildState.conditionsMet
+          && !!this.matchup.showMelee === buildState.showMelee
+          && !!this.matchup.showShooting === buildState.showShooting
+          && (this.matchup.metric || 'damage') === buildState.metric;
+      };
       this.matchup.rows = [];
       this.matchup.visibleRows = [];
       this.matchup.visibleDefenders = [];
@@ -2297,14 +2331,17 @@ function weaponVsDefenseApp(){
       this.matchup.scoreMaps = { attackers: {}, defenders: {} };
       this.matchup.sortSummaries = { attackers: {}, defenders: {} };
       this.matchup.cellCache = {};
+      this.matchupAttackerBaseUnits = [];
+      this.matchupAttackerUnits = [];
+      this.matchupDefenderUnits = [];
 
-      const atkForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
-      const defForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
+      const atkForces = this.getForcesForRoster(buildState.attackerRosterIdx);
+      const defForces = this.getForcesForRoster(buildState.defenderRosterIdx);
       this.matchupAttackerForces = atkForces;
       this.matchupDefenderForces = defForces;
 
-      const aForce = atkForces?.[this.matchup.attackerForceIdx] || null;
-      const dForce = defForces?.[this.matchup.defenderForceIdx] || null;
+      const aForce = atkForces?.[buildState.attackerForceIdx] || null;
+      const dForce = defForces?.[buildState.defenderForceIdx] || null;
 
       this.matchup.loading = true;
       this.matchup.loadingMessage = 'Building matchup matrix';
@@ -2372,9 +2409,18 @@ function weaponVsDefenseApp(){
     prepareMatchupUnits(units, side){
       const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
       const forceIdx = side === 'attacker' ? this.matchup.attackerForceIdx : this.matchup.defenderForceIdx;
+      const selection = this.matchupSideSelectionRef(side);
       const decorate = (unit, path='unit') => {
         unit._viewKey = `${side}:${rosterIdx}:${forceIdx}:${unit._unitKey || unit.label}:${path}`;
+        unit._sourceRosterKey = selection.rosterKey;
+        unit._sourceRosterIdx = selection.rosterIdx;
+        unit._sourceForceKey = selection.forceKey;
+        unit._sourceForceIdx = selection.forceIdx;
         (unit._children || []).forEach((child, index) => {
+          child._sourceRosterKey = selection.rosterKey;
+          child._sourceRosterIdx = selection.rosterIdx;
+          child._sourceForceKey = selection.forceKey;
+          child._sourceForceIdx = selection.forceIdx;
           Object.defineProperty(child, '_parentUnit', {
             value: unit,
             enumerable: false,
