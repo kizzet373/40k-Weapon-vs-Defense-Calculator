@@ -78,7 +78,7 @@
 
     <div class="matchupRosterPicker" x-show="activeView === 'matchups'" x-cloak>
       <section class="matchupSideSection">
-        <h2 class="matchupSideSectionTitle matchupRosterSideTextAttacker">ATTACKER</h2>
+        <h2 class="matchupSideSectionTitle matchupRosterSideTextAttacker">Attacker</h2>
         <div class="card matchupSideCard">
           <div class="matchupRosterRow">
             <label>
@@ -98,50 +98,55 @@
               </select>
             </label>
           </div>
-          <label class="unitSelectLabel">
-            Unit
-            <select x-model.number="matchup.attackerUnitIdx">
-              <template x-for="(u, i) in matchupSideBaseUnits('attacker')" :key="`matchup-attacker-unit-${i}`">
-                <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
-              </template>
-              <template x-if="matchupSideBaseUnits('attacker').length === 0">
-                <option value="0">No units found</option>
-              </template>
-            </select>
-          </label>
-          <div class="unitActionRow matchupSideActionRow">
-            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptRenameUnit(matchupSideSelectedUnit('attacker'))">Rename</button>
-            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="duplicateMatchupUnit('attacker')">Duplicate</button>
-            <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 2" @click="openMatchupMergeUnitModal('attacker')">Merge</button>
-            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="unmergeMatchupUnit('attacker')">Unmerge</button>
-            <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="deleteMatchupUnit('attacker')">Delete</button>
-          </div>
-          <div class="matchupCustomModifierTool">
-            <label>
-              Custom Modifier
-              <select @change="addMatchupCustomModifier('attacker', $event.target.value); $event.target.value=''">
-                <option value="">Add modifier...</option>
-                <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-attacker-custom-${option.value}`">
-                  <option :value="option.value" x-text="option.label"></option>
-                </template>
-              </select>
-            </label>
-            <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('attacker').length > 0">
-              <template x-for="mod in matchupCustomModifiers('attacker')" :key="mod.id">
-                <span class="modifier matchupCustomModifierPill">
-                  <span x-text="customModifierLabel(mod)"></span>
-                  <button type="button" class="tagX" @click="removeMatchupCustomModifier('attacker', mod.id)" aria-label="Remove custom modifier">x</button>
-                </span>
-              </template>
+          <details class="matchupSideOptions">
+            <summary>Options</summary>
+            <div class="matchupSideOptionsBody">
+              <label class="unitSelectLabel">
+                Unit
+                <select x-model.number="matchup.attackerUnitIdx">
+                  <template x-for="(u, i) in matchupSideBaseUnits('attacker')" :key="`matchup-attacker-unit-${i}`">
+                    <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
+                  </template>
+                  <template x-if="matchupSideBaseUnits('attacker').length === 0">
+                    <option value="0">No units found</option>
+                  </template>
+                </select>
+              </label>
+              <div class="unitActionRow matchupSideActionRow">
+                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptRenameUnit(matchupSideSelectedUnit('attacker'))">Rename</button>
+                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="duplicateMatchupUnit('attacker')">Duplicate</button>
+                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 2" @click="openMatchupMergeUnitModal('attacker')">Merge</button>
+                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="unmergeMatchupUnit('attacker')">Unmerge</button>
+                <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="deleteMatchupUnit('attacker')">Delete</button>
+              </div>
+              <div class="matchupCustomModifierTool">
+                <label>
+                  Custom Modifier
+                  <select @change="addMatchupCustomModifier('attacker', $event.target.value); $event.target.value=''">
+                    <option value="">Add modifier...</option>
+                    <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-attacker-custom-${option.value}`">
+                      <option :value="option.value" x-text="option.label"></option>
+                    </template>
+                  </select>
+                </label>
+                <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('attacker').length > 0">
+                  <template x-for="mod in matchupCustomModifiers('attacker')" :key="mod.id">
+                    <span class="modifier matchupCustomModifierPill">
+                      <span x-text="customModifierLabel(mod)"></span>
+                      <button type="button" class="tagX" @click="removeMatchupCustomModifier('attacker', mod.id)" aria-label="Remove custom modifier">x</button>
+                    </span>
+                  </template>
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
       </section>
 
       <button type="button" class="secondary matchupRosterSwapButton" @click="swapMatchupSides()">Swap</button>
 
       <section class="matchupSideSection">
-        <h2 class="matchupSideSectionTitle matchupRosterSideTextDefender">DEFENDER</h2>
+        <h2 class="matchupSideSectionTitle matchupRosterSideTextDefender">Defender</h2>
         <div class="card matchupSideCard">
           <div class="matchupRosterRow">
             <label>
@@ -161,43 +166,48 @@
               </select>
             </label>
           </div>
-          <label class="unitSelectLabel">
-            Unit
-            <select x-model.number="matchup.defenderUnitIdx">
-              <template x-for="(u, i) in matchupSideBaseUnits('defender')" :key="`matchup-defender-unit-${i}`">
-                <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
-              </template>
-              <template x-if="matchupSideBaseUnits('defender').length === 0">
-                <option value="0">No units found</option>
-              </template>
-            </select>
-          </label>
-          <div class="unitActionRow matchupSideActionRow">
-            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptRenameUnit(matchupSideSelectedUnit('defender'))">Rename</button>
-            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="duplicateMatchupUnit('defender')">Duplicate</button>
-            <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 2" @click="openMatchupMergeUnitModal('defender')">Merge</button>
-            <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="unmergeMatchupUnit('defender')">Unmerge</button>
-            <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="deleteMatchupUnit('defender')">Delete</button>
-          </div>
-          <div class="matchupCustomModifierTool">
-            <label>
-              Custom Modifier
-              <select @change="addMatchupCustomModifier('defender', $event.target.value); $event.target.value=''">
-                <option value="">Add modifier...</option>
-                <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-defender-custom-${option.value}`">
-                  <option :value="option.value" x-text="option.label"></option>
-                </template>
-              </select>
-            </label>
-            <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('defender').length > 0">
-              <template x-for="mod in matchupCustomModifiers('defender')" :key="mod.id">
-                <span class="modifier matchupCustomModifierPill">
-                  <span x-text="customModifierLabel(mod)"></span>
-                  <button type="button" class="tagX" @click="removeMatchupCustomModifier('defender', mod.id)" aria-label="Remove custom modifier">x</button>
-                </span>
-              </template>
+          <details class="matchupSideOptions">
+            <summary>Options</summary>
+            <div class="matchupSideOptionsBody">
+              <label class="unitSelectLabel">
+                Unit
+                <select x-model.number="matchup.defenderUnitIdx">
+                  <template x-for="(u, i) in matchupSideBaseUnits('defender')" :key="`matchup-defender-unit-${i}`">
+                    <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
+                  </template>
+                  <template x-if="matchupSideBaseUnits('defender').length === 0">
+                    <option value="0">No units found</option>
+                  </template>
+                </select>
+              </label>
+              <div class="unitActionRow matchupSideActionRow">
+                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptRenameUnit(matchupSideSelectedUnit('defender'))">Rename</button>
+                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="duplicateMatchupUnit('defender')">Duplicate</button>
+                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 2" @click="openMatchupMergeUnitModal('defender')">Merge</button>
+                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="unmergeMatchupUnit('defender')">Unmerge</button>
+                <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="deleteMatchupUnit('defender')">Delete</button>
+              </div>
+              <div class="matchupCustomModifierTool">
+                <label>
+                  Custom Modifier
+                  <select @change="addMatchupCustomModifier('defender', $event.target.value); $event.target.value=''">
+                    <option value="">Add modifier...</option>
+                    <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-defender-custom-${option.value}`">
+                      <option :value="option.value" x-text="option.label"></option>
+                    </template>
+                  </select>
+                </label>
+                <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('defender').length > 0">
+                  <template x-for="mod in matchupCustomModifiers('defender')" :key="mod.id">
+                    <span class="modifier matchupCustomModifierPill">
+                      <span x-text="customModifierLabel(mod)"></span>
+                      <button type="button" class="tagX" @click="removeMatchupCustomModifier('defender', mod.id)" aria-label="Remove custom modifier">x</button>
+                    </span>
+                  </template>
+                </div>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
       </section>
     </div>

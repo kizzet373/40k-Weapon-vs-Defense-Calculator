@@ -228,7 +228,7 @@ main{padding:14px;min-width:0;overflow:hidden}
 .calculatorRosterPicker,.matchupRosterPicker{display:flex;flex-direction:column;gap:8px}
 .matchupRosterPicker{position:relative}
 .matchupSideSection{display:flex;flex-direction:column;gap:6px}
-.matchupSideSectionTitle{margin:0;font-size:13px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.matchupSideSectionTitle{margin:0;font-size:13px;font-weight:900;letter-spacing:.02em}
 .matchupSideCard{display:flex;flex-direction:column;gap:8px}
 .matchupRosterRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
 .matchupRosterSide{display:flex;align-items:flex-end;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em;padding-bottom:9px;text-transform:uppercase}
@@ -236,6 +236,38 @@ main{padding:14px;min-width:0;overflow:hidden}
 .matchupRosterSideTextAttacker{color:#ff3b3b}
 .matchupRosterSideTextDefender{color:#34ff6a}
 .matchupRosterRow label{min-width:0}
+.matchupSideOptions{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+  overflow:hidden;
+}
+.matchupSideOptions summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:8px 10px;
+  color:var(--fg);
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  user-select:none;
+}
+.matchupSideOptions summary::after{
+  content:"⌄";
+  color:var(--accent);
+  font-size:15px;
+  line-height:1;
+}
+.matchupSideOptions[open] summary::after{content:"⌃"}
+.matchupSideOptionsBody{
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  padding:0 10px 10px;
+}
+.matchupSideOptions[open] .matchupSideOptionsBody{display:flex}
 button.secondary.matchupRosterSwapButton{
   align-self:center;
   background:linear-gradient(135deg,var(--accent2),var(--accent));
