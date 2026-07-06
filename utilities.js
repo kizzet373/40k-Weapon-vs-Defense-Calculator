@@ -1428,9 +1428,9 @@ function weaponVsDefenseApp(){
       const mode = this.matchup.metric || 'damage';
       const scale = 0.1;
       if(side === 'defender'){
-        if(mode === 'damage') return 38400 * scale;
-        if(mode === 'unitKill') return 11520 * scale;
-        return 4800 * scale;
+        if(mode === 'damage') return 416000 * scale;
+        if(mode === 'unitKill') return 87000 * scale;
+        return 33300 * scale;
       }
       if(mode === 'damage') return 1800 * scale;
       if(mode === 'unitKill') return 28800 * scale;
@@ -1451,14 +1451,15 @@ function weaponVsDefenseApp(){
       });
 
       const defenderItems = (defenders || []).map((col, colIndex) => {
-        const totalIncoming = (rows || []).reduce((sum, row) => {
+        const incomingValues = (rows || []).map(row => {
           const value = this.matchupCellMetric(row.cells?.[colIndex]);
-          return sum + (Number.isFinite(value) ? value : 0);
-        }, 0);
+          return Number.isFinite(value) ? value : null;
+        }).filter(value => value != null);
+        const avgIncoming = this.averageFinite(incomingValues);
         return {
           key: this.unitKey(col.unit),
           stableKey: String(col.unit?._unitKey || ''),
-          raw: this.scoreFromMetricTotal(col.unit, totalIncoming, 'defender'),
+          raw: this.defensiveEfficiencyFromAverage(col.unit, avgIncoming),
         };
       });
 
@@ -1519,7 +1520,11 @@ function weaponVsDefenseApp(){
       const stats = this.matchupMetricStats(values);
       return {
         ...stats,
-        score: finite.length ? this.scoreFromMetricTotal(unit, stats.totalMetric, side) : null,
+        score: finite.length
+          ? (side === 'defender'
+            ? this.defensiveEfficiencyFromAverage(unit, stats.averageMetric)
+            : this.scoreFromMetricTotal(unit, stats.totalMetric, side))
+          : null,
       };
     },
 

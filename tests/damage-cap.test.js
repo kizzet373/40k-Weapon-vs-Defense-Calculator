@@ -355,7 +355,7 @@ const app = context.weaponVsDefenseApp();
 const scoreScaleUnit = { label: 'Score scale check', _unitKey: 'score-scale-check', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
 app.matchup.metric = 'modelWounds';
 assert.strictEqual(Math.round(app.scoreFromMetricTotal(scoreScaleUnit, 1, 'attacker')), 12, 'attacker scores are scaled to one tenth of the previous calibrated value');
-assert.strictEqual(Math.round(app.scoreFromMetricTotal(scoreScaleUnit, 1, 'defender')), 5, 'defender scores are scaled to one tenth of the previous calibrated value');
+assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 33, 'defender Damage % scores are calibrated to visible whole-number ranges');
 const hammerIntoOneWoundModels = app.computeMatchupCell(
   {
     label: 'Daemon hammer attacker',
@@ -1878,10 +1878,47 @@ app.updateMatchupSortSummaries([profileScoreAttacker], [profileScoreDefender]);
 app.refreshVisibleMatchup();
 assert.notStrictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'), app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'), 'unit profile modal shows distinct melee and shooting scores');
 assert.ok(Number.isFinite(app.profileDefensiveScoreRaw(profileScoreAttacker)), 'unit profile modal shows the attacker defensive score from the opposing force offense');
+assert.ok(Math.round(app.profileDefensiveScoreRaw(profileScoreAttacker)) > 1, 'attacker defensive profile score does not collapse to 0 or 1');
 assert.ok(Number.isFinite(app.profileOffensiveScoreRaw(profileScoreDefender)), 'unit profile modal shows the defender offensive score from the reverse matchup');
+assert.ok(Math.round(app.profileDefensiveScoreRaw(profileScoreDefender)) > 1, 'defender defensive profile score does not collapse to 0 or 1');
 assert.ok(/^Offensive Score: \d+ \(Melee: (?:\d+|—) \/ Shooting: (?:\d+|—)\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line uses precomputed score summaries without extra melee/shooting calculations');
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
+
+const realScoreAuditApp = context.weaponVsDefenseApp();
+const realScoreAuditPath = path.join(root, 'list data', '11th-daemons-options-import.json');
+if(fs.existsSync(realScoreAuditPath)){
+  realScoreAuditApp.addRoster(JSON.parse(fs.readFileSync(realScoreAuditPath, 'utf8')), 'Real score audit');
+  realScoreAuditApp.matchup.metric = 'modelWounds';
+  realScoreAuditApp.matchup.showMelee = true;
+  realScoreAuditApp.matchup.showShooting = true;
+  realScoreAuditApp.matchup.combineShootingProfiles = true;
+  realScoreAuditApp.matchup.conditionsMet = false;
+  const scoreAuditForce = realScoreAuditApp.rosters[0].data.roster.forces[0];
+  const scoreAuditAttackers = realScoreAuditApp.prepareMatchupUnits(realScoreAuditApp.collectUnits(scoreAuditForce), 'attacker');
+  const scoreAuditDefenders = realScoreAuditApp.prepareMatchupUnits(realScoreAuditApp.collectUnits(scoreAuditForce), 'defender');
+  const scoreAuditRows = scoreAuditAttackers
+    .flatMap(unit => realScoreAuditApp.attackModeVariants(unit))
+    .filter(unit => realScoreAuditApp.hasMatchupWeaponProfiles(unit));
+  realScoreAuditApp.matchupAttackerBaseUnits = scoreAuditAttackers;
+  realScoreAuditApp.matchupAttackerUnits = scoreAuditRows;
+  realScoreAuditApp.matchupDefenderUnits = scoreAuditDefenders;
+  realScoreAuditApp.matchup.rows = realScoreAuditApp.buildMatchupRows(scoreAuditRows, scoreAuditDefenders, () => true);
+  realScoreAuditApp.seedAggregateCellCache();
+  realScoreAuditApp.updateMatchupSortSummaries(scoreAuditRows, scoreAuditDefenders);
+  realScoreAuditApp.refreshVisibleMatchup();
+  const realDefenderScores = scoreAuditDefenders
+    .map(unit => Math.round(realScoreAuditApp.profileDefensiveScoreRaw(unit)))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  const realAttackerScores = scoreAuditAttackers
+    .map(unit => Math.round(realScoreAuditApp.profileDefensiveScoreRaw(unit)))
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  assert.ok(realDefenderScores.length > 10, 'real score audit imported enough defenders');
+  assert.ok(realDefenderScores[Math.floor(realDefenderScores.length / 2)] >= 25, 'real defender defensive scores do not collapse to zero');
+  assert.ok(realAttackerScores[Math.floor(realAttackerScores.length / 2)] >= 25, 'real attacker defensive scores do not collapse to one');
+}
 
 const moveModelForce = {
   _importedUnits: [
