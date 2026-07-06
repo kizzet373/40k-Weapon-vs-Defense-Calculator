@@ -1586,7 +1586,13 @@ noRecalcSortApp.matchup.cellCache = {
   [noRecalcSortApp.cellCacheKey(sortAttackerA, sortDefenderA)]: { dmg: 10 },
   [noRecalcSortApp.cellCacheKey(sortAttackerA, sortDefenderB)]: { dmg: 1 },
   [noRecalcSortApp.cellCacheKey(sortAttackerB, sortDefenderA)]: { dmg: 2 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerB, sortDefenderB)]: { dmg: 20 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerA, sortAttackerA)]: { dmg: 4 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerA, sortAttackerB)]: { dmg: 5 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerB, sortAttackerA)]: { dmg: 6 },
+  [noRecalcSortApp.cellCacheKey(sortAttackerB, sortAttackerB)]: { dmg: 7 },
 };
+noRecalcSortApp.updateMatchupSortSummaries();
 noRecalcSortApp.computeMatchupCell = () => {
   throw new Error('sorting should not recalculate matchup cells');
 };
@@ -1594,6 +1600,8 @@ noRecalcSortApp.setMatchupSideSortMode('attacker', 'overallDamage');
 noRecalcSortApp.cycleMatchupSideSort('attacker');
 noRecalcSortApp.setMatchupSideSortMode('defender', 'overallDamage');
 noRecalcSortApp.cycleMatchupSideSort('defender');
+noRecalcSortApp.setMatchupSideSortMode('attacker', 'overallScore');
+noRecalcSortApp.setMatchupSideSortMode('defender', 'overallScore');
 noRecalcSortApp.sortMatchupByColumn(sortDefenderA);
 noRecalcSortApp.sortMatchupByRow(sortAttackerA);
 noRecalcSortApp.sortMatchupAlphabetical();
@@ -1637,10 +1645,15 @@ conditionalOverallSortApp.matchup.rows = [conditionalSortFragile, conditionalSor
   cells: [conditionalOverallSortApp.computeMatchupCell(unit, conditionalSortTarget)],
 }));
 conditionalOverallSortApp.seedAggregateCellCache();
-assert.ok(!conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'overall sort support cells are not present before sorting');
+assert.ok(!conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'overall sort support cells are not present before summary preparation');
+conditionalOverallSortApp.ensureMatchupSortSupportCells(conditionalOverallSortApp.matchupAttackerUnits, conditionalOverallSortApp.matchupDefenderUnits);
+conditionalOverallSortApp.updateMatchupSortSummaries();
+assert.ok(conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'rebuild summary preparation warms the cross-axis cells needed for full scores');
+conditionalOverallSortApp.computeMatchupCell = () => {
+  throw new Error('Overall Score sorting should use prepared summary cells');
+};
 conditionalOverallSortApp.refreshMatchupPresentation({ computeMissing: false });
 assert.strictEqual(conditionalOverallSortApp.matchupVisibleRows()[0].unit.label, 'Conditional tank', 'Overall Score attacker sorting includes conditional defensive modifiers after Conditions Met');
-assert.ok(conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'Overall Score sorting warms the cross-axis cells needed for full scores');
 
 const conditionalDefenderOverallSortApp = context.weaponVsDefenseApp();
 const conditionalSortAttacker = {
@@ -1680,10 +1693,15 @@ conditionalDefenderOverallSortApp.matchup.rows = [{
   cells: [conditionalSortPlainDefender, conditionalSortShooterDefender].map(unit => conditionalDefenderOverallSortApp.computeMatchupCell(conditionalSortAttacker, unit)),
 }];
 conditionalDefenderOverallSortApp.seedAggregateCellCache();
-assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender overall sort support cells are not present before sorting');
+assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender overall sort support cells are not present before summary preparation');
+conditionalDefenderOverallSortApp.ensureMatchupSortSupportCells(conditionalDefenderOverallSortApp.matchupAttackerUnits, conditionalDefenderOverallSortApp.matchupDefenderUnits);
+conditionalDefenderOverallSortApp.updateMatchupSortSummaries();
+assert.ok(conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'rebuild summary preparation warms defender cross-axis offensive cells');
+conditionalDefenderOverallSortApp.computeMatchupCell = () => {
+  throw new Error('Defender Overall Score sorting should use prepared summary cells');
+};
 conditionalDefenderOverallSortApp.refreshMatchupPresentation({ computeMissing: false });
 assert.strictEqual(conditionalDefenderOverallSortApp.matchupVisibleDefenders()[0].unit.label, 'Conditional shooter defender', 'Overall Score defender sorting includes conditional offensive modifiers after Conditions Met');
-assert.ok(conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender Overall Score sorting warms cross-axis offensive cells');
 
 const staleBuildApp = context.weaponVsDefenseApp();
 staleBuildApp.addBaseProfilesRoster();

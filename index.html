@@ -637,8 +637,9 @@
     </div>
   </main>
 
-  <!-- Legacy Army Matchups modal shell retained disabled while the grid lives in the main page. -->
-  <div class="modalOverlay" x-show="false" x-cloak>
+  <!-- Legacy Army Matchups modal shell retained inert while the grid lives in the main page. -->
+  <template x-if="false">
+  <div class="modalOverlay" x-cloak>
     <div class="modal modalWide" role="dialog" aria-modal="true" aria-label="Unit matchups">
       <div class="modalHead">
         <div style="font-weight:800">Army Matchups</div>
@@ -887,6 +888,7 @@
       </div>
     </div>
   </div>
+  </template>
 
   <!-- Calculation formula modal -->
   <div class="modalOverlay formulaOverlay" x-show="formulaModalOpen" x-cloak
@@ -1273,6 +1275,6 @@
 
 </div>
 
-<script src="utilities.js?v=state-race-fix"></script>
+<script src="utilities.js?v=sort-summary-state-fix"></script>
 </body>
 </html>
