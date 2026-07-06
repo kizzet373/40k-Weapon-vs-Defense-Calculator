@@ -1530,6 +1530,15 @@ function weaponVsDefenseApp(){
       return this.mergeManager?.units || this.mergeCandidateUnits || this.units || [];
     },
 
+    refreshMergeManagerUnits(){
+      const force = this.mergeManager.force || this.mergeFromForce || this.getForceByIdx(this.selectedForceIdx);
+      if(!force) return;
+      const units = this.collectUnits(force);
+      this.mergeCandidateUnits = units;
+      this.mergeManager.units = units;
+      this.mergeManager.force = force;
+    },
+
     mergeManagerUnitKey(unit){
       return this.sourceUnitKey(unit);
     },
@@ -1628,15 +1637,19 @@ function weaponVsDefenseApp(){
 
       const side = this.mergeManager.side;
       const selectedKey = this.sourceUnitKey(this.activeUnit);
-      this.closeMergeUnitModal();
       if(side){
         this.rebuildMatchup();
+        this.refreshMergeManagerUnits();
       }else{
         this.refreshUnitsPreservingSelection(selectedKey);
+        this.mergeCandidateUnits = this.units;
+        this.mergeManager.units = this.units;
         this.onUnitChanged();
         if(this.activeView === 'matchups') this.rebuildMatchup();
         else this.clearMatchupComputationCache();
       }
+      this.mergeManager.moves = [];
+      this.mergeManager.dragged = null;
     },
 
     mergeSelectedUnitInto(targetUnit){

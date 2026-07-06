@@ -1665,4 +1665,25 @@ assert.ok(context.window.ArmyImportService.moveModelToUnit(moveModelForce, 'targ
 movedUnits = context.window.ArmyImportService.collectImportedUnits(moveModelForce);
 assert.ok(movedUnits.some(unit => unit._unitKey === 'champion' && unit.label === 'Champion'), 'unmerged child returns as a standalone unit');
 
+const mergeManagerApp = context.weaponVsDefenseApp();
+mergeManagerApp.forces = [moveModelForce];
+mergeManagerApp.selectedForceIdx = 0;
+mergeManagerApp.units = mergeManagerApp.collectUnits(moveModelForce);
+mergeManagerApp.openMergeUnitModal(null, moveModelForce, mergeManagerApp.units);
+mergeManagerApp.mergeManager.moves = [{
+  id: 'manager-move-1',
+  kind: 'unit',
+  fromKey: 'champion',
+  childKey: 'champion',
+  toKey: 'target-leader',
+  action: 'merge',
+  label: 'Champion',
+  fromLabel: 'Champion',
+  toLabel: 'Target Leader',
+}];
+mergeManagerApp.submitMergeManager();
+assert.ok(mergeManagerApp.mergeModalOpen, 'merge manager stays open after submit so the refreshed lists are visible');
+assert.strictEqual(mergeManagerApp.mergeManager.moves.length, 0, 'merge manager clears staged moves after submit');
+assert.ok(mergeManagerApp.mergeManagerUnits().some(unit => unit._unitKey === 'target-leader' && unit._children?.some(child => child.label === 'Champion')), 'merge manager refreshes its unit list after submit');
+
 console.log('damage-cap tests passed');

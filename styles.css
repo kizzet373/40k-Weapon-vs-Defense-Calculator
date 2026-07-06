@@ -332,14 +332,14 @@ button.secondary.matchupRosterSwapButton{
 .clickableMergeRow{cursor:pointer}
 .clickableMergeRow:hover td{background:rgba(110,231,255,.06)}
 .mergeManagerModal{max-width:1280px}
-.mergeManagerBody{display:flex;flex-direction:column;gap:12px;overflow:hidden}
-.mergeManagerColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0;flex:1 1 auto}
+.mergeManagerBody{display:flex;flex-direction:column;gap:12px;overflow:hidden;flex:1 1 auto}
+.mergeManagerColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0;flex:1 1 0}
 .mergeManagerPanel,.mergePendingPanel{border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
 .mergeManagerPanel{display:flex;flex-direction:column;min-height:0}
 .mergeManagerPanelHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
 .mergeManagerPanelTitle{font-size:13px;font-weight:900;color:var(--fg)}
-.mergeManagerList{display:flex;flex-direction:column;gap:8px;padding:10px;overflow:auto;min-height:220px;max-height:46vh}
-.mergeManagerUnit{border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(15,20,28,.82);overflow:hidden}
+.mergeManagerList{display:flex;flex-direction:column;gap:8px;padding:10px;overflow:auto;min-height:0;flex:1 1 auto}
+.mergeManagerUnit{border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(15,20,28,.82);overflow:hidden;flex:0 0 auto}
 .mergeManagerUnit summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;cursor:pointer;user-select:none}
 .mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0}
 .mergeManagerUnitName,.mergeManagerChildName{font-weight:800;color:var(--fg)}
