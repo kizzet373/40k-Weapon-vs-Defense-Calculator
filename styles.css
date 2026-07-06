@@ -341,11 +341,14 @@ button.secondary.matchupRosterSwapButton{
 .mergeManagerPanelTitle{font-size:13px;font-weight:900;color:var(--fg)}
 .mergeManagerList{display:flex;flex-direction:column;gap:8px;padding:10px;overflow:auto;min-height:0;flex:1 1 auto}
 .mergeManagerUnit{border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(15,20,28,.82);overflow:hidden;flex:0 0 auto}
-.mergeManagerUnit summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;cursor:pointer;user-select:none}
+.mergeManagerDraggableUnit{cursor:grab}
+.mergeManagerDraggableUnit:active{cursor:grabbing}
+.mergeManagerUnit summary{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:9px 10px;cursor:pointer;user-select:none}
+.mergeManagerUnit summary::-webkit-details-marker{display:none}
+.mergeManagerUnit summary::before{content:'▸';flex:0 0 14px;color:var(--accent);font-size:14px;line-height:1}
+.mergeManagerUnit[open] summary::before{content:'▾'}
 .mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0}
 .mergeManagerUnitName,.mergeManagerChildName{font-weight:800;color:var(--fg)}
-.mergeDragHandle,.mergeDropHint{flex:0 0 auto;border:1px solid rgba(110,231,255,.26);background:rgba(110,231,255,.08);color:var(--accent);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;cursor:grab}
-.mergeDragHandle:active{cursor:grabbing}
 .mergeManagerChildren{display:flex;flex-direction:column;gap:6px;padding:0 10px 10px}
 .mergeManagerChild{display:flex;flex-direction:column;gap:2px;padding:8px 9px;border:1px solid rgba(255,255,255,.07);border-radius:8px;background:rgba(255,255,255,.035);cursor:grab}
 .mergeManagerChild:active{cursor:grabbing}

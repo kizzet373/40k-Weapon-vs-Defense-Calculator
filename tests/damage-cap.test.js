@@ -4,6 +4,11 @@ const path = require('path');
 const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
+const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+assert.ok(!/mergeDropHint|>\s*Drop\s*</i.test(indexHtml), 'merge manager target units do not show a Drop label');
+assert.ok(!/mergeDragHandle|>\s*Drag unit\s*</i.test(indexHtml), 'merge manager source units do not show a Drag unit label');
+assert.ok(/mergeManagerDraggableUnit[\s\S]*draggable="true"[\s\S]*mergeManagerDragStart\(\$event, 'unit', unit\)/.test(indexHtml), 'merge manager source unit rows are draggable');
+
 const context = {
   window: {},
   Math,
