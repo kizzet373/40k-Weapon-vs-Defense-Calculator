@@ -247,6 +247,7 @@ function weaponVsDefenseApp(){
     // ---------------- Lifecycle ----------------
     init(){
       this.addBaseProfilesRoster();
+      this.loadCachedRosters();
       this.syncModValueDefault();
       this.renderBreakdownChart(null);
       this.switchToMatchupView({ reset: true });
@@ -432,6 +433,96 @@ function weaponVsDefenseApp(){
     },
 
     // ---------------- Roster loading ----------------
+    rosterCacheKey(){
+      return '40kWeaponDefenseCalculator.rosters.v1';
+    },
+
+    canUseRosterCache(){
+      try{
+        return typeof window !== 'undefined' && !!window.localStorage;
+      }catch(_err){
+        return false;
+      }
+    },
+
+    cacheableRosters(){
+      return (this.rosters || []).filter(roster => roster?.data?._sourceFormat !== 'base-profiles');
+    },
+
+    selectedCacheableRosterIndex(){
+      const selected = this.rosters?.[this.selectedRosterIdx] || null;
+      if(!selected || selected?.data?._sourceFormat === 'base-profiles') return 0;
+      const index = this.cacheableRosters().findIndex(roster => roster === selected);
+      return index >= 0 ? index : 0;
+    },
+
+    saveCachedRosters(){
+      if(!this.canUseRosterCache()) return;
+      const rosters = this.cacheableRosters().map(roster => ({
+        label: roster.label,
+        data: roster.data,
+      }));
+      const payload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        selectedRosterIdx: this.selectedCacheableRosterIndex(),
+        rosters,
+      };
+      try{
+        window.localStorage.setItem(this.rosterCacheKey(), JSON.stringify(payload));
+      }catch(err){
+        console.warn('Unable to cache rosters in browser storage.', err);
+      }
+    },
+
+    loadCachedRosters(){
+      if(!this.canUseRosterCache()) return 0;
+      let payload = null;
+      try{
+        const raw = window.localStorage.getItem(this.rosterCacheKey());
+        payload = raw ? JSON.parse(raw) : null;
+      }catch(err){
+        console.warn('Unable to read cached rosters from browser storage.', err);
+        return 0;
+      }
+      const cached = Array.isArray(payload?.rosters) ? payload.rosters : [];
+      if(!cached.length) return 0;
+
+      const existingLabels = new Set((this.rosters || []).map(roster => roster.label));
+      const restored = [];
+      cached.forEach((entry, index) => {
+        try{
+          const normalized = window.ArmyImportService?.normalizeRosterData(entry.data, entry.label) || entry.data;
+          if(!normalized || normalized?._sourceFormat === 'base-profiles') return;
+          let label = (entry.label || normalized?.roster?.name || normalized?.name || `Cached roster ${index + 1}`).trim();
+          const base = label;
+          let suffix = 2;
+          while(existingLabels.has(label)) label = `${base} ${suffix++}`;
+          existingLabels.add(label);
+          restored.push({ label, data: normalized });
+        }catch(err){
+          console.warn('Unable to restore cached roster.', err);
+        }
+      });
+      if(!restored.length) return 0;
+
+      const firstRestoredIndex = this.rosters.length;
+      this.rosters.push(...restored);
+      const cachedSelected = parseInt(payload?.selectedRosterIdx, 10);
+      const restoredOffset = Number.isFinite(cachedSelected) ? this.clamp(cachedSelected, 0, restored.length - 1) : 0;
+      this.selectedRosterIdx = firstRestoredIndex + restoredOffset;
+      this.refreshForces();
+      return restored.length;
+    },
+
+    clearCachedRostersIfEmpty(){
+      if(!this.canUseRosterCache()) return;
+      if(this.cacheableRosters().length > 0) return;
+      try{
+        window.localStorage.removeItem(this.rosterCacheKey());
+      }catch(_err){}
+    },
+
     setImportStatus(type, name){
       const fallback = name || 'army';
       this.importStatus = {
@@ -508,6 +599,7 @@ function weaponVsDefenseApp(){
       this.selectedRosterIdx = this.rosters.length - 1;
 
       this.refreshForces();
+      if(normalized?._sourceFormat !== 'base-profiles') this.saveCachedRosters();
       return label;
     },
 
@@ -523,11 +615,14 @@ function weaponVsDefenseApp(){
         this.units = [];
         this.selectedForceIdx = 0;
         this.selectedUnitIdx = 0;
+        this.clearCachedRostersIfEmpty();
         return;
       }
 
       this.selectedRosterIdx = Math.min(this.selectedRosterIdx, this.rosters.length - 1);
       this.refreshForces();
+      if(this.cacheableRosters().length) this.saveCachedRosters();
+      else this.clearCachedRostersIfEmpty();
     },
 
     refreshForces(){
@@ -639,6 +734,7 @@ function weaponVsDefenseApp(){
       if(!changed) unit.label = label;
       this.refreshAfterUnitRename(selectedKey, profileKey, label);
       if(this.profileUnit && this.sourceUnitKey(this.profileUnit) === profileKey) this.profileUnit.label = label;
+      this.saveCachedRosters();
       return true;
     },
 
@@ -710,6 +806,7 @@ function weaponVsDefenseApp(){
       }
       this.onUnitChanged();
       this.clearMatchupComputationCache();
+      this.saveCachedRosters();
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
@@ -727,6 +824,7 @@ function weaponVsDefenseApp(){
       this.selectedUnitIdx = duplicateIndex >= 0 ? duplicateIndex : Math.max(0, this.units.length - 1);
       this.onUnitChanged();
       this.clearMatchupComputationCache();
+      this.saveCachedRosters();
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
@@ -745,6 +843,7 @@ function weaponVsDefenseApp(){
         : 0;
       this.onUnitChanged();
       this.clearMatchupComputationCache();
+      this.saveCachedRosters();
       if(this.matchupModalOpen) this.rebuildMatchup();
     },
 
@@ -1637,6 +1736,7 @@ function weaponVsDefenseApp(){
 
       const side = this.mergeManager.side;
       const selectedKey = this.sourceUnitKey(this.activeUnit);
+      this.saveCachedRosters();
       if(side){
         this.rebuildMatchup();
         this.refreshMergeManagerUnits();
@@ -1659,6 +1759,7 @@ function weaponVsDefenseApp(){
       const toKey = this.sourceUnitKey(targetUnit);
       const ok = window.ArmyImportService?.mergeUnits(force, fromKey, toKey);
       if(!ok){ alert('Choose two different units to merge.'); return; }
+      this.saveCachedRosters();
       this.closeMergeUnitModal();
       this.refreshUnitsPreservingSelection(toKey);
       this.onUnitChanged();
@@ -1686,6 +1787,7 @@ function weaponVsDefenseApp(){
       if(!duplicated) return;
       const key = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
       this.matchup[key] = this.matchupSideBaseUnits(side).length;
+      this.saveCachedRosters();
       this.rebuildMatchup();
     },
 
@@ -1697,6 +1799,7 @@ function weaponVsDefenseApp(){
       if(!deleted) return;
       const key = side === 'attacker' ? 'attackerUnitIdx' : 'defenderUnitIdx';
       this.matchup[key] = Math.max(0, (this.matchup[key] || 0) - 1);
+      this.saveCachedRosters();
       this.rebuildMatchup();
     },
 
@@ -1706,6 +1809,7 @@ function weaponVsDefenseApp(){
       const targetKey = this.sourceUnitKey(unit);
       const ok = window.ArmyImportService?.unmergeUnit(force, targetKey);
       if(!ok){ alert('No uniquely named models or merges found for that unit.'); return; }
+      this.saveCachedRosters();
       this.rebuildMatchup();
     },
 
@@ -1715,6 +1819,7 @@ function weaponVsDefenseApp(){
       const targetKey = this.sourceUnitKey(unit);
       const ok = window.ArmyImportService?.unmergeUnit(force, targetKey);
       if(!ok){ alert('No uniquely named models or merges found for that unit.'); return; }
+      this.saveCachedRosters();
       this.refreshUnitsPreservingSelection(targetKey);
       this.onUnitChanged();
       if(this.activeView === 'matchups'){
@@ -1747,6 +1852,7 @@ function weaponVsDefenseApp(){
       }
       this.refreshUnitsPreservingSelection(selectedKey === fromKey ? toKey : selectedKey);
       this.onUnitChanged();
+      this.saveCachedRosters();
       this.rebuildMatchup();
     },
 
@@ -1756,6 +1862,7 @@ function weaponVsDefenseApp(){
       window.ArmyImportService?.clearMerges(force);
       this.refreshUnitsPreservingSelection(selectedKey);
       this.onUnitChanged();
+      this.saveCachedRosters();
       this.rebuildMatchup();
     },
 
@@ -1774,6 +1881,7 @@ function weaponVsDefenseApp(){
       }
       this.refreshUnitsPreservingSelection(selectedKey || targetKey);
       this.onUnitChanged();
+      this.saveCachedRosters();
       this.rebuildMatchup();
     },
 

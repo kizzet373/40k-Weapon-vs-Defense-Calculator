@@ -1686,4 +1686,46 @@ assert.ok(mergeManagerApp.mergeModalOpen, 'merge manager stays open after submit
 assert.strictEqual(mergeManagerApp.mergeManager.moves.length, 0, 'merge manager clears staged moves after submit');
 assert.ok(mergeManagerApp.mergeManagerUnits().some(unit => unit._unitKey === 'target-leader' && unit._children?.some(child => child.label === 'Champion')), 'merge manager refreshes its unit list after submit');
 
+const localStorageStore = new Map();
+context.localStorage = {
+  getItem: key => localStorageStore.has(key) ? localStorageStore.get(key) : null,
+  setItem: (key, value) => localStorageStore.set(key, String(value)),
+  removeItem: key => localStorageStore.delete(key),
+};
+const cacheImportApp = context.weaponVsDefenseApp();
+cacheImportApp.addBaseProfilesRoster();
+cacheImportApp.addRoster({
+  roster: {
+    name: 'Cached Army',
+    forces: [{
+      name: 'Cached Force',
+      _importedUnits: [{
+        label: 'Cached Unit',
+        _unitKey: 'cached-unit',
+        _groupId: 'cached-unit',
+        _points: 55,
+        weapons: [],
+        abilities: [],
+        defense: { T: 4, Sv: 3, W: 2, models: 1 },
+        _children: [],
+      }],
+      _unitMerges: [],
+    }],
+  },
+}, 'Cached Army');
+const cachedPayload = JSON.parse(localStorageStore.get(cacheImportApp.rosterCacheKey()));
+assert.strictEqual(cachedPayload.rosters.length, 1, 'browser roster cache stores imported armies');
+assert.strictEqual(cachedPayload.rosters[0].label, 'Cached Army', 'browser roster cache does not store built-in Base Profiles');
+
+const restoredCacheApp = context.weaponVsDefenseApp();
+restoredCacheApp.addBaseProfilesRoster();
+assert.strictEqual(restoredCacheApp.loadCachedRosters(), 1, 'fresh app restores cached armies from browser storage');
+assert.ok(restoredCacheApp.rosters.some(roster => roster.label === 'Cached Army'), 'restored cache includes the imported army');
+restoredCacheApp.selectedRosterIdx = restoredCacheApp.rosters.findIndex(roster => roster.label === 'Cached Army');
+restoredCacheApp.refreshForces();
+restoredCacheApp.renameUnit(restoredCacheApp.activeUnit, 'Renamed Cached Unit');
+const renamedPayload = JSON.parse(localStorageStore.get(restoredCacheApp.rosterCacheKey()));
+assert.strictEqual(renamedPayload.rosters[0].data.roster.forces[0]._importedUnits[0].label, 'Renamed Cached Unit', 'browser roster cache updates after roster edits');
+delete context.localStorage;
+
 console.log('damage-cap tests passed');
