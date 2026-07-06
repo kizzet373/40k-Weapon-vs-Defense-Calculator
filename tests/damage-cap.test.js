@@ -1670,8 +1670,7 @@ mergeManagerApp.forces = [moveModelForce];
 mergeManagerApp.selectedForceIdx = 0;
 mergeManagerApp.units = mergeManagerApp.collectUnits(moveModelForce);
 mergeManagerApp.openMergeUnitModal(null, moveModelForce, mergeManagerApp.units);
-mergeManagerApp.mergeManager.moves = [{
-  id: 'manager-move-1',
+mergeManagerApp.mergeManagerStageMove({
   kind: 'unit',
   fromKey: 'champion',
   childKey: 'champion',
@@ -1680,7 +1679,11 @@ mergeManagerApp.mergeManager.moves = [{
   label: 'Champion',
   fromLabel: 'Champion',
   toLabel: 'Target Leader',
-}];
+});
+const stagedTarget = mergeManagerApp.mergeManagerUnits().find(unit => unit._unitKey === 'target-leader');
+assert.ok(stagedTarget._children?.some(child => child.label === 'Champion'), 'merge manager immediately refreshes staged modal lists after a drop');
+const actualTargetBeforeSubmit = context.window.ArmyImportService.collectImportedUnits(moveModelForce).find(unit => unit._unitKey === 'target-leader');
+assert.ok(!actualTargetBeforeSubmit._children?.some(child => child.label === 'Champion'), 'merge manager staging does not mutate the real army before submit');
 mergeManagerApp.submitMergeManager();
 assert.ok(mergeManagerApp.mergeModalOpen, 'merge manager stays open after submit so the refreshed lists are visible');
 assert.strictEqual(mergeManagerApp.mergeManager.moves.length, 0, 'merge manager clears staged moves after submit');

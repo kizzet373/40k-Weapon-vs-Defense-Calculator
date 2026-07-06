@@ -12,6 +12,7 @@ function weaponVsDefenseApp(){
     mergeManager: {
       side: '',
       force: null,
+      previewForce: null,
       units: [],
       moves: [],
       dragged: null,
@@ -1600,16 +1601,26 @@ function weaponVsDefenseApp(){
       return candidates.filter(unit => this.sourceUnitKey(unit) && this.sourceUnitKey(unit) !== fromKey);
     },
 
+    cloneMergeForce(force){
+      try{
+        return JSON.parse(JSON.stringify(force || {}));
+      }catch(_err){
+        return null;
+      }
+    },
+
     openMergeUnitModal(unit=null, force=null, candidates=null, side=''){
       const target = unit || this.activeUnit;
-      const unitList = candidates || this.units || [];
+      this.mergeFromForce = force || this.getForceByIdx(this.selectedForceIdx);
+      const previewForce = this.cloneMergeForce(this.mergeFromForce);
+      const unitList = previewForce ? this.collectUnits(previewForce) : (candidates || this.units || []);
       if(!unitList.length){ alert('No units are available in this force.'); return; }
       this.mergeFromUnit = target;
-      this.mergeFromForce = force || this.getForceByIdx(this.selectedForceIdx);
       this.mergeCandidateUnits = unitList;
       this.mergeManager = {
         side,
         force: this.mergeFromForce,
+        previewForce,
         units: unitList,
         moves: [],
         dragged: null,
@@ -1622,7 +1633,7 @@ function weaponVsDefenseApp(){
       this.mergeFromUnit = null;
       this.mergeFromForce = null;
       this.mergeCandidateUnits = null;
-      this.mergeManager = { side:'', force:null, units:[], moves:[], dragged:null };
+      this.mergeManager = { side:'', force:null, previewForce:null, units:[], moves:[], dragged:null };
     },
 
     mergeManagerUnits(){
@@ -1630,12 +1641,12 @@ function weaponVsDefenseApp(){
     },
 
     refreshMergeManagerUnits(){
-      const force = this.mergeManager.force || this.mergeFromForce || this.getForceByIdx(this.selectedForceIdx);
+      const force = this.mergeManager.previewForce || this.mergeManager.force || this.mergeFromForce || this.getForceByIdx(this.selectedForceIdx);
       if(!force) return;
       const units = this.collectUnits(force);
       this.mergeCandidateUnits = units;
       this.mergeManager.units = units;
-      this.mergeManager.force = force;
+      if(force !== this.mergeManager.previewForce) this.mergeManager.force = force;
     },
 
     mergeManagerUnitKey(unit){
@@ -1682,14 +1693,7 @@ function weaponVsDefenseApp(){
       const item = this.mergeManager.dragged || this.mergeManagerReadDragData(event);
       const toKey = this.mergeManagerUnitKey(targetUnit);
       if(!item || !toKey || item.childKey === toKey || item.fromKey === toKey) return;
-      this.mergeManagerAddMove({ ...item, toKey, toLabel: this.unitDropdownLabel(targetUnit), action: 'merge' });
-    },
-
-    mergeManagerDropToStandalone(event){
-      if(event?.preventDefault) event.preventDefault();
-      const item = this.mergeManager.dragged || this.mergeManagerReadDragData(event);
-      if(!item) return;
-      this.mergeManagerAddMove({ ...item, toKey: '', toLabel: 'Standalone', action: 'unmerge' });
+      this.mergeManagerStageMove({ ...item, toKey, toLabel: this.unitDropdownLabel(targetUnit), action: 'merge' });
     },
 
     mergeManagerReadDragData(event){
@@ -1701,21 +1705,24 @@ function weaponVsDefenseApp(){
       }
     },
 
-    mergeManagerAddMove(move){
-      const key = `${move.kind}:${move.fromKey}:${move.childKey}:${move.toKey}`;
+    applyMergeMoveToForce(force, move){
+      if(!force || !move) return false;
+      return move.kind === 'unit'
+        ? (move.action === 'unmerge'
+          ? window.ArmyImportService?.unmergeUnit(force, move.fromKey)
+          : window.ArmyImportService?.mergeUnits(force, move.fromKey, move.toKey))
+        : window.ArmyImportService?.moveModelToUnit(force, move.fromKey, move.childKey, move.toKey);
+    },
+
+    mergeManagerStageMove(move){
+      if(!this.mergeManager.previewForce) return;
+      const ok = this.applyMergeMoveToForce(this.mergeManager.previewForce, move);
+      if(!ok) return;
       this.mergeManager.moves = [
-        ...this.mergeManager.moves.filter(existing => `${existing.kind}:${existing.fromKey}:${existing.childKey}:${existing.toKey}` !== key),
-        { ...move, id: `${key}:${Date.now()}` },
+        ...(this.mergeManager.moves || []),
+        { ...move, id: `${move.kind}:${move.fromKey}:${move.childKey}:${move.toKey}:${Date.now()}` },
       ];
-    },
-
-    removeMergeManagerMove(moveId){
-      this.mergeManager.moves = (this.mergeManager.moves || []).filter(move => move.id !== moveId);
-    },
-
-    mergeManagerMoveText(move){
-      const verb = move.action === 'unmerge' ? 'unmerge to standalone' : `merge into ${move.toLabel}`;
-      return `${move.label} from ${move.fromLabel} -> ${verb}`;
+      this.refreshMergeManagerUnits();
     },
 
     submitMergeManager(){
@@ -1725,11 +1732,7 @@ function weaponVsDefenseApp(){
 
       let changed = false;
       moves.forEach(move => {
-        const ok = move.kind === 'unit'
-          ? (move.action === 'unmerge'
-            ? window.ArmyImportService?.unmergeUnit(force, move.fromKey)
-            : window.ArmyImportService?.mergeUnits(force, move.fromKey, move.toKey))
-          : window.ArmyImportService?.moveModelToUnit(force, move.fromKey, move.childKey, move.toKey);
+        const ok = this.applyMergeMoveToForce(force, move);
         if(ok) changed = true;
       });
       if(!changed){ alert('No merge or unmerge changes were applied.'); return; }
@@ -1737,13 +1740,13 @@ function weaponVsDefenseApp(){
       const side = this.mergeManager.side;
       const selectedKey = this.sourceUnitKey(this.activeUnit);
       this.saveCachedRosters();
+      this.mergeManager.previewForce = this.cloneMergeForce(force);
       if(side){
         this.rebuildMatchup();
         this.refreshMergeManagerUnits();
       }else{
         this.refreshUnitsPreservingSelection(selectedKey);
-        this.mergeCandidateUnits = this.units;
-        this.mergeManager.units = this.units;
+        this.refreshMergeManagerUnits();
         this.onUnitChanged();
         if(this.activeView === 'matchups') this.rebuildMatchup();
         else this.clearMatchupComputationCache();

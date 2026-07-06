@@ -1041,12 +1041,6 @@
               <div class="muted">Drop target</div>
             </div>
             <div class="mergeManagerList">
-              <div class="mergeStandaloneDrop"
-                   @dragover.prevent
-                   @drop="mergeManagerDropToStandalone($event)">
-                <div class="mergeManagerUnitName">Standalone / Unmerged</div>
-                <div class="muted">Drop here to split the dragged unit or model out.</div>
-              </div>
               <template x-for="unit in mergeManagerUnits()" :key="`merge-to-${mergeManagerUnitKey(unit)}`">
                 <details class="mergeManagerUnit mergeManagerDropUnit"
                          @dragover.prevent
@@ -1070,26 +1064,6 @@
               </template>
             </div>
           </section>
-        </div>
-
-        <div class="mergePendingPanel">
-          <div class="mergeManagerPanelHead">
-            <div class="mergeManagerPanelTitle">Pending Changes</div>
-            <div class="muted" x-text="`${mergeManager.moves.length} staged`"></div>
-          </div>
-          <template x-if="mergeManager.moves.length === 0">
-            <div class="muted">No changes staged yet.</div>
-          </template>
-          <template x-if="mergeManager.moves.length > 0">
-            <div class="mergePendingList">
-              <template x-for="move in mergeManager.moves" :key="move.id">
-                <div class="mergePendingMove">
-                  <span x-text="mergeManagerMoveText(move)"></span>
-                  <button class="secondary" type="button" @click="removeMergeManagerMove(move.id)">Remove</button>
-                </div>
-              </template>
-            </div>
-          </template>
         </div>
 
         <div class="mergeManagerActions">
