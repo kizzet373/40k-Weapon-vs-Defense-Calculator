@@ -679,14 +679,55 @@
     return [...sortWorstFirst(primary), ...sortWorstFirst(secondary)];
   }
 
+  function stateChoiceSignature(state){
+    const alive = aliveStateLines(state);
+    if(!alive.length){
+      const overkill = overkillStateLine(state);
+      return overkill
+        ? `overkill:${unitIdentity(overkill.unit)}:${overkill.def?.T}:${overkill.def?.Sv}:${overkill.def?.Inv}:${overkill.def?.W}:${overkill.def?.Fnp}:${overkill.def?.cover ? 1 : 0}`
+        : 'empty';
+    }
+    return alive.map(line => [
+      unitIdentity(line.unit),
+      line.isCharacter ? 1 : 0,
+      line.def?.T ?? '',
+      line.def?.Sv ?? '',
+      line.def?.Inv ?? '',
+      line.def?.W ?? '',
+      line.def?.Fnp ?? '',
+      line.def?.cover ? 1 : 0,
+    ].join(':')).join('|');
+  }
+
+  function weaponChoiceCacheKey(weapon, sourceUnit, defenderUnit, state, options){
+    return [
+      options?.conditionsMet ? 1 : 0,
+      unitIdentity(sourceUnit),
+      unitIdentity(defenderUnit),
+      weapon?._weaponKey || '',
+      weapon?.name || '',
+      weapon?.range ?? weapon?.R ?? weapon?.Range ?? '',
+      weapon?.A ?? '',
+      weapon?.skill ?? '',
+      weapon?.S ?? '',
+      weapon?.AP ?? '',
+      weapon?.D ?? '',
+      weapon?._profileCount ?? weapon?._count ?? '',
+      weapon?.modifiers || '',
+      stateChoiceSignature(state),
+    ].join('~');
+  }
+
   function bestWeaponVariantForState(weapon, sourceUnit, defenderUnit, state, options={}){
+    const cacheKey = options?._variantCache ? weaponChoiceCacheKey(weapon, sourceUnit, defenderUnit, state, options) : '';
+    if(cacheKey && options._variantCache.has(cacheKey)) return options._variantCache.get(cacheKey);
     const baseModifierText = options.effectiveWeaponModifiers
       ? options.effectiveWeaponModifiers(weapon, sourceUnit, defenderUnit)
       : (weapon?.modifiers || '');
     const variants = window.AbilityModifierService?.modifierTextVariants
       ? window.AbilityModifierService.modifierTextVariants(baseModifierText)
       : [baseModifierText];
-    return variants
+    const result = variants
       .map(text => {
         const firstLine = orderedStateLinesForWeapon(state, weapon, text, options, sourceUnit)[0];
         return {
@@ -699,6 +740,8 @@
         };
       })
       .reduce((winner, candidate) => candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1) ? candidate : winner, null);
+    if(cacheKey) options._variantCache.set(cacheKey, result);
+    return result;
   }
 
   function applyWeaponToState(choice, defenderUnit, state, options={}){
@@ -1141,12 +1184,40 @@
     return output;
   }
 
-  function attackGroupsForUnit(unit, defenderUnit, attackMode, options){
+  function attackGroupCacheKey(unit, attackMode, options){
+    return [
+      unitIdentity(unit),
+      attackMode || 'all',
+      options?.combineShootingProfiles ? 1 : 0,
+      options?.isMeleeEnabled?.() ? 1 : 0,
+    ].join('|');
+  }
+
+  function cloneAttackGroup(group){
+    return {
+      ...group,
+      alternatives: Array.isArray(group?.alternatives)
+        ? group.alternatives.map(item => ({ ...item }))
+        : group?.alternatives,
+    };
+  }
+
+  function baseAttackGroupsForUnit(unit, attackMode, options){
+    const key = options?._attackGroupCache ? attackGroupCacheKey(unit, attackMode, options) : '';
+    if(key && options._attackGroupCache.has(key)){
+      return options._attackGroupCache.get(key).map(cloneAttackGroup);
+    }
     const groups = aggregateWeaponChoiceGroups(
-      leafAttackUnits(unit).flatMap(leaf => attackGroupsForLeaf(leaf, defenderUnit, options)),
-      defenderUnit,
+      leafAttackUnits(unit).flatMap(leaf => attackGroupsForLeaf(leaf, null, options)),
+      null,
       options
     );
+    if(key) options._attackGroupCache.set(key, groups.map(cloneAttackGroup));
+    return groups;
+  }
+
+  function attackGroupsForUnit(unit, defenderUnit, attackMode, options){
+    const groups = baseAttackGroupsForUnit(unit, attackMode, options);
     additionalMortalDamage(unit, defenderUnit, attackMode, options).forEach(item => {
       groups.push({ type:'mortal', sourceUnit: unit, item });
     });
@@ -1174,6 +1245,8 @@
   function computeCell(attackerUnit, defenderUnit, options){
     if(options && !options._weaponCalcCache) options._weaponCalcCache = new Map();
     if(options && !options._targetLinesCache) options._targetLinesCache = new Map();
+    if(options && !options._attackGroupCache) options._attackGroupCache = new Map();
+    if(options && !options._variantCache) options._variantCache = new Map();
     const metric = options?.metric || 'damage';
     const def = effectiveDefense(defenderUnit, options, attackerUnit);
     const attackMode = attackerUnit?._attackMode || 'all';

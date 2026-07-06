@@ -1839,12 +1839,14 @@ function weaponVsDefenseApp(){
     decorateVisibleMatchupCells(range=this.matchupMetricRange()){
       const metric = this.matchup.metric || 'damage';
       (this.matchup.visibleRows || []).forEach(row => {
-        (row.cells || []).forEach(cell => {
+        (row.cells || []).forEach((cell, index) => {
           if(!cell) return;
           const value = window.MatchupEngine.metricValue(cell, metric);
           cell._matchupMetric = metric;
           cell._matchupMetricValue = value;
           cell._matchupStyle = window.MatchupEngine.colorForValue(value, range);
+          cell._matchupDisplay = this.formatMatchupMetric(cell);
+          cell._defenderUnit = this.matchup.visibleDefenders?.[index]?.unit || null;
         });
       });
     },
@@ -2252,17 +2254,29 @@ function weaponVsDefenseApp(){
       });
     },
 
+    createMatchupCalculationCache(){
+      return {
+        weaponCalc: new Map(),
+        targetLines: new Map(),
+        attackGroups: new Map(),
+        variants: new Map(),
+        modifiers: new Map(),
+        defenses: new Map(),
+      };
+    },
+
     buildMatchupRows(aRows, dUnits, buildIsCurrent){
+      const calculationCache = this.createMatchupCalculationCache();
       if(!this.shouldChunkMatchupBuild()){
         return aRows.map(au => ({
           unit: au,
-          cells: dUnits.map(du => this.computeMatchupCell(au, du)),
+          cells: dUnits.map(du => this.computeMatchupCell(au, du, { calculationCache })),
         }));
       }
-      return this.buildMatchupRowsAsync(aRows, dUnits, buildIsCurrent);
+      return this.buildMatchupRowsAsync(aRows, dUnits, buildIsCurrent, calculationCache);
     },
 
-    async buildMatchupRowsAsync(aRows, dUnits, buildIsCurrent){
+    async buildMatchupRowsAsync(aRows, dUnits, buildIsCurrent, calculationCache=this.createMatchupCalculationCache()){
       const rows = [];
       let lastYield = performance.now();
       for(let rowIndex = 0; rowIndex < aRows.length; rowIndex++){
@@ -2271,9 +2285,9 @@ function weaponVsDefenseApp(){
         const cells = [];
         for(let colIndex = 0; colIndex < dUnits.length; colIndex++){
           if(!buildIsCurrent()) return null;
-          cells.push(this.computeMatchupCell(au, dUnits[colIndex]));
+          cells.push(this.computeMatchupCell(au, dUnits[colIndex], { calculationCache }));
           const now = performance.now();
-          if(now - lastYield > 150){
+          if(now - lastYield > 300){
             this.matchup.loadingMessage = `Calculating ${rowIndex + 1}/${aRows.length} attackers`;
             await this.yieldMatchupBuild();
             lastYield = performance.now();
@@ -2662,9 +2676,11 @@ function weaponVsDefenseApp(){
     },
 
     computeMatchupCell(attackerUnit, defenderUnit, options={}){
-      const modifierCache = new Map();
-      const defenseCache = new Map();
+      const calculationCache = options.calculationCache || null;
+      const modifierCache = calculationCache?.modifiers || new Map();
+      const defenseCache = calculationCache?.defenses || new Map();
       const modifierKeyFor = (w, unit, defender) => [
+        this.matchup.conditionsMet ? 1 : 0,
         this.unitStateKey(unit),
         w?._weaponKey || w?.name || '',
         w?._profileCount ?? w?._count ?? '',
@@ -2700,6 +2716,10 @@ function weaponVsDefenseApp(){
         },
         isAbilityEnabled: (unit, ability) => this.isUnitAbilityEnabled(unit, ability),
         isEnhancementEnabled: (unit, enhancement) => this.isUnitEnhancementEnabled(unit, enhancement),
+        _weaponCalcCache: calculationCache?.weaponCalc || null,
+        _targetLinesCache: calculationCache?.targetLines || null,
+        _attackGroupCache: calculationCache?.attackGroups || null,
+        _variantCache: calculationCache?.variants || null,
       });
     },
 

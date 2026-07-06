@@ -8,7 +8,7 @@
   <script defer src="calculator-core.js?v=exact-grid-perf-1"></script>
   <script defer src="ability-modifiers.js?v=state-race-fix"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
-  <script defer src="matchup-engine.js?v=exact-grid-perf-1"></script>
+  <script defer src="matchup-engine.js?v=grid-cache-perf-1"></script>
   <script defer src="army-import.js?v=state-race-fix"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -619,9 +619,9 @@
                   </th>
 
                   <template x-for="(cell, di) in row.cells" :key="`m-cell-${ri}-${di}`">
-                    <td class="matchupCell" :style="matchupCellStyle(cell)">
-                      <button type="button" class="matchupCellValueButton" @click.stop="openMatchupFormula(cell, row.unit, matchupVisibleDefenders()[di]?.unit)">
-                        <span class="matchupCellValue" x-text="formatMatchupMetric(cell)"></span>
+                    <td class="matchupCell" :style="cell._matchupStyle || matchupCellStyle(cell)">
+                      <button type="button" class="matchupCellValueButton" @click.stop="openMatchupFormula(cell, row.unit, cell._defenderUnit)">
+                        <span class="matchupCellValue" x-text="cell._matchupDisplay || formatMatchupMetric(cell)"></span>
                       </button>
                       <template x-if="cell.weaponName">
                         <div class="matchupCellNote" x-text="cell.weaponName"></div>
@@ -870,9 +870,9 @@
                     </th>
 
                     <template x-for="(cell, di) in row.cells" :key="`m-cell-${ri}-${di}`">
-                      <td class="matchupCell" :style="matchupCellStyle(cell)">
-                        <button type="button" class="matchupCellValueButton" @click.stop="openMatchupFormula(cell, row.unit, matchupVisibleDefenders()[di]?.unit)">
-                          <span class="matchupCellValue" x-text="formatMatchupMetric(cell)"></span>
+                      <td class="matchupCell" :style="cell._matchupStyle || matchupCellStyle(cell)">
+                        <button type="button" class="matchupCellValueButton" @click.stop="openMatchupFormula(cell, row.unit, cell._defenderUnit)">
+                          <span class="matchupCellValue" x-text="cell._matchupDisplay || formatMatchupMetric(cell)"></span>
                         </button>
                         <template x-if="cell.weaponName">
                           <div class="matchupCellNote" x-text="cell.weaponName"></div>
@@ -1283,6 +1283,6 @@
 
 </div>
 
-<script src="utilities.js?v=exact-grid-perf-1"></script>
+<script src="utilities.js?v=grid-cache-perf-1"></script>
 </body>
 </html>
