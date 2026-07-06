@@ -483,7 +483,7 @@
           blastDice: kw.blastDice || 0,
           blastAttacksAdd,
         },
-        totals: { expectedHits, lethalWounds, expectedWoundsFromRolls, expectedWounds, normalWounds, criticalWounds, unsavedNormal, mortals, totalDamage },
+        totals: { expectedHits, lethalWounds, woundRollHits, expectedWoundsFromRolls, expectedWounds, normalWounds, criticalWounds, unsavedNormal, mortals, totalDamage },
       };
       if(options.includeFormula) result.formula = detail;
       else result.allocation = detail;

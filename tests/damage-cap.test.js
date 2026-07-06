@@ -928,6 +928,18 @@ const darkPactEasy = app.computeMatchupCell(darkPactAttacker, easyTarget);
 const darkPactHard = app.computeMatchupCell(darkPactAttacker, hardTarget);
 assert.ok(Math.abs(darkPactEasy.dmg - (10 / 3)) < 1e-9, 'Dark Pacts chooses Sustained Hits when it beats Lethal Hits');
 assert.ok(Math.abs(darkPactHard.dmg - (4 / 3)) < 1e-9, 'Dark Pacts chooses Lethal Hits when it beats Sustained Hits');
+const phaseWideDarkPactAttacker = {
+  label: 'Phase-wide Dark Pact unit',
+  abilities: ['Dark Pacts'],
+  weapons: [
+    { name: 'High strength pact gun', range: '24', A: '12', skill: '4', S: '10', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'phase-pact-high-gun' },
+    { name: 'Low strength pact gun', range: '24', A: '6', skill: '4', S: '1', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'phase-pact-low-gun' },
+    { name: 'Low strength pact blade', range: 'Melee', A: '6', skill: '4', S: '1', AP: '6', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'phase-pact-low-blade' },
+  ],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+};
+const phaseWideDarkPactCell = app.computeMatchupCell(phaseWideDarkPactAttacker, { label: 'Phase pact target', defense: { T: 3, Sv: 7, W: 100, models: 1, totalWounds: 100 } });
+assert.ok(Math.abs(phaseWideDarkPactCell.dmg - (26 / 3)) < 1e-9, 'Dark Pacts chooses one option for all shooting attacks and a separate option for all melee attacks');
 const disciplesAttacker = {
   ...darkPactAttacker,
   label: "Disciples of Be'lakor unit",
@@ -1090,6 +1102,20 @@ const diceLines = diceSection.lines.map(line => line.text || line);
 assert.ok(/Dice cannon \(x1\).*D:1d6/.test(diceSection.title), 'formula title keeps dice damage as dice text');
 assert.ok(diceLines.some(line => /Damage: .* x \(1d6\) damage/i.test(line)), 'damage step keeps dice damage in the equation');
 assert.ok(diceLines.some(line => /Hits: .*66\.7% base \+ 11\.1% Reroll Hits of 1 \+ 38\.9% sustained hits \(1d3\) = 116\.7% hit/i), 'hit formula shows base, reroll, sustained, and final hit-rate percentages as one equation');
+
+const lethalDevFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Lethal dev attacker',
+    weapons: [{ name: 'Lethal hammer', range: 'Melee', A: '14', skill: '2', S: '4', AP: '6', D: '1', modifiers: 'Lethal Hits, Devastating Wounds', mode: 'melee', _weaponKey: 'lethal-dev-hammer' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Lethal dev target', defense: { T: 9, Sv: 7, W: 100, models: 1, totalWounds: 100 } },
+  { includeFormula: true }
+);
+app.formulaCell = lethalDevFormulaCell;
+const lethalDevLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.ok(lethalDevLines.some(line => /Hits: .* = 2\.333 lethal hits \+ 9\.333 normal hits/i.test(line)), 'formula hit result splits lethal hits from normal hits');
+assert.ok(lethalDevLines.some(line => /Wound: 2\.333 lethal hits \+ \(9\.333 normal hits x 16\.7% wound rate\) = 3\.889 wounds \(2\.333 normal wounds & 1\.556 devastating wounds\)/i.test(line)), 'formula wound result adds lethal auto-wounds while separately showing devastating wounds');
 
 const groupedDefenseFormulaCell = app.computeMatchupCell(
   {

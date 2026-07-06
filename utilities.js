@@ -3770,25 +3770,34 @@ function weaponVsDefenseApp(){
         if(f.attacks != null){
           const attacks = (Number(f.attacks) || 0) * scale;
           const hits = (Number(totals.expectedHits) || 0) * scale;
+          const lethalHits = (Number(totals.lethalWounds) || 0) * scale;
+          const normalHits = (totals.woundRollHits != null
+            ? Number(totals.woundRollHits)
+            : Math.max(0, (Number(totals.expectedHits) || 0) - (Number(totals.lethalWounds) || 0))) * scale;
+          const hitResult = lethalHits > 1e-9
+            ? `${this.formulaNumber(lethalHits)} lethal hits + ${this.formulaNumber(normalHits)} normal hits`
+            : `${this.formulaNumber(hits)} hits`;
           lines.push(this.formulaLineEntry(
             'Hits',
             `${this.formulaNumber(attacks)} attacks x (${this.formulaHitRateEquation(probs)})`,
-            `${this.formulaNumber(hits)} hits`
+            hitResult
           ));
         }
         if(totals.expectedWounds != null){
           const woundRate = Number(probs.pWound) || 0;
           const lethal = (Number(totals.lethalWounds) || 0) * scale;
-          const woundRollHits = woundRate > 1e-9 ? ((Number(totals.expectedWoundsFromRolls) || 0) / woundRate) * scale : 0;
+          const woundRollHits = (totals.woundRollHits != null
+            ? Number(totals.woundRollHits)
+            : (woundRate > 1e-9 ? (Number(totals.expectedWoundsFromRolls) || 0) / woundRate : 0)) * scale;
           const wounds = (Number(totals.expectedWounds) || 0) * scale;
           const normalWounds = (Number(totals.normalWounds) || 0) * scale;
           const devastatingWounds = (Number(totals.mortals) || 0) * scale;
           const woundRateText = this.formulaRollRateText('wound', woundRate, probs.pBaseWound ?? woundRate, probs.pBaseCriticalWound ?? probs.pCriticalWound, probs.woundRerollMode, probs.woundRerollStrategy);
           const woundBody = lethal > 1e-9
-            ? `${this.formulaNumber(lethal)} lethal + ${this.formulaNumber(woundRollHits)} hits x ${woundRateText}`
+            ? `${this.formulaNumber(lethal)} lethal hits + (${this.formulaNumber(woundRollHits)} normal hits x ${woundRateText})`
             : `${this.formulaNumber(woundRollHits)} hits x ${woundRateText}`;
           const woundResult = devastatingWounds > 1e-9
-            ? `${this.formulaNumber(normalWounds)} normal wounds & ${this.formulaNumber(devastatingWounds)} devastating wounds`
+            ? `${this.formulaNumber(wounds)} wounds (${this.formulaNumber(normalWounds)} normal wounds & ${this.formulaNumber(devastatingWounds)} devastating wounds)`
             : `${this.formulaNumber(wounds)} wounds`;
           lines.push(this.formulaLineEntry(
             'Wound',

@@ -2,6 +2,10 @@
   const emptyCell = () => ({ dmg:0, kills:0, pctModelWounds:null, pctUnitKilled:null, weaponName:'', profilesUsed:[] });
   const keywordParseCache = new Map();
   const weaponCalcKeyCache = new WeakMap();
+  const modifierTokenCache = new Map();
+  const darkPactTokenCache = new Map();
+  const darkPactTextCache = new Map();
+  const unitPhaseChoiceCache = new WeakMap();
 
   function parsedWeaponKeywords(modifierText='', weapon=null){
     const key = [
@@ -197,6 +201,96 @@
       .map(token => String(token || '').trim().replace(/\s+/g, ' '))
       .filter(Boolean);
     return [...new Set(tokens.map(token => token.toLowerCase()))].sort().join(', ');
+  }
+
+  function splitModifierTokens(value){
+    const key = String(value || '');
+    if(modifierTokenCache.has(key)) return modifierTokenCache.get(key);
+    const result = (window.ArmyImportService?.splitModifiers
+      ? window.ArmyImportService.splitModifiers(value)
+      : String(value || '').split(','))
+      .map(token => String(token || '').trim())
+      .filter(Boolean);
+    modifierTokenCache.set(key, result);
+    return result;
+  }
+
+  function darkPactChoiceOptions(token){
+    const key = String(token || '');
+    if(darkPactTokenCache.has(key)) return darkPactTokenCache.get(key);
+    const match = String(token || '').match(/^Choose Best:\s*(.+)$/i);
+    if(!match){
+      darkPactTokenCache.set(key, null);
+      return null;
+    }
+    const options = match[1].split(/[|;]/).map(option => option.trim()).filter(Boolean);
+    const normalized = options.map(option => option.toLowerCase()).sort().join('|');
+    const result = normalized === 'lethal hits|sustained hits 1' ? options : null;
+    darkPactTokenCache.set(key, result);
+    return result;
+  }
+
+  function darkPactChoiceGroupsFromText(text){
+    const key = String(text || '');
+    if(darkPactTextCache.has(key)) return darkPactTextCache.get(key);
+    const groups = [];
+    splitModifierTokens(text).forEach(token => {
+      const options = darkPactChoiceOptions(token);
+      if(options?.length) groups.push(options);
+    });
+    darkPactTextCache.set(key, groups);
+    return groups;
+  }
+
+  function applyPhaseChoiceSelections(text, selections=[]){
+    let choiceIndex = 0;
+    return splitModifierTokens(text)
+      .map(token => {
+        if(darkPactChoiceOptions(token)){
+          const selected = selections[choiceIndex++];
+          return selected || '';
+        }
+        return token;
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  function cartesianChoiceSelections(groups){
+    return (groups || []).reduce(
+      (variants, group) => variants.flatMap(prefix => group.map(option => [...prefix, option])),
+      [[]]
+    );
+  }
+
+  function weaponPhase(weapon){
+    return isMeleeWeapon(weapon) ? 'melee' : 'shooting';
+  }
+
+  function phaseChoiceSelectionForWeapon(weapon, options={}){
+    return options?._phaseChoiceSelections?.[weaponPhase(weapon)] || [];
+  }
+
+  function ruleNameMayHavePhaseChoice(value){
+    return /\bDark Pacts?\b|Disciples of Be['\u2019]lakor/i.test(String(value || ''));
+  }
+
+  function unitFamilyMayHavePhaseChoice(unit){
+    if(!unit || typeof unit !== 'object') return false;
+    if(unitPhaseChoiceCache.has(unit)) return unitPhaseChoiceCache.get(unit);
+    const root = parentUnit(unit) || unit;
+    const members = [root, ...(root?._children || [])].filter(Boolean);
+    const result = members.some(member => [
+      ...(member?.abilities || []),
+      ...(member?._enhancements || []).map(enh => enh?.name || enh),
+    ].some(ruleNameMayHavePhaseChoice));
+    unitPhaseChoiceCache.set(unit, result);
+    return result;
+  }
+
+  function itemMayHavePhaseChoice(item){
+    return unitFamilyMayHavePhaseChoice(item?.sourceUnit)
+      || darkPactChoiceGroupsFromText(item?.weapon?.modifiers || '').length > 0;
   }
 
   function shootingChoiceKey(w){
@@ -740,6 +834,7 @@
       weapon?.D ?? '',
       weapon?._profileCount ?? weapon?._count ?? '',
       weapon?.modifiers || '',
+      phaseChoiceSelectionForWeapon(weapon, options).join('|'),
       stateChoiceSignature(state),
     ].join('~');
   }
@@ -750,9 +845,10 @@
     const baseModifierText = options.effectiveWeaponModifiers
       ? options.effectiveWeaponModifiers(weapon, sourceUnit, defenderUnit)
       : (weapon?.modifiers || '');
+    const phaseResolvedText = applyPhaseChoiceSelections(baseModifierText, phaseChoiceSelectionForWeapon(weapon, options));
     const variants = window.AbilityModifierService?.modifierTextVariants
-      ? window.AbilityModifierService.modifierTextVariants(baseModifierText)
-      : [baseModifierText];
+      ? window.AbilityModifierService.modifierTextVariants(phaseResolvedText)
+      : [phaseResolvedText];
     const result = variants
       .map(text => {
         const firstLine = orderedStateLinesForWeapon(state, weapon, text, options, sourceUnit)[0];
@@ -1250,6 +1346,98 @@
     return groups;
   }
 
+  function cloneStateForPhaseChoice(state){
+    const cloned = (state || []).map(line => ({
+      ...cloneTargetLine(line),
+      remainingPool: Number(line?.remainingPool) || 0,
+    }));
+    cloned._lastTargetLine = state?._lastTargetLine
+      ? cloned.find(line => line.unit === state._lastTargetLine.unit && line.index === state._lastTargetLine.index) || null
+      : null;
+    return cloned;
+  }
+
+  function phaseChoiceOptionGroups(groups, defenderUnit, options, phase){
+    const bySignature = new Map();
+    (groups || []).forEach(group => {
+      if(group.type !== 'weaponChoice') return;
+      const weapon = group.alternatives?.[0]?.weapon;
+      if(weaponPhase(weapon) !== phase) return;
+      (group.alternatives || []).forEach(item => {
+        if(!itemMayHavePhaseChoice(item)) return;
+        const baseModifierText = options.effectiveWeaponModifiers
+          ? options.effectiveWeaponModifiers(item.weapon, item.sourceUnit, defenderUnit)
+          : (item.weapon?.modifiers || '');
+        darkPactChoiceGroupsFromText(baseModifierText).forEach(choiceGroup => {
+          const signature = choiceGroup.map(option => option.toLowerCase()).sort().join('|');
+          if(!bySignature.has(signature)) bySignature.set(signature, choiceGroup);
+        });
+      });
+    });
+    return [...bySignature.values()];
+  }
+
+  function simulatePhaseChoiceDamage(groups, defenderUnit, baseState, options, phase, selections){
+    const state = cloneStateForPhaseChoice(baseState);
+    const localOptions = {
+      ...options,
+      includeFormula: false,
+      _phaseChoiceSelections: {
+        ...(options?._phaseChoiceSelections || {}),
+        [phase]: selections,
+      },
+    };
+    const remaining = (groups || [])
+      .filter(group => group.type === 'weaponChoice')
+      .filter(group => weaponPhase(group.alternatives?.[0]?.weapon) === phase)
+      .map((group, index) => ({ ...group, index }));
+    let dmg = 0;
+    while(remaining.length){
+      const choices = remaining.map((group, index) => {
+        const alternatives = (group.alternatives || [])
+          .map(item => bestWeaponVariantForState(item.weapon, item.sourceUnit, defenderUnit, state, localOptions))
+          .filter(Boolean);
+        const bestAlternative = alternatives.reduce((winner, candidate) => candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1) ? candidate : winner, null);
+        return {
+          group,
+          groupIndex: index,
+          firstTargetDamage: bestAlternative?.firstTargetDamage || 0,
+          choice: bestAlternative,
+        };
+      });
+      const selected = choices.reduce((winner, candidate) => {
+        if(candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1)) return candidate;
+        if(Math.abs(candidate.firstTargetDamage - (winner?.firstTargetDamage ?? 0)) <= 1e-9 && candidate.group.index < winner.group.index) return candidate;
+        return winner;
+      }, choices[0]);
+      remaining.splice(selected.groupIndex, 1);
+      if(!selected.choice) continue;
+      const applied = applyWeaponToState(selected.choice, defenderUnit, state, localOptions);
+      dmg += applied.dmg;
+    }
+    return dmg;
+  }
+
+  function choosePhaseChoiceSelections(groups, defenderUnit, state, options){
+    if(!(groups || []).some(group => group.type === 'weaponChoice' && (group.alternatives || []).some(itemMayHavePhaseChoice))){
+      return {};
+    }
+    const selections = {};
+    ['shooting', 'melee'].forEach(phase => {
+      const optionGroups = phaseChoiceOptionGroups(groups, defenderUnit, options, phase);
+      if(!optionGroups.length) return;
+      const variants = cartesianChoiceSelections(optionGroups);
+      const best = variants
+        .map(selection => ({
+          selection,
+          dmg: simulatePhaseChoiceDamage(groups, defenderUnit, state, options, phase, selection),
+        }))
+        .reduce((winner, candidate) => candidate.dmg > (winner?.dmg ?? -1) ? candidate : winner, null);
+      if(best?.selection?.length) selections[phase] = best.selection;
+    });
+    return selections;
+  }
+
   function killChanceFromExpectedDamage(expectedDamage, woundPool){
     const lambda = parseFloat(expectedDamage);
     const target = Math.ceil(parseFloat(woundPool));
@@ -1307,6 +1495,10 @@
     };
 
     preDamageGroups.forEach(group => applyMortalGroup(group, 'preDamage'));
+    const phaseChoiceSelections = choosePhaseChoiceSelections(remainingGroups, defenderUnit, state, options);
+    const attackOptions = Object.keys(phaseChoiceSelections).length
+      ? { ...options, _phaseChoiceSelections: phaseChoiceSelections }
+      : options;
 
     while(remainingGroups.length){
       const choices = remainingGroups.map((group, index) => {
@@ -1319,7 +1511,7 @@
           };
         }
         const alternatives = (group.alternatives || [])
-          .map(item => bestWeaponVariantForState(item.weapon, item.sourceUnit, defenderUnit, state, options))
+          .map(item => bestWeaponVariantForState(item.weapon, item.sourceUnit, defenderUnit, state, attackOptions))
           .filter(Boolean);
         const bestAlternative = alternatives.reduce((winner, candidate) => candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1) ? candidate : winner, null);
         return {
@@ -1352,7 +1544,7 @@
       }
 
       if(!selected.choice) continue;
-      const applied = applyWeaponToState(selected.choice, defenderUnit, state, options);
+      const applied = applyWeaponToState(selected.choice, defenderUnit, state, attackOptions);
       dmg += applied.dmg;
       kills += applied.kills;
       selectedProfiles.push(weaponProfileEntry(selected.choice.weapon));
