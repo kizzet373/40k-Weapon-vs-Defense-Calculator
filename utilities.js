@@ -1474,6 +1474,27 @@ function weaponVsDefenseApp(){
         : (attacker, defender) => this.cachedMatchupCell(attacker, defender);
     },
 
+    ensureOverallScoreSortCache(){
+      if(!this.matchup?.cellCache) this.matchup.cellCache = {};
+      const attackers = [...(this.matchupAttackerUnits || [])].filter(unit => this.hasMatchupWeaponProfiles(unit));
+      const defenders = [...(this.matchupDefenderUnits || [])];
+      const defenderAttackers = defenders.filter(unit => this.hasMatchupWeaponProfiles(unit));
+      const ensureCell = (attacker, defender) => {
+        if(!attacker || !defender || !this.hasMatchupWeaponProfiles(attacker)) return;
+        const key = this.cellCacheKey(attacker, defender);
+        if(!this.matchup.cellCache[key]){
+          this.matchup.cellCache[key] = this.computeMatchupCell(attacker, defender);
+        }
+      };
+
+      attackers.forEach(attacker => {
+        attackers.forEach(attackerAsDefender => ensureCell(attacker, attackerAsDefender));
+      });
+      defenderAttackers.forEach(defenderAsAttacker => {
+        defenders.forEach(defender => ensureCell(defenderAsAttacker, defender));
+      });
+    },
+
     refreshVisibleMatchup(options={}){
       const cellFor = this.matchupCellReader(options);
       const defenders = this.buildVisibleDefenders(options);
@@ -2041,6 +2062,9 @@ function weaponVsDefenseApp(){
       const colMode = this.matchup.sortDefenders || 'overallDamage';
       const rowAnchor = this.sortAnchorDefender();
       const colAnchor = this.sortAnchorAttacker();
+      if(rowMode === 'overallScore' || colMode === 'overallScore'){
+        this.ensureOverallScoreSortCache();
+      }
 
       attackers.sort((a, b) => {
         if(rowMode === 'alpha') return alpha(rowDirection)(a, b);

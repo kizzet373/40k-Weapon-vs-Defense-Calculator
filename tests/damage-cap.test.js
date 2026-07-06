@@ -1594,6 +1594,92 @@ noRecalcSortApp.sortMatchupByRow(sortAttackerA);
 noRecalcSortApp.sortMatchupAlphabetical();
 assert.ok(noRecalcSortApp.matchup.visibleRows.length > 0, 'sorting refreshes visible rows from cached matchup cells');
 
+const conditionalOverallSortApp = context.weaponVsDefenseApp();
+const conditionalSortFragile = {
+  label: 'Fragile profile',
+  _unitKey: 'conditional-sort-fragile',
+  _viewKey: 'conditional-sort-fragile',
+  _points: 100,
+  weapons: [{ name: 'Sort rifle', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'sort-rifle-fragile' }],
+  defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 },
+};
+const conditionalSortTank = {
+  label: 'Conditional tank',
+  _unitKey: 'conditional-sort-tank',
+  _viewKey: 'conditional-sort-tank',
+  _points: 100,
+  abilities: ['Daemon Lord of Nurgle'],
+  weapons: [{ name: 'Sort rifle', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'sort-rifle-tank' }],
+  defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 },
+};
+const conditionalSortTarget = {
+  label: 'Sort target',
+  _unitKey: 'conditional-sort-target',
+  _viewKey: 'conditional-sort-target',
+  _points: 100,
+  weapons: [],
+  defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 },
+};
+conditionalOverallSortApp.matchupModalOpen = true;
+conditionalOverallSortApp.matchup.conditionsMet = true;
+conditionalOverallSortApp.matchup.sortAttackers = 'overallScore';
+conditionalOverallSortApp.matchup.sortAttackersDirection = 'desc';
+conditionalOverallSortApp.matchup.sortDefenders = 'overallDamage';
+conditionalOverallSortApp.matchupAttackerUnits = [conditionalSortFragile, conditionalSortTank];
+conditionalOverallSortApp.matchupDefenderUnits = [conditionalSortTarget];
+conditionalOverallSortApp.matchup.rows = [conditionalSortFragile, conditionalSortTank].map(unit => ({
+  unit,
+  cells: [conditionalOverallSortApp.computeMatchupCell(unit, conditionalSortTarget)],
+}));
+conditionalOverallSortApp.seedAggregateCellCache();
+assert.ok(!conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'overall sort support cells are not present before sorting');
+conditionalOverallSortApp.refreshMatchupPresentation({ computeMissing: false });
+assert.strictEqual(conditionalOverallSortApp.matchupVisibleRows()[0].unit.label, 'Conditional tank', 'Overall Score attacker sorting includes conditional defensive modifiers after Conditions Met');
+assert.ok(conditionalOverallSortApp.lookupCachedMatchupCell(conditionalSortFragile, conditionalSortTank), 'Overall Score sorting warms the cross-axis cells needed for full scores');
+
+const conditionalDefenderOverallSortApp = context.weaponVsDefenseApp();
+const conditionalSortAttacker = {
+  label: 'Incoming attacker',
+  _unitKey: 'conditional-def-sort-attacker',
+  _viewKey: 'conditional-def-sort-attacker',
+  _points: 100,
+  weapons: [{ name: 'Incoming rifle', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'incoming-rifle' }],
+  defense: { T: 5, Sv: 7, W: 100, models: 1, totalWounds: 100 },
+};
+const conditionalSortPlainDefender = {
+  label: 'Plain defender',
+  _unitKey: 'conditional-sort-plain-defender',
+  _viewKey: 'conditional-sort-plain-defender',
+  _points: 100,
+  weapons: [{ name: 'Defender rifle', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'plain-defender-rifle' }],
+  defense: { T: 5, Sv: 7, W: 100, models: 1, totalWounds: 100 },
+};
+const conditionalSortShooterDefender = {
+  label: 'Conditional shooter defender',
+  _unitKey: 'conditional-sort-shooter-defender',
+  _viewKey: 'conditional-sort-shooter-defender',
+  _points: 100,
+  abilities: ['Daemon Lord of Tzeentch'],
+  weapons: [{ name: 'Defender rifle', range: '24', A: '12', skill: 'auto', S: '4', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'shooter-defender-rifle' }],
+  defense: { T: 5, Sv: 7, W: 100, models: 1, totalWounds: 100 },
+};
+conditionalDefenderOverallSortApp.matchupModalOpen = true;
+conditionalDefenderOverallSortApp.matchup.conditionsMet = true;
+conditionalDefenderOverallSortApp.matchup.sortAttackers = 'overallDamage';
+conditionalDefenderOverallSortApp.matchup.sortDefenders = 'overallScore';
+conditionalDefenderOverallSortApp.matchup.sortDefendersDirection = 'desc';
+conditionalDefenderOverallSortApp.matchupAttackerUnits = [conditionalSortAttacker];
+conditionalDefenderOverallSortApp.matchupDefenderUnits = [conditionalSortPlainDefender, conditionalSortShooterDefender];
+conditionalDefenderOverallSortApp.matchup.rows = [{
+  unit: conditionalSortAttacker,
+  cells: [conditionalSortPlainDefender, conditionalSortShooterDefender].map(unit => conditionalDefenderOverallSortApp.computeMatchupCell(conditionalSortAttacker, unit)),
+}];
+conditionalDefenderOverallSortApp.seedAggregateCellCache();
+assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender overall sort support cells are not present before sorting');
+conditionalDefenderOverallSortApp.refreshMatchupPresentation({ computeMissing: false });
+assert.strictEqual(conditionalDefenderOverallSortApp.matchupVisibleDefenders()[0].unit.label, 'Conditional shooter defender', 'Overall Score defender sorting includes conditional offensive modifiers after Conditions Met');
+assert.ok(conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender Overall Score sorting warms cross-axis offensive cells');
+
 const profileScoreAttacker = {
   label: 'Profile score attacker',
   _unitKey: 'profile-score-attacker',
