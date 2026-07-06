@@ -1680,6 +1680,44 @@ conditionalDefenderOverallSortApp.refreshMatchupPresentation({ computeMissing: f
 assert.strictEqual(conditionalDefenderOverallSortApp.matchupVisibleDefenders()[0].unit.label, 'Conditional shooter defender', 'Overall Score defender sorting includes conditional offensive modifiers after Conditions Met');
 assert.ok(conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender Overall Score sorting warms cross-axis offensive cells');
 
+const staleBuildApp = context.weaponVsDefenseApp();
+staleBuildApp.addBaseProfilesRoster();
+staleBuildApp.addRoster({
+  roster: {
+    name: 'Daemon Race Roster',
+    forces: [{
+      name: 'Daemon Race Force',
+      _importedUnits: [{
+        label: 'Daemon Race Unit',
+        _unitKey: 'daemon-race-unit',
+        _groupId: 'daemon-race-unit',
+        _points: 100,
+        weapons: [{ name: 'Race blade', range: 'Melee', A: '3', skill: '3', S: '5', AP: '1', D: '1', mode: 'melee', modifiers: '', _weaponKey: 'race-blade' }],
+        abilities: [],
+        defense: { T: 4, Sv: 3, W: 2, models: 1, totalWounds: 2 },
+        _children: [],
+      }],
+      _unitMerges: [],
+    }],
+  },
+}, 'Daemon Race Roster');
+const scheduledBuilds = [];
+staleBuildApp.scheduleMatchupBuild = work => scheduledBuilds.push(work);
+staleBuildApp.matchupModalOpen = true;
+staleBuildApp.matchup.attackerRosterIdx = staleBuildApp.rosters.findIndex(roster => roster.label === 'Daemon Race Roster');
+staleBuildApp.matchup.defenderRosterIdx = staleBuildApp.rosters.findIndex(roster => roster.label === 'Base Profiles');
+staleBuildApp.matchup.attackerForceIdx = 0;
+staleBuildApp.matchup.defenderForceIdx = 0;
+staleBuildApp.rebuildMatchup();
+staleBuildApp.matchup.attackerRosterIdx = staleBuildApp.rosters.findIndex(roster => roster.label === 'Base Profiles');
+staleBuildApp.rebuildMatchup();
+assert.strictEqual(scheduledBuilds.length, 2, 'race regression schedules two matchup rebuilds');
+scheduledBuilds[1]();
+assert.ok(staleBuildApp.matchupVisibleRows()[0].unit.label !== 'Daemon Race Unit', 'newer Base Profiles rebuild controls visible attacker rows');
+scheduledBuilds[0]();
+assert.ok(staleBuildApp.matchupVisibleRows()[0].unit.label !== 'Daemon Race Unit', 'stale Daemon rebuild cannot overwrite rows after dropdown state changes');
+assert.strictEqual(staleBuildApp.rosters[staleBuildApp.matchup.attackerRosterIdx].label, 'Base Profiles', 'attacker dropdown state remains aligned with the accepted rebuild');
+
 const profileScoreAttacker = {
   label: 'Profile score attacker',
   _unitKey: 'profile-score-attacker',

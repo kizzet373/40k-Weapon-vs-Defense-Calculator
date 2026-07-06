@@ -52,6 +52,7 @@ function weaponVsDefenseApp(){
       scoreMaps: { attackers: {}, defenders: {} },
       cellCache: {},
       cacheWarmToken: 0,
+      buildToken: 0,
       loadingMessage: '',
       customModifiers: { attacker: [], defender: [] },
     },
@@ -2201,6 +2202,8 @@ function weaponVsDefenseApp(){
     rebuildMatchup(){
       if(!this.matchupModalOpen) return;
       this.clearMatchupComputationCache();
+      const buildToken = (this.matchup.buildToken || 0) + 1;
+      this.matchup.buildToken = buildToken;
 
       const atkForces = this.getForcesForRoster(this.matchup.attackerRosterIdx);
       const defForces = this.getForcesForRoster(this.matchup.defenderRosterIdx);
@@ -2213,9 +2216,11 @@ function weaponVsDefenseApp(){
       this.matchup.loading = true;
       this.matchup.loadingMessage = 'Building matchup matrix';
       this.scheduleMatchupBuild(() => {
+        if(buildToken !== this.matchup.buildToken) return;
         try{
           const aUnits = this.prepareMatchupUnits(aForce ? this.collectUnits(aForce) : [], 'attacker');
           const dUnits = this.prepareMatchupUnits(dForce ? this.collectUnits(dForce) : [], 'defender');
+          if(buildToken !== this.matchup.buildToken) return;
           const aRows = aUnits
             .flatMap(unit => this.attackModeVariants(unit))
             .filter(unit => this.hasMatchupWeaponProfiles(unit));
@@ -2239,8 +2244,10 @@ function weaponVsDefenseApp(){
           this.syncMatchupMergeSelections();
           this.saveCachedAppState();
         }finally{
-          this.matchup.loading = false;
-          this.matchup.loadingMessage = '';
+          if(buildToken === this.matchup.buildToken){
+            this.matchup.loading = false;
+            this.matchup.loadingMessage = '';
+          }
         }
       });
     },
