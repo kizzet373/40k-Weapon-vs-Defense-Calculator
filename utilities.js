@@ -3726,11 +3726,11 @@ function weaponVsDefenseApp(){
           const damageResult = `${this.formulaNumber(allocation.rawDamageTotal ?? line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage`;
           lines.push(this.formulaLineEntry('Damage', parts.join(' '), damageResult));
           if((Number(allocation.rawSpillLoss) || 0) > 1e-9){
-            const modelCount = Math.max(0, Number(allocation.killedModels) || 0);
+            const instanceCount = Math.max(0, Number(allocation.damageInstances) || 0);
             const meanDamage = Math.max(0, Number(f.damage) || 0);
             const modelWounds = Math.max(0, Number(f?.defense?.W) || 0);
-            const spillBody = modelCount > 0 && meanDamage > 0 && modelWounds > 0
-              ? `${this.formulaNumber(modelCount)} models x (${this.formulaNumber(meanDamage)} damage - ${this.formulaNumber(modelWounds)} wounds)`
+            const spillBody = instanceCount > 0 && meanDamage > 0 && modelWounds > 0
+              ? `${this.formulaNumber(instanceCount)} damage instances x (${this.formulaNumber(meanDamage)} damage - ${this.formulaNumber(modelWounds)} wounds)`
               : '';
             lines.push(this.formulaLineEntry('Spill Loss', spillBody, `${this.formulaNumber(allocation.rawSpillLoss)} spill loss`));
           }

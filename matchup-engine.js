@@ -711,6 +711,8 @@
     const scaleFactor = Math.max(0, Math.min(1, Number(scale) || 0));
     const fnpMultiplier = 1 - (Number(probs.pFnp) || 0);
     const normalAttacksTotal = Math.max(0, (Number(totals.unsavedNormal) || 0) * scaleFactor);
+    const mortalAttackTotal = Math.max(0, (Number(totals.mortals) || 0) * scaleFactor);
+    const damageInstancesTotal = normalAttacksTotal + mortalAttackTotal;
     const cappedDamage = Math.max(0, Number(formula.cappedDamage) || 0);
     const rawDamagePerHit = window.WeaponCalc.expectedCappedDamage(
       weapon?.D,
@@ -718,7 +720,7 @@
       kw.damageAdd || 0,
       kw.damageDivisor || 1
     ) * fnpMultiplier;
-    const mortalDamageTotal = Math.max(0, (Number(totals.mortals) || 0) * rawDamagePerHit * scaleFactor);
+    const mortalDamageTotal = mortalAttackTotal * rawDamagePerHit;
     const rawNormalDamageTotal = Math.max(0, normalAttacksTotal * rawDamagePerHit);
     const rawDamageTotal = Math.max(0, rawNormalDamageTotal + mortalDamageTotal);
     const preAllocationDamage = Math.max(0, (normalAttacksTotal * cappedDamage * fnpMultiplier) + mortalDamageTotal);
@@ -729,49 +731,71 @@
       return modelWounds * models;
     };
 
-    const allocateIntoPool = (pool, normalAttacks, mortalDamage) => {
+    const allocateIntoPool = (pool, damageInstances) => {
       let remainingPool = Math.max(0, Number(pool) || 0);
-      let normalAttacksRemaining = Math.max(0, Number(normalAttacks) || 0);
-      let normalApplied = 0;
+      let instancesRemaining = Math.max(0, Number(damageInstances) || 0);
+      let appliedDamage = 0;
+      let rawSpillLoss = 0;
+      const fullModelDamage = modelWounds > 0
+        ? window.WeaponCalc.expectedCappedDamage(
+            weapon?.D,
+            modelWounds,
+            kw.damageAdd || 0,
+            kw.damageDivisor || 1
+          ) * fnpMultiplier
+        : rawDamagePerHit;
 
-      while(normalAttacksRemaining > 1e-9 && remainingPool > 1e-9){
-        const attackPortion = Math.min(1, normalAttacksRemaining);
+      while(instancesRemaining >= 1 - 1e-9 && remainingPool > 1e-9){
         const modelRemaining = currentModelRemaining(remainingPool, modelWounds);
         const attackDamage = modelWounds > 0
           ? window.WeaponCalc.expectedCappedDamage(
               weapon?.D,
-              modelWounds,
+              modelRemaining || modelWounds,
               kw.damageAdd || 0,
               kw.damageDivisor || 1
             ) * fnpMultiplier
           : rawDamagePerHit;
-        const applied = Math.min(modelRemaining || attackDamage * attackPortion, attackDamage * attackPortion, remainingPool);
+        const applied = Math.min(Math.max(0, attackDamage), remainingPool);
         if(applied <= 1e-9) break;
-        normalApplied += applied;
+        rawSpillLoss += Math.max(0, rawDamagePerHit - applied);
+        appliedDamage += applied;
         remainingPool = Math.max(0, remainingPool - applied);
-        normalAttacksRemaining -= attackPortion;
+        instancesRemaining -= 1;
       }
 
-      const mortalApplied = Math.min(Math.max(0, Number(mortalDamage) || 0), remainingPool);
-      remainingPool = Math.max(0, remainingPool - mortalApplied);
+      if(instancesRemaining > 1e-9 && remainingPool > 1e-9 && fullModelDamage > 1e-9){
+        const attackPortion = Math.min(1, instancesRemaining);
+        const possibleApplied = Math.max(0, fullModelDamage * attackPortion);
+        const applied = Math.min(possibleApplied, remainingPool);
+        const usedPortion = possibleApplied > 1e-9
+          ? Math.min(attackPortion, attackPortion * (applied / possibleApplied))
+          : attackPortion;
+        rawSpillLoss += Math.max(0, (rawDamagePerHit - fullModelDamage) * usedPortion);
+        appliedDamage += applied;
+        remainingPool = Math.max(0, remainingPool - applied);
+        instancesRemaining -= usedPortion;
+      }
+
       const killedModels = modelWounds > 0
         ? Math.max(0, aliveModelCount(pool, modelWounds) - aliveModelCount(remainingPool, modelWounds))
         : 0;
       return {
-        normalApplied,
-        mortalApplied,
-        appliedDamage: normalApplied + mortalApplied,
+        normalApplied: appliedDamage,
+        mortalApplied: 0,
+        appliedDamage,
         remainingPool,
-        normalAttacksRemaining,
+        normalAttacksRemaining: instancesRemaining,
+        damageInstancesRemaining: instancesRemaining,
+        rawSpillLoss,
         killedModels,
       };
     };
 
     if(overkill){
-      const hypotheticalPool = hypotheticalPoolFor(rawDamageTotal, normalAttacksTotal);
-      const allocated = allocateIntoPool(hypotheticalPool, normalAttacksTotal, mortalDamageTotal);
+      const hypotheticalPool = hypotheticalPoolFor(rawDamageTotal, damageInstancesTotal);
+      const allocated = allocateIntoPool(hypotheticalPool, damageInstancesTotal);
       const appliedDamage = allocated.appliedDamage;
-      const rawSpillLoss = Math.max(0, rawDamageTotal - appliedDamage);
+      const rawSpillLoss = Math.max(0, allocated.rawSpillLoss);
       return {
         appliedDamage,
         kills: modelWounds > 0 ? appliedDamage / modelWounds : 0,
@@ -787,6 +811,8 @@
         remainingPool: startPool,
         normalAttacks: normalAttacksTotal,
         normalAttacksRemaining: allocated.normalAttacksRemaining,
+        damageInstances: damageInstancesTotal,
+        damageInstancesRemaining: allocated.damageInstancesRemaining,
         mortalDamage: mortalDamageTotal,
         remainingFraction: 0,
         fnpMultiplier,
@@ -794,28 +820,36 @@
       };
     }
 
-    const allocated = allocateIntoPool(startPool, normalAttacksTotal, mortalDamageTotal);
+    const allocated = allocateIntoPool(startPool, damageInstancesTotal);
     let remainingPool = allocated.remainingPool;
     const normalApplied = allocated.normalApplied;
     const mortalApplied = allocated.mortalApplied;
     const appliedDamage = normalApplied + mortalApplied;
     const allocationLoss = Math.max(0, preAllocationDamage - appliedDamage);
     let killedModels = allocated.killedModels;
-    const normalAttacksRemaining = allocated.normalAttacksRemaining;
-    const normalFractionRemaining = normalAttacksTotal > 1e-9 ? normalAttacksRemaining / normalAttacksTotal : 0;
-    const mortalFractionRemaining = mortalDamageTotal > 1e-9 ? Math.max(0, mortalDamageTotal - mortalApplied) / mortalDamageTotal : 0;
+    const damageInstancesRemaining = allocated.damageInstancesRemaining;
+    const normalAttacksRemaining = normalAttacksTotal > 1e-9 && damageInstancesTotal > 1e-9
+      ? damageInstancesRemaining * (normalAttacksTotal / damageInstancesTotal)
+      : 0;
+    const mortalAttacksRemaining = mortalAttackTotal > 1e-9 && damageInstancesTotal > 1e-9
+      ? damageInstancesRemaining * (mortalAttackTotal / damageInstancesTotal)
+      : 0;
+    const normalFractionRemaining = damageInstancesTotal > 1e-9 ? damageInstancesRemaining / damageInstancesTotal : 0;
+    const mortalFractionRemaining = normalFractionRemaining;
     const rawNormalDamageRemaining = Math.max(0, normalAttacksRemaining * rawDamagePerHit);
-    const rawMortalDamageRemaining = Math.max(0, mortalDamageTotal - mortalApplied);
+    const rawMortalDamageRemaining = Math.max(0, mortalAttacksRemaining * rawDamagePerHit);
     const rawRemainder = Math.max(0, rawNormalDamageRemaining + rawMortalDamageRemaining);
     const rawDamageRemaining = finalTarget ? 0 : rawRemainder;
     let rawOverkillDamage = 0;
+    let rawOverkillSpillLoss = 0;
     if(finalTarget && rawRemainder > 1e-9){
-      const hypotheticalPool = hypotheticalPoolFor(rawRemainder, normalAttacksRemaining);
-      const overkillAllocation = allocateIntoPool(hypotheticalPool, normalAttacksRemaining, rawMortalDamageRemaining);
+      const hypotheticalPool = hypotheticalPoolFor(rawRemainder, damageInstancesRemaining);
+      const overkillAllocation = allocateIntoPool(hypotheticalPool, damageInstancesRemaining);
       rawOverkillDamage = overkillAllocation.appliedDamage;
+      rawOverkillSpillLoss = overkillAllocation.rawSpillLoss;
       killedModels += overkillAllocation.killedModels;
     }
-    const rawSpillLoss = Math.max(0, rawDamageTotal - appliedDamage - rawDamageRemaining - rawOverkillDamage);
+    const rawSpillLoss = Math.max(0, allocated.rawSpillLoss + rawOverkillSpillLoss);
     const remainingLocalFraction = rawDamageTotal > 1e-9
       ? Math.max(0, Math.min(1, rawDamageRemaining / rawDamageTotal))
       : Math.max(normalFractionRemaining, mortalFractionRemaining);
@@ -835,6 +869,8 @@
       remainingPool,
       normalAttacks: normalAttacksTotal,
       normalAttacksRemaining,
+      damageInstances: damageInstancesTotal,
+      damageInstancesRemaining,
       mortalDamage: mortalDamageTotal,
       remainingFraction: scaleFactor * remainingLocalFraction,
       fnpMultiplier,
