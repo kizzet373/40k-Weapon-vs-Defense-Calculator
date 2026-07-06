@@ -20,6 +20,7 @@ function weaponVsDefenseApp(){
     renameModalOpen: false,
     renameTargetUnit: null,
     renameDraft: '',
+    renameModalContext: '',
 
     // ---------------- Matchups ----------------
     matchupModalOpen: false,
@@ -937,11 +938,12 @@ function weaponVsDefenseApp(){
       return this.isModelRenameTarget() ? 'Rename Model' : 'Rename Unit';
     },
 
-    openRenameUnitModal(unit=null){
+    openRenameUnitModal(unit=null, context=''){
       const target = unit || this.activeUnit;
       if(!target) return;
       this.renameTargetUnit = target;
       this.renameDraft = this.unitLabelText(target, 'Unit');
+      this.renameModalContext = context || '';
       this.renameModalOpen = true;
       const focusInput = () => {
         this.$refs?.renameInput?.focus?.();
@@ -956,12 +958,17 @@ function weaponVsDefenseApp(){
       this.renameModalOpen = false;
       this.renameTargetUnit = null;
       this.renameDraft = '';
+      this.renameModalContext = '';
     },
 
     submitRenameUnit(){
       const target = this.renameTargetUnit || this.activeUnit;
       const label = String(this.renameDraft || '').trim();
       if(!target || !label) return;
+      if(this.renameModalContext === 'mergeManager'){
+        if(this.renameMergeManagerItem(target, label)) this.closeRenameUnitModal();
+        return;
+      }
       this.renameUnit(target, label);
       this.closeRenameUnitModal();
     },
@@ -1995,6 +2002,19 @@ function weaponVsDefenseApp(){
       return (unit?._children && unit._children.length) ? unit._children : [unit];
     },
 
+    mergeManagerEditIdentity(unit){
+      return {
+        unitKey: String(unit?._baseUnit?._unitKey || unit?._unitKey || ''),
+        groupId: String(unit?._baseUnit?._groupId || unit?._groupId || ''),
+        label: this.unitDropdownLabel(unit),
+      };
+    },
+
+    promptMergeManagerRename(unit){
+      if(!unit) return;
+      this.openRenameUnitModal(unit, 'mergeManager');
+    },
+
     mergeManagerUnitMoveAllowed(unit){
       const key = this.mergeManagerUnitKey(unit);
       return !!key && this.mergeManagerUnits().length > 1;
@@ -2041,6 +2061,12 @@ function weaponVsDefenseApp(){
 
     applyMergeMoveToForce(force, move){
       if(!force || !move) return false;
+      if(move.action === 'rename'){
+        return window.ArmyImportService?.renameUnit(force, { _unitKey: move.unitKey, _groupId: move.groupId }, move.label);
+      }
+      if(move.action === 'delete'){
+        return window.ArmyImportService?.removeUnit(force, { _unitKey: move.unitKey, _groupId: move.groupId });
+      }
       return move.kind === 'unit'
         ? (move.action === 'unmerge'
           ? window.ArmyImportService?.unmergeUnit(force, move.fromKey)
@@ -2057,6 +2083,44 @@ function weaponVsDefenseApp(){
         { ...move, id: `${move.kind}:${move.fromKey}:${move.childKey}:${move.toKey}:${Date.now()}` },
       ];
       this.refreshMergeManagerUnits();
+    },
+
+    stageMergeManagerEdit(edit){
+      if(!this.mergeManager.previewForce || !edit?.unitKey) return false;
+      const ok = this.applyMergeMoveToForce(this.mergeManager.previewForce, edit);
+      if(!ok) return false;
+      this.mergeManager.moves = [
+        ...(this.mergeManager.moves || []),
+        { ...edit, id: `${edit.action}:${edit.unitKey}:${Date.now()}` },
+      ];
+      this.refreshMergeManagerUnits();
+      return true;
+    },
+
+    renameMergeManagerItem(unit, label){
+      const identity = this.mergeManagerEditIdentity(unit);
+      const cleanLabel = String(label || '').trim();
+      if(!identity.unitKey || !cleanLabel) return false;
+      return this.stageMergeManagerEdit({
+        action: 'rename',
+        kind: 'edit',
+        unitKey: identity.unitKey,
+        groupId: identity.groupId,
+        label: cleanLabel,
+        fromLabel: identity.label,
+      });
+    },
+
+    deleteMergeManagerItem(unit){
+      const identity = this.mergeManagerEditIdentity(unit);
+      if(!identity.unitKey) return false;
+      return this.stageMergeManagerEdit({
+        action: 'delete',
+        kind: 'edit',
+        unitKey: identity.unitKey,
+        groupId: identity.groupId,
+        label: identity.label,
+      });
     },
 
     submitMergeManager(){

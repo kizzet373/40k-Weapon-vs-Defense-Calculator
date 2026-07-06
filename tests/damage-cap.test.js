@@ -10,8 +10,13 @@ assert.ok(!/mergeDropHint|>\s*Drop\s*</i.test(indexHtml), 'merge manager target 
 assert.ok(!/mergeDragHandle|>\s*Drag unit\s*</i.test(indexHtml), 'merge manager source units do not show a Drag unit label');
 assert.ok(/mergeManagerDraggableUnit[\s\S]*draggable="true"[\s\S]*mergeManagerDragStart\(\$event, 'unit', unit\)/.test(indexHtml), 'merge manager source unit rows are draggable');
 assert.ok(/mergeManagerDragBubble[\s\S]*>\s*drag\s*</i.test(indexHtml), 'merge manager source units and models show a compact drag bubble');
+assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline rename button');
+assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
+assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
+assert.ok(/deleteMergeManagerItem\(child\)/.test(indexHtml), 'merge manager model rows expose an inline delete button');
 assert.ok(/mergeManagerUnit summary::after[\s\S]*font-size:24px/.test(stylesCss), 'merge manager collapsible arrow is a larger right-side affordance');
 assert.ok(!/mergeManagerUnit summary::before/.test(stylesCss), 'merge manager collapsible arrow is not left-side before content');
+assert.ok(/mergeManagerDeleteButton/.test(stylesCss), 'merge manager delete buttons have a dedicated compact danger style');
 
 const context = {
   window: {},
@@ -1954,6 +1959,54 @@ assert.ok(!actualSquadBeforeSecondSubmit._children?.some(child => child.label ==
 mergeManagerApp.submitMergeManager();
 const actualSquadAfterSecondSubmit = context.window.ArmyImportService.collectImportedUnits(moveModelForce).find(unit => unit._unitKey === 'source-squad');
 assert.ok(actualSquadAfterSecondSubmit._children?.some(child => child.label === 'Champion'), 'merge manager submit applies staged model move/unmerge to the real army');
+
+const mergeEditForce = {
+  name: 'Merge edit force',
+  _importedUnits: [
+    {
+      label: 'Edit Squad',
+      _unitKey: 'edit-squad',
+      _groupId: 'edit-squad',
+      _points: 100,
+      weapons: [],
+      abilities: [],
+      defense: { T: 4, Sv: 3, W: 2, models: 2 },
+      _children: [
+        { label: 'Edit Leader', _unitKey: 'edit-leader', _groupId: 'edit-squad', _points: 50, weapons: [], abilities: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _children: [] },
+        { label: 'Delete Me', _unitKey: 'delete-me', _groupId: 'edit-squad', _points: 50, weapons: [], abilities: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _children: [] },
+      ],
+    },
+    {
+      label: 'Spare Unit',
+      _unitKey: 'spare-unit',
+      _groupId: 'spare-unit',
+      _points: 80,
+      weapons: [],
+      abilities: [],
+      defense: { T: 4, Sv: 3, W: 2, models: 1 },
+      _children: [],
+    },
+  ],
+  _unitMerges: [],
+};
+const mergeEditApp = context.weaponVsDefenseApp();
+mergeEditApp.forces = [mergeEditForce];
+mergeEditApp.selectedForceIdx = 0;
+mergeEditApp.units = mergeEditApp.collectUnits(mergeEditForce);
+mergeEditApp.openMergeUnitModal(null, mergeEditForce, mergeEditApp.units);
+const previewEditSquad = mergeEditApp.mergeManagerUnits().find(unit => unit._unitKey === 'edit-squad');
+assert.ok(mergeEditApp.renameMergeManagerItem(previewEditSquad, 'Renamed Edit Squad'), 'merge manager can stage a unit rename');
+assert.ok(mergeEditApp.mergeManagerUnits().some(unit => unit.label === 'Renamed Edit Squad'), 'merge manager preview refreshes after staged unit rename');
+assert.strictEqual(context.window.ArmyImportService.collectImportedUnits(mergeEditForce).find(unit => unit._unitKey === 'edit-squad').label, 'Edit Squad', 'staged unit rename does not mutate the real army before submit');
+mergeEditApp.submitMergeManager();
+assert.strictEqual(context.window.ArmyImportService.collectImportedUnits(mergeEditForce).find(unit => unit._unitKey === 'edit-squad').label, 'Renamed Edit Squad', 'merge manager submit applies staged unit rename to the real army');
+const renamedPreview = mergeEditApp.mergeManagerUnits().find(unit => unit._unitKey === 'edit-squad');
+const deletePreviewChild = renamedPreview._children.find(child => child._unitKey === 'delete-me');
+assert.ok(mergeEditApp.deleteMergeManagerItem(deletePreviewChild), 'merge manager can stage deleting a model');
+assert.ok(!mergeEditApp.mergeManagerUnits().find(unit => unit._unitKey === 'edit-squad')._children.some(child => child._unitKey === 'delete-me'), 'merge manager preview refreshes after staged model delete');
+assert.ok(context.window.ArmyImportService.collectImportedUnits(mergeEditForce).find(unit => unit._unitKey === 'edit-squad')._children.some(child => child._unitKey === 'delete-me'), 'staged model delete does not mutate the real army before submit');
+mergeEditApp.submitMergeManager();
+assert.ok(!context.window.ArmyImportService.collectImportedUnits(mergeEditForce).find(unit => unit._unitKey === 'edit-squad')._children.some(child => child._unitKey === 'delete-me'), 'merge manager submit applies staged model delete to the real army');
 
 const localStorageStore = new Map();
 context.localStorage = {

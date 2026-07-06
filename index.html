@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=async-merge-controls">
+  <link rel="stylesheet" href="styles.css?v=merge-edit-actions-1">
   <script defer src="calculator-core.js?v=phase-pact-formula-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -1016,11 +1016,17 @@
                          @dragend="mergeManagerDragEnd()">
                   <summary>
                     <span class="mergeManagerUnitSummary">
-                      <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                      <span class="mergeManagerNameRow">
+                        <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                        <button class="mergeManagerIconButton" type="button" aria-label="Rename unit"
+                                @click.stop.prevent="promptMergeManagerRename(unit)">✎</button>
+                      </span>
                       <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
                     </span>
                     <span class="mergeManagerSummaryActions">
                       <span class="mergeManagerDragBubble">drag</span>
+                      <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete unit"
+                              @click.stop.prevent="deleteMergeManagerItem(unit)">×</button>
                     </span>
                   </summary>
                   <div class="mergeManagerChildren">
@@ -1030,10 +1036,18 @@
                            @dragstart.stop="mergeManagerDragStart($event, 'model', unit, child)"
                            @dragend="mergeManagerDragEnd()">
                         <span class="mergeManagerChildBody">
-                          <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                          <span class="mergeManagerNameRow">
+                            <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                            <button class="mergeManagerIconButton" type="button" aria-label="Rename model"
+                                    @click.stop.prevent="promptMergeManagerRename(child)">✎</button>
+                          </span>
                           <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
                         </span>
-                        <span class="mergeManagerDragBubble">drag</span>
+                        <span class="mergeManagerSummaryActions">
+                          <span class="mergeManagerDragBubble">drag</span>
+                          <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete model"
+                                  @click.stop.prevent="deleteMergeManagerItem(child)">×</button>
+                        </span>
                       </div>
                     </template>
                   </div>
@@ -1054,16 +1068,32 @@
                          @drop="mergeManagerDropOnUnit($event, unit)">
                   <summary>
                     <span class="mergeManagerUnitSummary">
-                      <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                      <span class="mergeManagerNameRow">
+                        <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                        <button class="mergeManagerIconButton" type="button" aria-label="Rename unit"
+                                @click.stop.prevent="promptMergeManagerRename(unit)">✎</button>
+                      </span>
                       <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
+                    </span>
+                    <span class="mergeManagerSummaryActions">
+                      <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete unit"
+                              @click.stop.prevent="deleteMergeManagerItem(unit)">×</button>
                     </span>
                   </summary>
                   <div class="mergeManagerChildren">
                     <template x-for="child in mergeManagerChildren(unit)" :key="`merge-to-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
                       <div class="mergeManagerChild mergeManagerChildStatic">
                         <span class="mergeManagerChildBody">
-                          <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                          <span class="mergeManagerNameRow">
+                            <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                            <button class="mergeManagerIconButton" type="button" aria-label="Rename model"
+                                    @click.stop.prevent="promptMergeManagerRename(child)">✎</button>
+                          </span>
                           <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                        </span>
+                        <span class="mergeManagerSummaryActions">
+                          <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete model"
+                                  @click.stop.prevent="deleteMergeManagerItem(child)">×</button>
                         </span>
                       </div>
                     </template>
@@ -1283,6 +1313,6 @@
 
 </div>
 
-<script src="utilities.js?v=phase-pact-formula-1"></script>
+<script src="utilities.js?v=merge-edit-actions-1"></script>
 </body>
 </html>
