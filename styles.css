@@ -356,7 +356,7 @@ button.secondary.matchupRosterSwapButton{
 .mergePendingList{display:flex;flex-direction:column;gap:6px;padding:10px 12px 0}
 .mergePendingMove{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 9px;border-radius:8px;background:rgba(255,255,255,.035)}
 .mergePendingMove button{flex:0 0 auto;padding:5px 8px}
-.mergeManagerActions{display:flex;justify-content:flex-end;gap:8px;flex:0 0 auto}
+.mergeManagerActions{display:flex;justify-content:space-between;gap:8px;flex:0 0 auto}
 label{display:flex;flex-direction:column;gap:4px;flex:1;}
 
 input,select,textarea{
