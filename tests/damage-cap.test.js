@@ -717,8 +717,8 @@ assert.strictEqual(
 );
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Master of Magicks (Psychic)')),
-  JSON.stringify(['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3']),
-  'Psychic suffix aliases map to the same modifier choices'
+  JSON.stringify(['Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3']),
+  'Psychic suffix aliases map to the same non-conditional modifier choices'
 );
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Formidably Resilient')),
@@ -754,6 +754,11 @@ assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Warp Storms (Psychic)')),
   JSON.stringify(['Conditional | Pre-Damage Mortals: 1D3 3+']),
   'Warp Storms maps to conditional pre-damage mortal wounds'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Slashing Dive')),
+  JSON.stringify(['Conditional | Unit-wide | Pre-Damage Mortals Per Model: 1 4+']),
+  'Slashing Dive maps to conditional per-model pre-damage mortal wounds'
 );
 assert.strictEqual(JSON.stringify(app.weaponKeywordList({ modifiers: 'Torrent, Ignores Cover' })), JSON.stringify(['Torrent', 'Ignores Cover']), 'main page weapon keyword rows split imported modifiers');
 const mixedMainPageDefense = {
@@ -949,6 +954,17 @@ const disciplesEasy = app.computeMatchupCell(disciplesAttacker, easyTarget);
 const disciplesHard = app.computeMatchupCell(disciplesAttacker, hardTarget);
 assert.ok(Math.abs(disciplesEasy.dmg - darkPactEasy.dmg) < 1e-9, "Disciples of Be'lakor chooses Sustained Hits when it beats Lethal Hits");
 assert.ok(Math.abs(disciplesHard.dmg - darkPactHard.dmg) < 1e-9, "Disciples of Be'lakor chooses Lethal Hits when it beats Sustained Hits");
+const boltOfChangeAttacker = {
+  label: 'Bolt of Change caster',
+  abilities: ['Master of Magicks (Psychic)'],
+  weapons: [{ name: 'Bolt of Change', range: '24', A: '6', skill: '4', S: '10', AP: '6', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'bolt-of-change' }],
+  defense: { T: 4, Sv: 3, W: 2, models: 1 },
+  _unitKey: 'bolt-of-change-caster',
+};
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+const boltOfChangeCell = app.computeMatchupCell(boltOfChangeAttacker, easyTarget);
+assert.ok(Math.abs(boltOfChangeCell.dmg - (25 / 6)) < 1e-9, 'Master of Magicks chooses the best Bolt of Change ability without Conditions Met');
 app.matchup.conditionsMet = false;
 const shadowLordBase = {
   label: 'Be-lakor without Shadow Lord',
@@ -1044,6 +1060,28 @@ assert.ok(Math.abs(warpStormCell.dmg - (4 / 3)) < 1e-9, 'Warp Storms adds expect
 assert.strictEqual(warpStormCell.formulaItems[0]?.phase, 'preDamage', 'Warp Storms is scheduled before weapon damage');
 app.formulaCell = warpStormCell;
 assert.ok(app.matchupFormulaSections()[0].lines.some(line => /Damage: 66\.7% x 1d3 damage = 1\.333 damage/i.test(line.text || line)), 'Warp Storms formula shows its 3+ D3 mortal wound math');
+const slashingDiveUnit = {
+  label: 'Slashing Dive unit',
+  abilities: ['Slashing Dive'],
+  weapons: [],
+  defense: { T: 4, Sv: 4, W: 2, models: 5 },
+  _children: [
+    { label: 'Skyhunter leader', weapons: [], defense: { T: 4, Sv: 4, W: 2, models: 1 }, _unitKey: 'skyhunter-leader' },
+    { label: 'Skyhunters', weapons: [], defense: { T: 4, Sv: 4, W: 2, models: 4 }, _unitKey: 'skyhunters' },
+  ],
+  _unitKey: 'slashing-dive-unit',
+};
+slashingDiveUnit._children.forEach(child => Object.defineProperty(child, '_parentUnit', { value: slashingDiveUnit, enumerable: false, configurable: true }));
+const slashingDiveTarget = { label: 'Slashing Dive target', defense: { T: 4, Sv: 7, W: 20, models: 1, totalWounds: 20 }, _unitKey: 'slashing-dive-target' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+assert.strictEqual(app.computeMatchupCell(slashingDiveUnit, slashingDiveTarget).dmg, 0, 'Slashing Dive is gated by Conditions Met');
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+const slashingDiveCell = app.computeMatchupCell(slashingDiveUnit, slashingDiveTarget, { includeFormula: true });
+assert.ok(Math.abs(slashingDiveCell.dmg - 2.5) < 1e-9, 'Slashing Dive adds one 4+ mortal wound roll per model in the unit');
+app.formulaCell = slashingDiveCell;
+assert.ok(app.matchupFormulaSections()[0].lines.some(line => /Damage: 5 models x 50\.0% x 1 damage = 2\.5 damage/i.test(line.text || line)), 'Slashing Dive formula shows per-model mortal wound math');
 app.openMatchupFormula(darkPactHard, darkPactAttacker, hardTarget);
 assert.ok(app.formulaModalOpen, 'clicking a matchup value can open the formula modal state');
 assert.ok((app.formulaCell?.formulaItems || []).length > 0, 'formula modal recomputes detailed formula data on demand');

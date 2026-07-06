@@ -351,6 +351,21 @@
     return Number.isFinite(models) && models > 0 ? models : 0;
   }
 
+  function unitModelCount(unit){
+    const children = Array.isArray(unit?._children) ? unit._children : [];
+    if(children.length){
+      const childTotal = children.reduce((sum, child) => sum + unitModelCount(child), 0);
+      if(childTotal > 0) return childTotal;
+    }
+    const models = parseFloat(unit?.defense?.models ?? unit?.size);
+    return Number.isFinite(models) && models > 0 ? models : 1;
+  }
+
+  function rollSuccessChance(rollTarget, fallback=1){
+    const target = parseInt(rollTarget, 10) || 0;
+    return target > 0 ? (7 - Math.max(2, Math.min(6, target))) / 6 : fallback;
+  }
+
   function chargeMortalDamage(unit, attackMode, options){
     if(attackMode === 'shooting') return { dmg: 0, profile: null };
     if(!options?.conditionsMet) return { dmg: 0, profile: null };
@@ -410,7 +425,7 @@
     if(!service?.modifiersForRule || !service?.parseModifierSpec) return [];
     const specs = [];
     const emittedPhaseMortals = new Set();
-    specialAbilitySources(unit, options).forEach(({ ability }) => {
+    specialAbilitySources(unit, options).forEach(({ source, ability }) => {
       service.modifiersForRule(ability).forEach(spec => {
         const parsed = service.parseModifierSpec(spec);
         if(parsed?.meta?.kind !== 'special') return;
@@ -420,7 +435,7 @@
           if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return;
           const diceCount = parseInt(parsed.meta.diceCount, 10) || 0;
           const rollTarget = parseInt(parsed.meta.rollTarget, 10) || 0;
-          const successChance = rollTarget > 0 ? (7 - Math.max(2, Math.min(6, rollTarget))) / 6 : 0;
+          const successChance = rollSuccessChance(rollTarget, 0);
           const dmg = diceCount * successChance;
           if(dmg <= 0) return;
           specs.push({
@@ -432,6 +447,27 @@
           });
           return;
         }
+        if(parsed?.meta?.special === 'phaseMortalsPerModel'){
+          const dice = parsed.meta.damageDice || '1';
+          const successChance = Number.isFinite(parsed.meta.chance)
+            ? parsed.meta.chance
+            : rollSuccessChance(parsed.meta.rollTarget, 1);
+          const sourceUnit = parentUnit(source) || unit;
+          const models = unitModelCount(sourceUnit);
+          const key = `${ability}|${parsed.meta.phase}|per-model|${dice}|${parsed.meta.rollTarget || parsed.meta.chance}|${models}`;
+          if(emittedPhaseMortals.has(key)) return;
+          emittedPhaseMortals.add(key);
+          const dmg = models * successChance * window.WeaponCalc.parseNdX(dice).mean;
+          if(dmg <= 0) return;
+          specs.push({
+            dmg,
+            profile: { name: `${ability} mortal wounds`, count: models, D: dice },
+            modifierText: parsed.modifiers?.[0] || 'Mortal wounds per model',
+            effect: { count: models, chance: successChance, dice, label: models === 1 ? 'model' : 'models' },
+            phase: parsed.meta.phase || 'preDamage',
+          });
+          return;
+        }
         if(parsed?.meta?.special !== 'phaseMortals') return;
         const key = `${ability}|${parsed.meta.phase}|${parsed.meta.damageDice}|${parsed.meta.rollTarget || parsed.meta.chance}`;
         if(emittedPhaseMortals.has(key)) return;
@@ -440,7 +476,7 @@
         const rollTarget = parseInt(parsed.meta.rollTarget, 10) || 0;
         const successChance = Number.isFinite(parsed.meta.chance)
           ? parsed.meta.chance
-          : (rollTarget > 0 ? (7 - Math.max(2, Math.min(6, rollTarget))) / 6 : 1);
+          : rollSuccessChance(rollTarget, 1);
         const dmg = window.WeaponCalc.parseNdX(dice).mean * successChance;
         if(dmg <= 0) return;
         specs.push({

@@ -29,14 +29,15 @@
     'Mesmerising Form': ['Defense Attack: Hit Rolls -1'],
     'Daemon Lord of Tzeentch': ['Conditional | Unit-wide | Ranged: Strength +1'],
     'Daemon Lord of Tzeentch (Aura)': ['Conditional | Unit-wide | Ranged: Strength +1'],
-    'Master of Magicks': ['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
-    'Master of Magicks (Psychic)': ['Conditional | Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
+    'Master of Magicks': ['Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
+    'Master of Magicks (Psychic)': ['Weapon: Bolt of Change | Choose Best: Ignores Cover; Lethal Hits; Sustained Hits D3'],
     'Death Hex': ['Conditional | Unit-wide | AP +1'],
     'Death Hex (Psychic)': ['Conditional | Unit-wide | AP +1'],
     'Gift of Chaos': ['Conditional | Weapon Keyword: Psychic | Post-Damage Mortals: 1D3 100%'],
     'Gift of Chaos (Psychic)': ['Conditional | Weapon Keyword: Psychic | Post-Damage Mortals: 1D3 100%'],
     'Warp Storms': ['Conditional | Pre-Damage Mortals: 1D3 3+'],
     'Warp Storms (Psychic)': ['Conditional | Pre-Damage Mortals: 1D3 3+'],
+    'Slashing Dive': ['Conditional | Unit-wide | Pre-Damage Mortals Per Model: 1 4+'],
     'Poxbringer': ['Unit-wide | Critical Hits 5+'],
     'Bloodmaster': ['Unit-wide | Wound Rolls +1'],
     'Blood Throne': ['Conditional | Unit-wide | Strength +1 | AP +1 | Damage +1'],
@@ -165,6 +166,16 @@
         meta.damageDice = `${match[2] || '1'}d${match[3]}`;
         meta.rollTarget = match[4] ? (parseInt(match[4], 10) || 0) : 0;
         meta.chance = match[5] ? Math.max(0, Math.min(1, parseFloat(match[5]) / 100)) : null;
+        modifiers.push(part);
+        return;
+      }
+      if((match = part.match(/^(Pre|Post)-Damage Mortals Per Model:\s*(\d+(?:\.\d+)?|\d*D\d+(?:[\+\-]\d+)?)\s*(?:(\d)\+|(\d+(?:\.\d+)?)%)$/i))){
+        meta.kind = 'special';
+        meta.special = 'phaseMortalsPerModel';
+        meta.phase = match[1].toLowerCase() === 'post' ? 'postDamage' : 'preDamage';
+        meta.damageDice = String(match[2] || '1').toLowerCase();
+        meta.rollTarget = match[3] ? (parseInt(match[3], 10) || 0) : 0;
+        meta.chance = match[4] ? Math.max(0, Math.min(1, parseFloat(match[4]) / 100)) : null;
         modifiers.push(part);
         return;
       }
