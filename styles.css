@@ -331,6 +331,32 @@ button.secondary.matchupRosterSwapButton{
 .mergeTargetTable tr:last-child td{border-bottom:0}
 .clickableMergeRow{cursor:pointer}
 .clickableMergeRow:hover td{background:rgba(110,231,255,.06)}
+.mergeManagerModal{max-width:1280px}
+.mergeManagerBody{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.mergeManagerColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;min-height:0;flex:1 1 auto}
+.mergeManagerPanel,.mergePendingPanel{border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);min-width:0}
+.mergeManagerPanel{display:flex;flex-direction:column;min-height:0}
+.mergeManagerPanelHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.mergeManagerPanelTitle{font-size:13px;font-weight:900;color:var(--fg)}
+.mergeManagerList{display:flex;flex-direction:column;gap:8px;padding:10px;overflow:auto;min-height:220px;max-height:46vh}
+.mergeManagerUnit{border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(15,20,28,.82);overflow:hidden}
+.mergeManagerUnit summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;cursor:pointer;user-select:none}
+.mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mergeManagerUnitName,.mergeManagerChildName{font-weight:800;color:var(--fg)}
+.mergeDragHandle,.mergeDropHint{flex:0 0 auto;border:1px solid rgba(110,231,255,.26);background:rgba(110,231,255,.08);color:var(--accent);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;cursor:grab}
+.mergeDragHandle:active{cursor:grabbing}
+.mergeManagerChildren{display:flex;flex-direction:column;gap:6px;padding:0 10px 10px}
+.mergeManagerChild{display:flex;flex-direction:column;gap:2px;padding:8px 9px;border:1px solid rgba(255,255,255,.07);border-radius:8px;background:rgba(255,255,255,.035);cursor:grab}
+.mergeManagerChild:active{cursor:grabbing}
+.mergeManagerChildStatic{cursor:default}
+.mergeManagerDropUnit{outline:1px solid rgba(102,226,138,.08)}
+.mergeManagerDropUnit:hover,.mergeStandaloneDrop:hover{border-color:rgba(110,231,255,.42);box-shadow:0 0 0 2px rgba(110,231,255,.08) inset}
+.mergeStandaloneDrop{border:1px dashed rgba(110,231,255,.36);border-radius:9px;background:rgba(110,231,255,.055);padding:12px;min-height:48px}
+.mergePendingPanel{padding-bottom:10px;flex:0 0 auto}
+.mergePendingList{display:flex;flex-direction:column;gap:6px;padding:10px 12px 0}
+.mergePendingMove{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 9px;border-radius:8px;background:rgba(255,255,255,.035)}
+.mergePendingMove button{flex:0 0 auto;padding:5px 8px}
+.mergeManagerActions{display:flex;justify-content:flex-end;gap:8px;flex:0 0 auto}
 label{display:flex;flex-direction:column;gap:4px;flex:1;}
 
 input,select,textarea{
@@ -896,6 +922,24 @@ details summary{cursor:pointer}
   .modalBody{padding:10px}
 
   .modalSmall{max-width:100%}
+
+  .mergeManagerBody{
+    overflow:auto;
+  }
+
+  .mergeManagerColumns{
+    grid-template-columns:1fr;
+  }
+
+  .mergeManagerList{
+    max-height:none;
+    min-height:160px;
+  }
+
+  .mergePendingMove{
+    align-items:stretch;
+    flex-direction:column;
+  }
 
   .modalWide[aria-label="Unit matchups"]{
     width:100vw;

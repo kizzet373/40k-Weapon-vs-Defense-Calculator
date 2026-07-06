@@ -9,6 +9,13 @@ function weaponVsDefenseApp(){
     importStatus: { type: '', text: '' },
     mergeModalOpen: false,
     mergeFromUnit: null,
+    mergeManager: {
+      side: '',
+      force: null,
+      units: [],
+      moves: [],
+      dragged: null,
+    },
     renameModalOpen: false,
     renameTargetUnit: null,
     renameDraft: '',
@@ -1494,12 +1501,20 @@ function weaponVsDefenseApp(){
       return candidates.filter(unit => this.sourceUnitKey(unit) && this.sourceUnitKey(unit) !== fromKey);
     },
 
-    openMergeUnitModal(unit=null, force=null, candidates=null){
+    openMergeUnitModal(unit=null, force=null, candidates=null, side=''){
       const target = unit || this.activeUnit;
-      if(!target){ alert('Select a unit first.'); return; }
+      const unitList = candidates || this.units || [];
+      if(!unitList.length){ alert('No units are available in this force.'); return; }
       this.mergeFromUnit = target;
       this.mergeFromForce = force || this.getForceByIdx(this.selectedForceIdx);
-      this.mergeCandidateUnits = candidates || this.units || [];
+      this.mergeCandidateUnits = unitList;
+      this.mergeManager = {
+        side,
+        force: this.mergeFromForce,
+        units: unitList,
+        moves: [],
+        dragged: null,
+      };
       this.mergeModalOpen = true;
     },
 
@@ -1508,6 +1523,120 @@ function weaponVsDefenseApp(){
       this.mergeFromUnit = null;
       this.mergeFromForce = null;
       this.mergeCandidateUnits = null;
+      this.mergeManager = { side:'', force:null, units:[], moves:[], dragged:null };
+    },
+
+    mergeManagerUnits(){
+      return this.mergeManager?.units || this.mergeCandidateUnits || this.units || [];
+    },
+
+    mergeManagerUnitKey(unit){
+      return this.sourceUnitKey(unit);
+    },
+
+    mergeManagerChildKey(child){
+      return this.sourceUnitKey(child);
+    },
+
+    mergeManagerChildren(unit){
+      return (unit?._children && unit._children.length) ? unit._children : [unit];
+    },
+
+    mergeManagerUnitMoveAllowed(unit){
+      const key = this.mergeManagerUnitKey(unit);
+      return !!key && this.mergeManagerUnits().length > 1;
+    },
+
+    mergeManagerDragStart(event, kind, unit, child=null){
+      const fromKey = this.mergeManagerUnitKey(unit);
+      const childKey = child ? this.mergeManagerChildKey(child) : fromKey;
+      if(!fromKey || !childKey) return;
+      const item = {
+        kind,
+        fromKey,
+        childKey,
+        label: child ? this.unitDropdownLabel(child) : this.unitDropdownLabel(unit),
+        fromLabel: this.unitDropdownLabel(unit),
+      };
+      this.mergeManager.dragged = item;
+      if(event?.dataTransfer){
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', JSON.stringify(item));
+      }
+    },
+
+    mergeManagerDragEnd(){
+      this.mergeManager.dragged = null;
+    },
+
+    mergeManagerDropOnUnit(event, targetUnit){
+      if(event?.preventDefault) event.preventDefault();
+      const item = this.mergeManager.dragged || this.mergeManagerReadDragData(event);
+      const toKey = this.mergeManagerUnitKey(targetUnit);
+      if(!item || !toKey || item.childKey === toKey || item.fromKey === toKey) return;
+      this.mergeManagerAddMove({ ...item, toKey, toLabel: this.unitDropdownLabel(targetUnit), action: 'merge' });
+    },
+
+    mergeManagerDropToStandalone(event){
+      if(event?.preventDefault) event.preventDefault();
+      const item = this.mergeManager.dragged || this.mergeManagerReadDragData(event);
+      if(!item) return;
+      this.mergeManagerAddMove({ ...item, toKey: '', toLabel: 'Standalone', action: 'unmerge' });
+    },
+
+    mergeManagerReadDragData(event){
+      try{
+        const text = event?.dataTransfer?.getData('text/plain');
+        return text ? JSON.parse(text) : null;
+      }catch(_err){
+        return null;
+      }
+    },
+
+    mergeManagerAddMove(move){
+      const key = `${move.kind}:${move.fromKey}:${move.childKey}:${move.toKey}`;
+      this.mergeManager.moves = [
+        ...this.mergeManager.moves.filter(existing => `${existing.kind}:${existing.fromKey}:${existing.childKey}:${existing.toKey}` !== key),
+        { ...move, id: `${key}:${Date.now()}` },
+      ];
+    },
+
+    removeMergeManagerMove(moveId){
+      this.mergeManager.moves = (this.mergeManager.moves || []).filter(move => move.id !== moveId);
+    },
+
+    mergeManagerMoveText(move){
+      const verb = move.action === 'unmerge' ? 'unmerge to standalone' : `merge into ${move.toLabel}`;
+      return `${move.label} from ${move.fromLabel} -> ${verb}`;
+    },
+
+    submitMergeManager(){
+      const force = this.mergeManager.force || this.mergeFromForce || this.getForceByIdx(this.selectedForceIdx);
+      const moves = [...(this.mergeManager.moves || [])];
+      if(!force || !moves.length) return;
+
+      let changed = false;
+      moves.forEach(move => {
+        const ok = move.kind === 'unit'
+          ? (move.action === 'unmerge'
+            ? window.ArmyImportService?.unmergeUnit(force, move.fromKey)
+            : window.ArmyImportService?.mergeUnits(force, move.fromKey, move.toKey))
+          : window.ArmyImportService?.moveModelToUnit(force, move.fromKey, move.childKey, move.toKey);
+        if(ok) changed = true;
+      });
+      if(!changed){ alert('No merge or unmerge changes were applied.'); return; }
+
+      const side = this.mergeManager.side;
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
+      this.closeMergeUnitModal();
+      if(side){
+        this.rebuildMatchup();
+      }else{
+        this.refreshUnitsPreservingSelection(selectedKey);
+        this.onUnitChanged();
+        if(this.activeView === 'matchups') this.rebuildMatchup();
+        else this.clearMatchupComputationCache();
+      }
     },
 
     mergeSelectedUnitInto(targetUnit){
@@ -1533,7 +1662,7 @@ function weaponVsDefenseApp(){
       const force = this.matchupSideForce(side);
       const candidates = this.matchupSideBaseUnits(side);
       if(!unit || !force){ alert('Select a unit first.'); return; }
-      this.openMergeUnitModal(unit, force, candidates);
+      this.openMergeUnitModal(unit, force, candidates, side);
     },
 
     duplicateMatchupUnit(side){

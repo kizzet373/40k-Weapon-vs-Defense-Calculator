@@ -650,6 +650,47 @@
     };
   }
 
+  function splitChildModelFromUnit(units, fromKey, childKey){
+    if(!Array.isArray(units) || !childKey) return null;
+    const existingKeys = units.reduce((keys, unit) => collectUnitIdentityKeys(unit, keys), new Set());
+
+    for(let i = 0; i < units.length; i++){
+      const unit = units[i];
+      const children = unit?._children || [];
+      const childIndex = children.findIndex(child => String(child?._unitKey || child?._groupId || child?.label || '') === String(childKey));
+      if(childIndex < 0) continue;
+      if(fromKey && String(unit?._unitKey || unit?._groupId || unit?.label || '') !== String(fromKey)) continue;
+
+      const child = cloneUnit(children[childIndex]);
+      const kept = children.filter((_, index) => index !== childIndex);
+      const originalPoints = parseFloat(unit?._points);
+      const childPoints = parseFloat(child?._points);
+
+      if(kept.length){
+        const rebuilt = aggregateChildren(kept, unit._unitKey, unit.label, []);
+        rebuilt._unitKey = unit._unitKey;
+        rebuilt._groupId = unit._groupId || unit._unitKey;
+        if(Number.isFinite(originalPoints)){
+          rebuilt._points = Number.isFinite(childPoints) ? Math.max(0, originalPoints - childPoints) : originalPoints;
+        }
+        units[i] = rebuilt;
+      }else{
+        units.splice(i, 1);
+      }
+
+      existingKeys.delete(child._unitKey);
+      child._unitKey = uniqueUnitKey(child._unitKey || child._groupId || child.label, existingKeys);
+      child._groupId = child._groupId || child._unitKey;
+      delete child._baseUnit;
+      delete child._parentUnit;
+      delete child._viewKey;
+      units.push(child);
+      units.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+      return child;
+    }
+    return null;
+  }
+
   function getAllSelections(node){
     const out = [];
     (node?.selections || []).forEach(selection => {
@@ -1666,9 +1707,37 @@
     mergeUnits(force, fromKey, toKey){
       if(!force || !fromKey || !toKey || fromKey === toKey) return false;
       if(!Array.isArray(force._unitMerges)) force._unitMerges = [];
+      force._unitMerges = force._unitMerges.filter(m => m?.from !== fromKey);
       const exists = force._unitMerges.some(m => m.from === fromKey && m.to === toKey);
       if(!exists) force._unitMerges.push({ from: fromKey, to: toKey });
       return true;
+    },
+    moveModelToUnit(force, fromKey, childKey, toKey){
+      if(!force || !childKey || childKey === toKey) return false;
+      if(!Array.isArray(force._unitMerges)) force._unitMerges = [];
+
+      if(!toKey){
+        let changed = false;
+        const before = force._unitMerges.length;
+        force._unitMerges = force._unitMerges.filter(merge => merge?.from !== childKey && merge?.to !== childKey);
+        changed = force._unitMerges.length !== before;
+        if(Array.isArray(force._importedUnits)){
+          const split = splitChildModelFromUnit(force._importedUnits, fromKey, childKey);
+          if(split) changed = true;
+        }
+        return changed;
+      }
+
+      if(Array.isArray(force._importedUnits)){
+        const existingTopLevel = force._importedUnits.some(unit => String(unit?._unitKey || unit?._groupId || unit?.label || '') === String(childKey));
+        if(!existingTopLevel){
+          const split = splitChildModelFromUnit(force._importedUnits, fromKey, childKey);
+          if(!split) return false;
+          childKey = split._unitKey;
+        }
+      }
+
+      return this.mergeUnits(force, childKey, toKey);
     },
     unmergeUnit(force, targetKey){
       if(!force || !targetKey) return false;

@@ -1626,4 +1626,41 @@ assert.ok(/^Offensive Score: \d+ \(Melee: \d+ \/ Shooting: \d+\)$/.test(app.prof
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
 
+const moveModelForce = {
+  _importedUnits: [
+    {
+      label: 'Source Squad',
+      _unitKey: 'source-squad',
+      _groupId: 'source-squad',
+      _points: 100,
+      weapons: [],
+      defense: { T: 4, Sv: 3, W: 2, models: 2 },
+      _children: [
+        { label: 'Champion', _unitKey: 'champion', _groupId: 'source-squad', _points: 40, weapons: [], abilities: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _children: [] },
+        { label: 'Trooper', _unitKey: 'trooper', _groupId: 'source-squad', _points: 60, weapons: [], abilities: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _children: [] },
+      ],
+    },
+    {
+      label: 'Target Leader',
+      _unitKey: 'target-leader',
+      _groupId: 'target-leader',
+      _points: 80,
+      weapons: [],
+      abilities: [],
+      defense: { T: 4, Sv: 3, W: 4, models: 1 },
+      _children: [],
+    },
+  ],
+  _unitMerges: [],
+};
+assert.ok(context.window.ArmyImportService.moveModelToUnit(moveModelForce, 'source-squad', 'champion', 'target-leader'), 'can stage-service move a child model into another unit');
+let movedUnits = context.window.ArmyImportService.collectImportedUnits(moveModelForce);
+let movedTarget = movedUnits.find(unit => unit._unitKey === 'target-leader');
+let movedSource = movedUnits.find(unit => unit._unitKey === 'source-squad');
+assert.ok(movedTarget._children.some(child => child.label === 'Champion'), 'moved child appears under target unit after merge');
+assert.ok(movedSource._children.every(child => child.label !== 'Champion'), 'moved child is removed from source unit after split');
+assert.ok(context.window.ArmyImportService.moveModelToUnit(moveModelForce, 'target-leader', 'champion', ''), 'can unmerge moved child back to standalone');
+movedUnits = context.window.ArmyImportService.collectImportedUnits(moveModelForce);
+assert.ok(movedUnits.some(unit => unit._unitKey === 'champion' && unit.label === 'Champion'), 'unmerged child returns as a standalone unit');
+
 console.log('damage-cap tests passed');

@@ -115,8 +115,7 @@
               <div class="unitActionRow matchupSideActionRow">
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptRenameUnit(matchupSideSelectedUnit('attacker'))">Rename</button>
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="duplicateMatchupUnit('attacker')">Duplicate</button>
-                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 2" @click="openMatchupMergeUnitModal('attacker')">Merge</button>
-                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="unmergeMatchupUnit('attacker')">Unmerge</button>
+                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 1" @click="openMatchupMergeUnitModal('attacker')">Merge/Unmerge</button>
                 <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="deleteMatchupUnit('attacker')">Delete</button>
               </div>
               <div class="matchupCustomModifierTool">
@@ -183,8 +182,7 @@
               <div class="unitActionRow matchupSideActionRow">
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptRenameUnit(matchupSideSelectedUnit('defender'))">Rename</button>
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="duplicateMatchupUnit('defender')">Duplicate</button>
-                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 2" @click="openMatchupMergeUnitModal('defender')">Merge</button>
-                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="unmergeMatchupUnit('defender')">Unmerge</button>
+                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 1" @click="openMatchupMergeUnitModal('defender')">Merge/Unmerge</button>
                 <button class="danger unitDeleteButton" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="deleteMatchupUnit('defender')">Delete</button>
               </div>
               <div class="matchupCustomModifierTool">
@@ -232,8 +230,7 @@
         <div class="unitActionRow unitActionPrimary">
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptRenameUnit(activeUnit)">Rename</button>
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
-          <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length < 2" @click="openMergeUnitModal()">Merge</button>
-          <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="unmergeActiveUnit()">Unmerge</button>
+          <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="openMergeUnitModal()">Merge/Unmerge</button>
           <button class="danger unitDeleteButton" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="deleteSelectedUnit()">Delete</button>
         </div>
       </div>
@@ -683,24 +680,6 @@
               </label>
             </div>
 
-            <div class="mergeBox">
-              <div class="muted" style="font-size:12px">Merge attacker units</div>
-              <div class="mergeRow">
-                <select x-model="matchupMerge.attackerFrom">
-                  <template x-for="u in mergeOptionsForSide('attacker')" :key="`merge-a-from-${u._unitKey}`">
-                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
-                  </template>
-                </select>
-                <span class="muted">into</span>
-                <select x-model="matchupMerge.attackerTo">
-                  <template x-for="u in mergeOptionsForSide('attacker')" :key="`merge-a-to-${u._unitKey}`">
-                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
-                  </template>
-                </select>
-                <button type="button" class="secondary" @click="applyManualMerge('attacker')">Merge</button>
-                <button type="button" class="secondary" @click="unmergeSelectedUnit('attacker')">Unmerge</button>
-              </div>
-            </div>
           </div>
 
           <div class="matchupSide">
@@ -726,24 +705,6 @@
               </label>
             </div>
 
-            <div class="mergeBox">
-              <div class="muted" style="font-size:12px">Merge defender units</div>
-              <div class="mergeRow">
-                <select x-model="matchupMerge.defenderFrom">
-                  <template x-for="u in mergeOptionsForSide('defender')" :key="`merge-d-from-${u._unitKey}`">
-                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
-                  </template>
-                </select>
-                <span class="muted">into</span>
-                <select x-model="matchupMerge.defenderTo">
-                  <template x-for="u in mergeOptionsForSide('defender')" :key="`merge-d-to-${u._unitKey}`">
-                    <option :value="u._unitKey" x-text="mergeOptionLabel(u)"></option>
-                  </template>
-                </select>
-                <button type="button" class="secondary" @click="applyManualMerge('defender')">Merge</button>
-                <button type="button" class="secondary" @click="unmergeSelectedUnit('defender')">Unmerge</button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1025,40 +986,116 @@
     </div>
   </div>
 
-  <!-- Merge unit modal -->
+  <!-- Merge / unmerge modal -->
   <div class="modalOverlay" x-show="mergeModalOpen" x-cloak
        @keydown.escape.window="closeMergeUnitModal()" @click.self="closeMergeUnitModal()">
-    <div class="modal modalSmall" role="dialog" aria-modal="true" aria-label="Merge unit">
+    <div class="modal modalWide mergeManagerModal" role="dialog" aria-modal="true" aria-label="Merge or unmerge units">
       <div class="modalHead">
         <div>
-          <div style="font-weight:800">Merge Unit</div>
+          <div style="font-weight:800">Merge/Unmerge</div>
           <div class="muted" style="font-size:12px">
-            <span x-text="unitLabelText(mergeFromUnit, 'Selected unit')"></span>
-            <span> into...</span>
+            Drag units or expanded models from the left into a target unit on the right.
           </div>
         </div>
         <button class="secondary" type="button" @click="closeMergeUnitModal()">Close</button>
       </div>
-      <div class="modalBody">
-        <template x-if="selectedMergeTargets().length === 0">
-          <div class="muted">No other units are available in this force.</div>
-        </template>
-        <template x-if="selectedMergeTargets().length > 0">
-          <table class="mergeTargetTable">
-            <thead>
-              <tr><th>Unit</th><th>Profile</th><th></th></tr>
-            </thead>
-            <tbody>
-              <template x-for="target in selectedMergeTargets()" :key="`merge-target-${unitKey(target)}`">
-                <tr class="clickableMergeRow" @click="mergeSelectedUnitInto(target)">
-                  <td x-text="unitDropdownLabel(target)"></td>
-                  <td class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(target))"></td>
-                  <td><button type="button" class="secondary" @click.stop="mergeSelectedUnitInto(target)">Merge</button></td>
-                </tr>
+      <div class="modalBody mergeManagerBody">
+        <div class="mergeManagerColumns">
+          <section class="mergeManagerPanel">
+            <div class="mergeManagerPanelHead">
+              <div class="mergeManagerPanelTitle">From</div>
+              <div class="muted" x-text="`${mergeManagerUnits().length} units`"></div>
+            </div>
+            <div class="mergeManagerList">
+              <template x-for="unit in mergeManagerUnits()" :key="`merge-from-${mergeManagerUnitKey(unit)}`">
+                <details class="mergeManagerUnit">
+                  <summary>
+                    <span class="mergeManagerUnitSummary">
+                      <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                      <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
+                    </span>
+                    <span class="mergeDragHandle"
+                          draggable="true"
+                          @dragstart.stop="mergeManagerDragStart($event, 'unit', unit)"
+                          @dragend="mergeManagerDragEnd()">Drag unit</span>
+                  </summary>
+                  <div class="mergeManagerChildren">
+                    <template x-for="child in mergeManagerChildren(unit)" :key="`merge-from-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
+                      <div class="mergeManagerChild"
+                           draggable="true"
+                           @dragstart="mergeManagerDragStart($event, 'model', unit, child)"
+                           @dragend="mergeManagerDragEnd()">
+                        <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                        <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                      </div>
+                    </template>
+                  </div>
+                </details>
               </template>
-            </tbody>
-          </table>
-        </template>
+            </div>
+          </section>
+
+          <section class="mergeManagerPanel">
+            <div class="mergeManagerPanelHead">
+              <div class="mergeManagerPanelTitle">To</div>
+              <div class="muted">Drop target</div>
+            </div>
+            <div class="mergeManagerList">
+              <div class="mergeStandaloneDrop"
+                   @dragover.prevent
+                   @drop="mergeManagerDropToStandalone($event)">
+                <div class="mergeManagerUnitName">Standalone / Unmerged</div>
+                <div class="muted">Drop here to split the dragged unit or model out.</div>
+              </div>
+              <template x-for="unit in mergeManagerUnits()" :key="`merge-to-${mergeManagerUnitKey(unit)}`">
+                <details class="mergeManagerUnit mergeManagerDropUnit"
+                         @dragover.prevent
+                         @drop="mergeManagerDropOnUnit($event, unit)">
+                  <summary>
+                    <span class="mergeManagerUnitSummary">
+                      <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                      <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
+                    </span>
+                    <span class="mergeDropHint">Drop</span>
+                  </summary>
+                  <div class="mergeManagerChildren">
+                    <template x-for="child in mergeManagerChildren(unit)" :key="`merge-to-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
+                      <div class="mergeManagerChild mergeManagerChildStatic">
+                        <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                        <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
+                      </div>
+                    </template>
+                  </div>
+                </details>
+              </template>
+            </div>
+          </section>
+        </div>
+
+        <div class="mergePendingPanel">
+          <div class="mergeManagerPanelHead">
+            <div class="mergeManagerPanelTitle">Pending Changes</div>
+            <div class="muted" x-text="`${mergeManager.moves.length} staged`"></div>
+          </div>
+          <template x-if="mergeManager.moves.length === 0">
+            <div class="muted">No changes staged yet.</div>
+          </template>
+          <template x-if="mergeManager.moves.length > 0">
+            <div class="mergePendingList">
+              <template x-for="move in mergeManager.moves" :key="move.id">
+                <div class="mergePendingMove">
+                  <span x-text="mergeManagerMoveText(move)"></span>
+                  <button class="secondary" type="button" @click="removeMergeManagerMove(move.id)">Remove</button>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <div class="mergeManagerActions">
+          <button type="button" class="secondary" @click="closeMergeUnitModal()">Cancel</button>
+          <button type="button" class="primary" :disabled="mergeManager.moves.length === 0" @click="submitMergeManager()">Submit</button>
+        </div>
       </div>
     </div>
   </div>
