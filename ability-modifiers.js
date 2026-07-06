@@ -86,7 +86,6 @@
     'Deadly Stalkers': ['Bearer | Conditional | Wound Rolls +1'],
     'Storm Shield': ['Defense: Invulnerable Save 4+'],
 
-    'Devastating Charge': ['Bearer | Conditional | Melee: Lance'],
     "Braggart's Steel": ['Bearer | Melee: Strength +2', 'Bearer | Conditional | Melee: Damage +1'],
     'Braggart’s Steel': ['Bearer | Melee: Strength +2', 'Bearer | Conditional | Melee: Damage +1'],
     'Hordeslayer': ['Bearer | Conditional | Melee: Attacks +3'],

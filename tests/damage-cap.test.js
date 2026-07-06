@@ -1301,7 +1301,7 @@ assert.ok(!/Strength \+2|Damage \+1/i.test(app.effectiveWeaponModifiers(bearerPa
 
 const skullmaster = {
   label: 'Skullmaster',
-  abilities: ["Skullmaster's Fury"],
+  abilities: ["Skullmaster's Fury", 'Devastating Charge'],
   weapons: [],
   defense: { T: 7, Sv: 3, W: 6, models: 1 },
   _unitKey: 'skullmaster',
@@ -1322,7 +1322,9 @@ Object.defineProperty(bloodcrusher, '_parentUnit', { value: skullmasterUnit, enu
 app.matchup.conditionsMet = false;
 assert.ok(!/Devastating Wounds/i.test(app.effectiveWeaponModifiers(bloodcrusher.weapons[0], bloodcrusher, hardTarget)), 'conditional unit-wide weapon modifiers are off by default');
 app.matchup.conditionsMet = true;
-assert.ok(/Devastating Wounds/i.test(app.effectiveWeaponModifiers(bloodcrusher.weapons[0], bloodcrusher, hardTarget)), 'conditional unit-wide weapon modifiers apply when conditions are met');
+const skullmasterHornModifiers = app.effectiveWeaponModifiers(bloodcrusher.weapons[0], bloodcrusher, hardTarget);
+assert.ok(/Devastating Wounds/i.test(skullmasterHornModifiers), 'conditional unit-wide weapon modifiers apply when conditions are met');
+assert.ok(!/\bLance\b/i.test(skullmasterHornModifiers), "Skullmaster's Devastating Charge does not add Lance because it only forces Battle-shock tests");
 assert.ok(!/Devastating Wounds/i.test(app.effectiveWeaponModifiers(bloodcrusher.weapons[1], bloodcrusher, hardTarget)), 'weapon-scoped modifiers only apply to matching weapons');
 const brassStampedeUnit = { ...skullmasterUnit, abilities: ['Brass Stampede'] };
 const brassStampedeCell = app.computeMatchupCell(brassStampedeUnit, hardTarget, { includeFormula: true });
