@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=delete-roster-export-row-1">
+  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-1">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
   <script defer src="matchup-engine.js?v=dice-profile-display-1"></script>
-  <script defer src="army-import.js?v=dice-profile-display-1"></script>
+  <script defer src="army-import.js?v=army-editor-sidebar-1"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 
@@ -150,24 +150,8 @@
                 </div>
                 <span class="muted copyStatus matchupModifierStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
               </div>
-              <div class="matchupFieldActionRow matchupUnitActionInline">
-                <label class="unitSelectLabel matchupHalfSelect">
-                  Unit
-                  <select x-model.number="matchup.attackerUnitIdx">
-                    <template x-for="(u, i) in matchupSideBaseUnits('attacker')" :key="`matchup-attacker-unit-${i}`">
-                      <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
-                    </template>
-                    <template x-if="matchupSideBaseUnits('attacker').length === 0">
-                      <option value="0">No units found</option>
-                    </template>
-                  </select>
-                </label>
-                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptRenameUnit(matchupSideSelectedUnit('attacker'))">Rename</button>
-                <button class="danger deleteUnitButton" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptDeleteMatchupUnit('attacker')">Delete Unit</button>
-              </div>
               <div class="unitActionRow matchupSideActionRow">
-                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="duplicateMatchupUnit('attacker')">Duplicate</button>
-                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 1" @click="openMatchupMergeUnitModal('attacker')">Merge/Unmerge</button>
+                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 1" @click="openMatchupArmyEditor('attacker')">Army Editor</button>
               </div>
             </div>
           </details>
@@ -248,24 +232,8 @@
                 </div>
                 <span class="muted copyStatus matchupModifierStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
               </div>
-              <div class="matchupFieldActionRow matchupUnitActionInline">
-                <label class="unitSelectLabel matchupHalfSelect">
-                  Unit
-                  <select x-model.number="matchup.defenderUnitIdx">
-                    <template x-for="(u, i) in matchupSideBaseUnits('defender')" :key="`matchup-defender-unit-${i}`">
-                      <option :value="i" x-text="unitDropdownLabel(u) || `Unit ${i+1}`"></option>
-                    </template>
-                    <template x-if="matchupSideBaseUnits('defender').length === 0">
-                      <option value="0">No units found</option>
-                    </template>
-                  </select>
-                </label>
-                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptRenameUnit(matchupSideSelectedUnit('defender'))">Rename</button>
-                <button class="danger deleteUnitButton" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptDeleteMatchupUnit('defender')">Delete Unit</button>
-              </div>
               <div class="unitActionRow matchupSideActionRow">
-                <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="duplicateMatchupUnit('defender')">Duplicate</button>
-                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 1" @click="openMatchupMergeUnitModal('defender')">Merge/Unmerge</button>
+                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 1" @click="openMatchupArmyEditor('defender')">Army Editor</button>
               </div>
             </div>
           </details>
@@ -293,7 +261,7 @@
         <div class="unitActionRow unitActionPrimary">
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptRenameUnit(activeUnit)">Rename</button>
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
-          <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="openMergeUnitModal()">Merge/Unmerge</button>
+          <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="openMergeUnitModal()">Army Editor</button>
           <button class="danger deleteUnitButton unitDeleteButton" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptDeleteSelectedUnit()">Delete Unit</button>
         </div>
       </div>
@@ -1051,13 +1019,13 @@
     </div>
   </div>
 
-  <!-- Merge / unmerge modal -->
+  <!-- Army editor modal -->
   <div class="modalOverlay" x-show="mergeModalOpen" x-cloak
        @keydown.escape.window="closeMergeUnitModal()" @click.self="closeMergeUnitModal()">
-    <div class="modal modalWide mergeManagerModal" role="dialog" aria-modal="true" aria-label="Merge or unmerge units">
+    <div class="modal modalWide mergeManagerModal" role="dialog" aria-modal="true" aria-label="Army editor">
       <div class="modalHead">
         <div>
-          <div style="font-weight:800">Merge/Unmerge</div>
+          <div style="font-weight:800">Army Editor</div>
           <div class="muted" style="font-size:12px">
             Move units or expanded models from the left into a target unit on the right.
           </div>
@@ -1087,6 +1055,8 @@
                       <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
                     </span>
                     <span class="mergeManagerSummaryActions">
+                      <button class="mergeManagerIconButton mergeManagerDuplicateButton" type="button" aria-label="Duplicate unit"
+                              @click.stop.prevent="duplicateMergeManagerItem(unit)">+</button>
                       <span class="mergeManagerDragBubble">drag</span>
                       <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete unit"
                               @click.stop.prevent="deleteMergeManagerItem(unit)">&times;</button>
@@ -1107,6 +1077,8 @@
                           <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
                         </span>
                         <span class="mergeManagerSummaryActions">
+                          <button class="mergeManagerIconButton mergeManagerDuplicateButton" type="button" aria-label="Duplicate model"
+                                  @click.stop.prevent="duplicateMergeManagerItem(child)">+</button>
                           <span class="mergeManagerDragBubble">drag</span>
                           <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete model"
                                   @click.stop.prevent="deleteMergeManagerItem(child)">&times;</button>
@@ -1130,18 +1102,12 @@
                          @dragover.prevent
                          @drop="mergeManagerDropOnUnit($event, unit)">
                   <summary>
-                    <span class="mergeManagerUnitSummary">
-                      <span class="mergeManagerNameRow">
-                        <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
-                        <button class="mergeManagerIconButton" type="button" aria-label="Rename unit"
-                                @click.stop.prevent="promptMergeManagerRename(unit)">✎</button>
+                      <span class="mergeManagerUnitSummary">
+                        <span class="mergeManagerNameRow">
+                          <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                        </span>
+                        <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
                       </span>
-                      <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
-                    </span>
-                    <span class="mergeManagerSummaryActions">
-                      <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete unit"
-                              @click.stop.prevent="deleteMergeManagerItem(unit)">&times;</button>
-                    </span>
                   </summary>
                   <div class="mergeManagerChildren">
                     <template x-for="child in mergeManagerChildren(unit)" :key="`merge-to-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
@@ -1149,14 +1115,8 @@
                         <span class="mergeManagerChildBody">
                           <span class="mergeManagerNameRow">
                             <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
-                            <button class="mergeManagerIconButton" type="button" aria-label="Rename model"
-                                    @click.stop.prevent="promptMergeManagerRename(child)">✎</button>
                           </span>
                           <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
-                        </span>
-                        <span class="mergeManagerSummaryActions">
-                          <button class="mergeManagerIconButton mergeManagerDeleteButton" type="button" aria-label="Delete model"
-                                  @click.stop.prevent="deleteMergeManagerItem(child)">&times;</button>
                         </span>
                       </div>
                     </template>
@@ -1377,6 +1337,6 @@
 
 </div>
 
-<script src="utilities.js?v=delete-roster-export-row-1"></script>
+<script src="utilities.js?v=army-editor-sidebar-1"></script>
 </body>
 </html>

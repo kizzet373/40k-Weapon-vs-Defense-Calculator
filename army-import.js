@@ -1620,6 +1620,17 @@
     return null;
   }
 
+  function findUnitParentByKey(units, unitKey, parent=null){
+    for(const unit of units || []){
+      if(String(unit?._unitKey || '') === String(unitKey || '')){
+        return { unit, parent, siblings: units };
+      }
+      const child = findUnitParentByKey(unit?._children || [], unitKey, unit);
+      if(child) return child;
+    }
+    return null;
+  }
+
   function removeUnitByIdentity(units, unitKey, groupId=''){
     if(!Array.isArray(units)) return false;
     let changed = false;
@@ -1703,6 +1714,18 @@
       const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
 
       if(Array.isArray(force._importedUnits)){
+        const nestedSource = unitKey ? findUnitParentByKey(force._importedUnits, unitKey) : null;
+        if(nestedSource?.unit && nestedSource.parent){
+          const existingKeys = force._importedUnits.reduce((keys, candidate) => collectUnitIdentityKeys(candidate, keys), new Set());
+          const siblingLabels = new Set((nestedSource.parent._children || []).map(candidate => cleanName(candidate?.label)).filter(Boolean));
+          const copy = rewriteDuplicatedUnitIdentity(cloneUnit(nestedSource.unit), existingKeys, nestedSource.parent._unitKey || nestedSource.parent._groupId || null);
+          copy.label = uniqueDuplicateLabel(nestedSource.unit.label, siblingLabels);
+          nestedSource.parent._children = [...(nestedSource.parent._children || []), copy];
+          const rebuilt = aggregateChildren(nestedSource.parent._children, nestedSource.parent._unitKey, nestedSource.parent.label, []);
+          Object.assign(nestedSource.parent, rebuilt);
+          return copy;
+        }
+
         const storedSource = force._importedUnits.find(candidate => {
           const candidateKey = String(candidate?._unitKey || '');
           const candidateGroup = String(candidate?._groupId || '');

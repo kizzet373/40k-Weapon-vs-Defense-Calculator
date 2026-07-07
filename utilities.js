@@ -2221,6 +2221,9 @@ function weaponVsDefenseApp(){
       if(move.action === 'delete'){
         return window.ArmyImportService?.removeUnit(force, { _unitKey: move.unitKey, _groupId: move.groupId });
       }
+      if(move.action === 'duplicate'){
+        return !!window.ArmyImportService?.duplicateUnit(force, move.unitSnapshot || { _unitKey: move.unitKey, _groupId: move.groupId });
+      }
       return move.kind === 'unit'
         ? (move.action === 'unmerge'
           ? window.ArmyImportService?.unmergeUnit(force, move.fromKey)
@@ -2274,6 +2277,23 @@ function weaponVsDefenseApp(){
         unitKey: identity.unitKey,
         groupId: identity.groupId,
         label: identity.label,
+      });
+    },
+
+    duplicateMergeManagerItem(unit){
+      const identity = this.mergeManagerEditIdentity(unit);
+      if(!identity.unitKey) return false;
+      let unitSnapshot = null;
+      try{
+        unitSnapshot = JSON.parse(JSON.stringify(unit || {}));
+      }catch(_err){}
+      return this.stageMergeManagerEdit({
+        action: 'duplicate',
+        kind: 'edit',
+        unitKey: identity.unitKey,
+        groupId: identity.groupId,
+        label: identity.label,
+        unitSnapshot,
       });
     },
 
@@ -2332,6 +2352,13 @@ function weaponVsDefenseApp(){
       const candidates = this.matchupSideBaseUnits(side);
       if(!unit || !force){ alert('Select a unit first.'); return; }
       this.openMergeUnitModal(unit, force, candidates, side);
+    },
+
+    openMatchupArmyEditor(side){
+      const force = this.matchupSideForce(side);
+      const candidates = this.matchupSideBaseUnits(side);
+      if(!force){ alert('Select a roster and force first.'); return; }
+      this.openMergeUnitModal(null, force, candidates, side);
     },
 
     duplicateMatchupUnit(side){

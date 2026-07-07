@@ -384,9 +384,8 @@ button.secondary.matchupRosterSwapButton{
 .mergeManagerDraggableUnit:active{cursor:grabbing}
 .mergeManagerUnit summary{display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:9px 10px;cursor:pointer;user-select:none}
 .mergeManagerUnit summary::-webkit-details-marker{display:none}
-.mergeManagerUnit summary::after{
+.mergeManagerUnit summary::before{
   content:"";
-  order:2;
   flex:0 0 13px;
   width:13px;
   height:13px;
@@ -396,7 +395,7 @@ button.secondary.matchupRosterSwapButton{
   transform-origin:center;
   margin-left:0;
 }
-.mergeManagerUnit[open] summary::after{transform:rotate(45deg)}
+.mergeManagerUnit[open] summary::before{transform:rotate(45deg)}
 .mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 .mergeManagerNameRow{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
 .mergeManagerSummaryActions{order:3;display:inline-flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto}
@@ -404,6 +403,7 @@ button.secondary.matchupRosterSwapButton{
 .mergeManagerUnitName,.mergeManagerChildName{font-weight:800;color:var(--fg);min-width:0;overflow:hidden;text-overflow:ellipsis}
 .mergeManagerIconButton{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;min-width:24px;padding:0;border-radius:7px;border:1px solid rgba(110,231,255,.25);background:rgba(110,231,255,.08);color:var(--accent);font-size:15px;font-weight:900;line-height:1}
 .mergeManagerIconButton:hover:not(:disabled){background:rgba(110,231,255,.16);border-color:rgba(110,231,255,.5)}
+.mergeManagerDuplicateButton{font-size:17px}
 .mergeManagerDeleteButton{border-color:rgba(248,113,113,.36);background:rgba(248,113,113,.1);color:#fca5a5;font-size:18px}
 .mergeManagerDeleteButton:hover:not(:disabled){background:rgba(185,28,28,.45);border-color:rgba(248,113,113,.64);color:#fff}
 .mergeManagerChildren{display:flex;flex-direction:column;gap:6px;padding:0 10px 10px}
@@ -412,6 +412,7 @@ button.secondary.matchupRosterSwapButton{
 .mergeManagerChild:active{cursor:grabbing}
 .mergeManagerChildStatic{cursor:default}
 .mergeManagerDropUnit{outline:1px solid rgba(102,226,138,.08)}
+.mergeManagerDropUnit .mergeManagerIconButton,.mergeManagerDropUnit .mergeManagerSummaryActions{display:none}
 .mergeManagerDropUnit:hover{border-color:rgba(110,231,255,.42);box-shadow:0 0 0 2px rgba(110,231,255,.08) inset}
 .mergeManagerActions{display:flex;justify-content:space-between;gap:8px;flex:0 0 auto}
 label{display:flex;flex-direction:column;gap:4px;flex:1;}

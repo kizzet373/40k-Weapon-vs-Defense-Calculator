@@ -10,21 +10,26 @@ assert.ok(!/mergeDropHint|>\s*Drop\s*</i.test(indexHtml), 'merge manager target 
 assert.ok(!/mergeDragHandle|>\s*Drag unit\s*</i.test(indexHtml), 'merge manager source units do not show a Drag unit label');
 assert.ok(/mergeManagerDraggableUnit[\s\S]*draggable="true"[\s\S]*mergeManagerDragStart\(\$event, 'unit', unit\)/.test(indexHtml), 'merge manager source unit rows are draggable');
 assert.ok(/mergeManagerDragBubble[\s\S]*>\s*drag\s*</i.test(indexHtml), 'merge manager source units and models show a compact drag bubble');
+assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager source unit rows expose a duplicate button');
+assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(child\)/.test(indexHtml), 'merge manager source model rows expose a duplicate button');
 assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline rename button');
 assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
 assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
 assert.ok(/deleteMergeManagerItem\(child\)/.test(indexHtml), 'merge manager model rows expose an inline delete button');
-assert.ok(/mergeManagerUnit summary::after[\s\S]*width:13px[\s\S]*border-right:3px solid var\(--accent\)/.test(stylesCss), 'merge manager collapsible arrow is a larger right-side affordance');
-assert.ok(!/mergeManagerUnit summary::before/.test(stylesCss), 'merge manager collapsible arrow is not left-side before content');
+assert.ok(/mergeManagerUnit summary::before[\s\S]*width:13px[\s\S]*border-right:3px solid var\(--accent\)/.test(stylesCss), 'merge manager collapsible arrow is a larger left-side affordance');
+assert.ok(!/mergeManagerUnit summary::after/.test(stylesCss), 'merge manager collapsible arrow is no longer right-side after content');
 assert.ok(/mergeManagerDeleteButton/.test(stylesCss), 'merge manager delete buttons have a dedicated compact danger style');
+assert.ok(/mergeManagerDropUnit \.mergeManagerIconButton,\s*\.mergeManagerDropUnit \.mergeManagerSummaryActions\{display:none\}/.test(stylesCss), 'merge manager target-side edit controls are hidden');
 assert.ok(/Add Army Modifiers/.test(indexHtml), 'matchup sidebar custom modifier dropdown is labeled Add Army Modifiers');
 assert.ok(/Copy Roster/.test(indexHtml) && /Export Roster/.test(indexHtml), 'matchup sidebar copy/export dropdowns are labeled as roster actions');
 assert.ok(indexHtml.indexOf('copy-attacker') < indexHtml.indexOf('matchup-attacker-custom'), 'attacker Copy Roster/Export Roster controls appear above Add Army Modifiers');
 assert.ok(indexHtml.indexOf('copy-defender') < indexHtml.indexOf('matchup-defender-custom'), 'defender Copy Roster/Export Roster controls appear above Add Army Modifiers');
 assert.ok(indexHtml.indexOf('export-attacker') < indexHtml.indexOf("promptDeleteMatchupRoster('attacker'") && indexHtml.indexOf("promptDeleteMatchupRoster('attacker'") < indexHtml.indexOf('matchup-attacker-custom'), 'attacker Delete Roster sits next to Export Roster above Add Army Modifiers');
 assert.ok(indexHtml.indexOf('export-defender') < indexHtml.indexOf("promptDeleteMatchupRoster('defender'") && indexHtml.indexOf("promptDeleteMatchupRoster('defender'") < indexHtml.indexOf('matchup-defender-custom'), 'defender Delete Roster sits next to Export Roster above Add Army Modifiers');
-assert.ok(indexHtml.indexOf('matchup-attacker-custom') < indexHtml.indexOf('matchup-attacker-unit'), 'attacker army modifier dropdown appears above the attacker Unit selector');
-assert.ok(indexHtml.indexOf('matchup-defender-custom') < indexHtml.indexOf('matchup-defender-unit'), 'defender army modifier dropdown appears above the defender Unit selector');
+assert.ok(!/matchup-attacker-unit|matchup-defender-unit/.test(indexHtml), 'Army Matchups sidebar no longer includes per-side Unit selectors');
+assert.ok(indexHtml.indexOf('matchup-attacker-custom') < indexHtml.indexOf("openMatchupArmyEditor('attacker'"), 'attacker army modifier dropdown appears above Army Editor');
+assert.ok(indexHtml.indexOf('matchup-defender-custom') < indexHtml.indexOf("openMatchupArmyEditor('defender'"), 'defender army modifier dropdown appears above Army Editor');
+assert.ok(/Army Editor/.test(indexHtml) && /openMatchupArmyEditor\('attacker'\)/.test(indexHtml) && /openMatchupArmyEditor\('defender'\)/.test(indexHtml), 'Army Matchups sidebar keeps only Army Editor for unit management');
 assert.ok(/copy-attacker/.test(indexHtml) && /export-defender/.test(indexHtml), 'copy/export roster dropdowns remain scoped to each matchup side');
 assert.ok(!/copy-inline|export-inline/.test(indexHtml), 'copy/export dropdowns are no longer in the matchup mode button row');
 assert.ok(/matchupModifierExportActions\{grid-column:1 \/ -1;justify-self:start/.test(stylesCss), 'copy/export roster controls sit above the army modifier dropdown');
@@ -32,7 +37,7 @@ assert.ok(/deleteConfirmModalOpen/.test(indexHtml) && /Confirm delete/.test(inde
 assert.ok(/promptDeleteSelectedRoster\(\)/.test(indexHtml), 'Weapon Damage Calc roster delete opens a confirmation prompt');
 assert.ok(/promptDeleteMatchupRoster\('attacker'\)/.test(indexHtml) && /promptDeleteMatchupRoster\('defender'\)/.test(indexHtml), 'Army Matchups roster deletes open confirmation prompts');
 assert.ok(/promptDeleteSelectedUnit\(\)/.test(indexHtml), 'main unit delete opens a confirmation prompt');
-assert.ok(/promptDeleteMatchupUnit\('attacker'\)/.test(indexHtml) && /promptDeleteMatchupUnit\('defender'\)/.test(indexHtml), 'Army Matchups unit deletes open confirmation prompts');
+assert.ok(!/promptDeleteMatchupUnit\('attacker'\)|promptDeleteMatchupUnit\('defender'\)|duplicateMatchupUnit\('attacker'\)|duplicateMatchupUnit\('defender'\)/.test(indexHtml), 'Army Matchups sidebar removes per-side rename duplicate and delete controls');
 assert.ok(/Delete Roster/.test(indexHtml) && /Delete Unit/.test(indexHtml), 'sidebar delete buttons use explicit roster and unit labels');
 assert.ok(!/deleteMatchupForce\('attacker'\)|deleteMatchupForce\('defender'\)/.test(indexHtml), 'Army Matchups sidebar no longer exposes force deletion');
 assert.ok(/matchupRosterRow\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.25fr\)/.test(stylesCss), 'matchup roster rows restore Roster width while keeping Force wider');
@@ -2248,6 +2253,20 @@ const mergeEditForce = {
   ],
   _unitMerges: [],
 };
+const mergeDuplicateForce = JSON.parse(JSON.stringify(mergeEditForce));
+const mergeDuplicateApp = context.weaponVsDefenseApp();
+mergeDuplicateApp.forces = [mergeDuplicateForce];
+mergeDuplicateApp.selectedForceIdx = 0;
+mergeDuplicateApp.units = mergeDuplicateApp.collectUnits(mergeDuplicateForce);
+mergeDuplicateApp.openMergeUnitModal(null, mergeDuplicateForce, mergeDuplicateApp.units);
+const duplicatePreviewSquad = mergeDuplicateApp.mergeManagerUnits().find(unit => unit._unitKey === 'edit-squad');
+const duplicatePreviewChild = duplicatePreviewSquad._children.find(child => child._unitKey === 'edit-leader');
+assert.ok(mergeDuplicateApp.duplicateMergeManagerItem(duplicatePreviewChild), 'merge manager can stage duplicating a model');
+assert.ok(mergeDuplicateApp.mergeManagerUnits().find(unit => unit._unitKey === 'edit-squad')._children.some(child => /^Edit Leader Copy/.test(child.label)), 'merge manager preview refreshes after staged model duplicate');
+assert.ok(!context.window.ArmyImportService.collectImportedUnits(mergeDuplicateForce).find(unit => unit._unitKey === 'edit-squad')._children.some(child => /^Edit Leader Copy/.test(child.label)), 'staged model duplicate does not mutate the real army before submit');
+mergeDuplicateApp.submitMergeManager();
+assert.ok(context.window.ArmyImportService.collectImportedUnits(mergeDuplicateForce).find(unit => unit._unitKey === 'edit-squad')._children.some(child => /^Edit Leader Copy/.test(child.label)), 'merge manager submit applies staged model duplicate to the real army');
+
 const mergeEditApp = context.weaponVsDefenseApp();
 mergeEditApp.forces = [mergeEditForce];
 mergeEditApp.selectedForceIdx = 0;
