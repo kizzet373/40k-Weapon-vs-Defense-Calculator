@@ -1437,22 +1437,22 @@ function weaponVsDefenseApp(){
     },
 
     efficiencyScoreMultiplier(side){
-      return side === 'defender' ? 80000 : 1000;
+      return side === 'defender' ? 8000 : 10000;
     },
 
     updateMatchupScoreMaps(rows=this.matchup.visibleRows || [], defenders=this.matchup.visibleDefenders || []){
       const attackerItems = (rows || []).map(row => {
-        const avgDamage = this.averageFinite((row.cells || []).map(cell => this.matchupScoreDamage(cell)));
+        const avgDamagePct = this.averageFinite((row.cells || []).map(cell => this.matchupScoreDamagePercent(cell)));
         return {
           key: this.unitKey(row.unit),
           stableKey: String(row.unit?._unitKey || ''),
-          raw: this.offensiveEfficiencyFromAverage(row.unit, avgDamage),
+          raw: this.offensiveEfficiencyFromAverage(row.unit, avgDamagePct),
         };
       });
 
       const defenderItems = (defenders || []).map((col, colIndex) => {
         const incomingValues = (rows || []).map(row => {
-          const value = this.matchupScoreDamage(row.cells?.[colIndex]);
+          const value = this.matchupScoreDamagePercent(row.cells?.[colIndex]);
           return Number.isFinite(value) ? value : null;
         }).filter(value => value != null);
         const avgIncoming = this.averageFinite(incomingValues);
@@ -1487,8 +1487,8 @@ function weaponVsDefenseApp(){
       return points && Number.isFinite(avgMetric) ? (avgMetric / points) * this.efficiencyScoreMultiplier('attacker') : null;
     },
 
-    matchupScoreDamage(cell){
-      const value = Number(cell?.dmg);
+    matchupScoreDamagePercent(cell){
+      const value = Number(cell?.pctModelWounds);
       return Number.isFinite(value) ? value : null;
     },
 
@@ -1535,12 +1535,12 @@ function weaponVsDefenseApp(){
     },
 
     offensiveScoreSummary(unit, defenders, calculationCache=null){
-      const values = this.outgoingScoreCells(unit, defenders, calculationCache).map(cell => this.matchupScoreDamage(cell));
+      const values = this.outgoingScoreCells(unit, defenders, calculationCache).map(cell => this.matchupScoreDamagePercent(cell));
       return this.scoreSummaryFromValues(unit, values, 'attacker');
     },
 
     defensiveScoreSummary(unit, attackers, calculationCache=null){
-      const values = this.incomingScoreCells(unit, attackers, calculationCache).map(cell => this.matchupScoreDamage(cell));
+      const values = this.incomingScoreCells(unit, attackers, calculationCache).map(cell => this.matchupScoreDamagePercent(cell));
       return this.scoreSummaryFromValues(unit, values, 'defender');
     },
 
@@ -1948,8 +1948,8 @@ function weaponVsDefenseApp(){
       let maxMetric = 0;
       let totalMetric = 0;
       let focusMetric = 0;
-      let totalDamage = 0;
-      let damageCount = 0;
+      let totalDamagePct = 0;
+      let damagePctCount = 0;
       (this.matchup.rows || []).forEach(row => {
         const c = cellFor(row.unit, unit);
         const value = this.matchupCellMetric(c);
@@ -1957,17 +1957,17 @@ function weaponVsDefenseApp(){
           maxMetric = Math.max(maxMetric, value);
           totalMetric += value;
         }
-        const damage = this.matchupScoreDamage(c);
-        if(Number.isFinite(damage)){
-          totalDamage += damage;
-          damageCount += 1;
+        const damagePct = this.matchupScoreDamagePercent(c);
+        if(Number.isFinite(damagePct)){
+          totalDamagePct += damagePct;
+          damagePctCount += 1;
         }
       });
       const focusCell = this.matchup.rows?.[0]?.unit ? cellFor(this.matchup.rows[0].unit, unit) : null;
       const focusValue = this.matchupCellMetric(focusCell);
       if(Number.isFinite(focusValue)) focusMetric = focusValue;
-      const avgIncomingDamage = damageCount ? totalDamage / damageCount : 0;
-      const score = this.defensiveEfficiencyFromAverage(unit, avgIncomingDamage) || 0;
+      const avgIncomingDamagePct = damagePctCount ? totalDamagePct / damagePctCount : 0;
+      const score = this.defensiveEfficiencyFromAverage(unit, avgIncomingDamagePct) || 0;
       return { maxMetric, totalMetric, focusMetric, score };
     },
 

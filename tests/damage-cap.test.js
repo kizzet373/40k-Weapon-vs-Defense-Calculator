@@ -378,8 +378,25 @@ assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon ord
 const app = context.weaponVsDefenseApp();
 const scoreScaleUnit = { label: 'Score scale check', _unitKey: 'score-scale-check', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
 app.matchup.metric = 'modelWounds';
-assert.strictEqual(Math.round(app.offensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 10, 'attacker scores are based on average damage per point');
-assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 800, 'defender scores are based on inverse average incoming damage per point');
+assert.strictEqual(Math.round(app.offensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 100, 'attacker scores are based on average total damage percent per point');
+assert.strictEqual(Math.round(app.defensiveEfficiencyFromAverage(scoreScaleUnit, 1)), 80, 'defender scores are based on inverse average incoming damage percent per point');
+const scorePctAttacker = { label: 'Score pct attacker', _unitKey: 'score-pct-attacker', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+const scorePctDefender10 = { label: 'Score pct defender 10W', _unitKey: 'score-pct-defender-10', _points: 100, defense: { T: 4, Sv: 3, W: 10, models: 1, totalWounds: 10 } };
+const scorePctDefender20 = { label: 'Score pct defender 20W', _unitKey: 'score-pct-defender-20', _points: 100, defense: { T: 4, Sv: 3, W: 20, models: 1, totalWounds: 20 } };
+app.matchup.scoreMaps = { attackers: {}, defenders: {} };
+app.updateMatchupScoreMaps(
+  [{
+    unit: scorePctAttacker,
+    cells: [
+      { dmg: 5, pctModelWounds: 0.5 },
+      { dmg: 5, pctModelWounds: 0.25 },
+    ],
+  }],
+  [{ unit: scorePctDefender10 }, { unit: scorePctDefender20 }]
+);
+assert.strictEqual(Math.round(app.matchup.scoreMaps.attackers[scorePctAttacker._unitKey]), 38, 'attacker score averages total damage percent across defenders');
+assert.strictEqual(Math.round(app.matchup.scoreMaps.defenders[scorePctDefender10._unitKey]), 160, 'defender score uses incoming damage percent for a smaller wound pool');
+assert.strictEqual(Math.round(app.matchup.scoreMaps.defenders[scorePctDefender20._unitKey]), 320, 'same raw incoming damage scores better into a larger wound pool');
 const hammerIntoOneWoundModels = app.computeMatchupCell(
   {
     label: 'Daemon hammer attacker',
