@@ -427,6 +427,7 @@
     const AP = Math.max(0, Math.abs(apRaw) + (kw.apAdd || 0));
     const D = Math.max(0, expectedCappedDamage(weapon?.D, null, kw.damageAdd || 0, kw.damageDivisor || 1));
     const cappedD = expectedCappedDamage(weapon?.D, def.W, kw.damageAdd || 0, kw.damageDivisor || 1);
+    const baseDamageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, 1);
     const damageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, kw.damageDivisor || 1);
     const cappedDamageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, kw.damageDivisor || 1);
     const profileFnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
@@ -525,7 +526,9 @@
         strength: S,
         ap: AP,
         damage: D,
+        baseDamageText,
         damageText,
+        damageDivisor: kw.damageDivisor || 1,
         cappedDamage: cappedD,
         cappedDamageText,
         defense: { T: def.T, sv: def.sv, inv: def.inv, W: def.W, Fnp: fnp > 0 ? fnp : null, cover: !!def.cover, models: Number.isFinite(targetModels) ? targetModels : null, keywords: [...(def?.keywords || []), ...(def?._keywords || [])] },

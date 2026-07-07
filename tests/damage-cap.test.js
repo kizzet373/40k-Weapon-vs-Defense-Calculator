@@ -1140,6 +1140,32 @@ assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\)$/i.
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
+const halvedFlatFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Halved flat attacker',
+    weapons: [{ name: 'Halved power fist', range: 'Melee', A: '3', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: 'Damage /2', mode: 'melee' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Halved flat defender', defense: { T: 4, Sv: 7, W: 10, models: 1, totalWounds: 10 } },
+  { includeFormula: true }
+);
+app.formulaCell = halvedFlatFormulaCell;
+const halvedFlatLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.ok(halvedFlatLines.some(line => /Damage: .* x 1 \(2 halved\) damage/i.test(line)), 'halved flat damage formula shows the effective damage and original value');
+
+const halvedDiceFormulaCell = app.computeMatchupCell(
+  {
+    label: 'Halved dice attacker',
+    weapons: [{ name: 'Halved dice fist', range: 'Melee', A: '3', skill: 'auto', S: '8', AP: '6', D: 'D3', modifiers: 'Damage /2', mode: 'melee' }],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Halved dice defender', defense: { T: 4, Sv: 7, W: 10, models: 1, totalWounds: 10 } },
+  { includeFormula: true }
+);
+app.formulaCell = halvedDiceFormulaCell;
+const halvedDiceLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.ok(halvedDiceLines.some(line => /Damage: .* x 1\.333 \(1d3 halved\) damage/i.test(line)), 'halved dice damage formula shows the rounded average and original dice value');
+
 const blastFormulaCell = app.computeMatchupCell(
   {
     label: 'Blast attacker',

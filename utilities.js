@@ -3764,6 +3764,21 @@ function weaponVsDefenseApp(){
       return /[dD]/.test(text) ? `(${text})` : text;
     },
 
+    formulaDamageExpression(formula={}){
+      const divisor = Number(formula.damageDivisor) || 1;
+      const baseText = String(formula.baseDamageText || '').trim();
+      if(divisor > 1){
+        const effective = this.formulaNumber(formula.damage);
+        const halvedText = divisor === 2 ? 'halved' : `divided by ${this.formulaNumber(divisor)}`;
+        if(baseText){
+          return `${effective} (${baseText} ${halvedText})`;
+        }
+        return `${effective} (${halvedText})`;
+      }
+      const damageText = formula.damageText || this.formulaNumber(formula.damage);
+      return this.formulaDamageText(damageText);
+    },
+
     formulaProfileDamageParts(item){
       return (item?.lines || []).reduce((parts, line) => {
         const allocation = line?.allocation || {};
@@ -3944,9 +3959,8 @@ function weaponVsDefenseApp(){
           const allocation = line.allocation || {};
           const unsaved = (Number(totals.unsavedNormal) || 0) * scale;
           const mortals = (Number(totals.mortals) || 0) * scale;
-          const damageText = f.damageText || this.formulaNumber(f.damage);
           const damageInstances = unsaved + mortals;
-          const parts = [`${this.formulaNumber(damageInstances)} x ${this.formulaDamageText(damageText)} damage`];
+          const parts = [`${this.formulaNumber(damageInstances)} x ${this.formulaDamageExpression(f)} damage`];
           if((Number(probs.pFnp) || 0) > 1e-9) parts.push(`x ${this.formulaPercent(1 - (probs.pFnp || 0))} after FNP`);
           const damageResult = `${this.formulaNumber(allocation.rawDamageTotal ?? line.appliedDamage ?? allocation.appliedDamage ?? totals.totalDamage)} damage`;
           lines.push(this.formulaLineEntry('Damage', parts.join(' '), damageResult));
