@@ -10,8 +10,8 @@ assert.ok(!/mergeDropHint|>\s*Drop\s*</i.test(indexHtml), 'merge manager target 
 assert.ok(!/mergeDragHandle|>\s*Drag unit\s*</i.test(indexHtml), 'merge manager source units do not show a Drag unit label');
 assert.ok(/mergeManagerDraggableUnit[\s\S]*draggable="true"[\s\S]*mergeManagerDragStart\(\$event, 'unit', unit\)/.test(indexHtml), 'merge manager source unit rows are draggable');
 assert.ok(/mergeManagerDragBubble[\s\S]*>\s*drag\s*</i.test(indexHtml), 'merge manager source units and models show a compact drag bubble');
-assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager source unit rows expose a duplicate button');
-assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(child\)/.test(indexHtml), 'merge manager source model rows expose a duplicate button');
+assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(unit\)[\s\S]*>\s*Duplicate\s*<\/button>/.test(indexHtml), 'merge manager source unit rows expose a Duplicate button');
+assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(child\)[\s\S]*>\s*Duplicate\s*<\/button>/.test(indexHtml), 'merge manager source model rows expose a Duplicate button');
 assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline rename button');
 assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
 assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
