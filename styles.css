@@ -339,8 +339,13 @@ button.secondary.matchupRosterSwapButton{
 .attackModeButtonRow .seg{flex:0 0 auto;width:auto}
 .inlineMatchupActions{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
 .inlineMatchupActions .dropdownButton{padding:7px 9px}
+.matchupModifierActionRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 8px;align-items:end;min-width:0}
+.matchupArmyModifierLabel{grid-column:1 / 2;min-width:0}
+.matchupModifierExportActions{grid-column:2 / 3;justify-self:end;align-self:end;flex-wrap:nowrap}
 .matchupCustomModifierTool{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;flex:0 0 100%;min-width:0}
 .matchupCustomModifierPills{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.matchupModifierActionRow .matchupCustomModifierPills{grid-column:1 / -1}
+.matchupModifierStatus{grid-column:1 / -1}
 .matchupCustomModifierPill{display:inline-flex;align-items:center;gap:6px}
 .matchupCustomModifierPill .tagX{padding:0 4px;line-height:1}
 .sidebarMatchupToolbar .matchupActions{justify-content:flex-start;flex-wrap:wrap;white-space:normal}

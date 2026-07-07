@@ -17,6 +17,12 @@ assert.ok(/deleteMergeManagerItem\(child\)/.test(indexHtml), 'merge manager mode
 assert.ok(/mergeManagerUnit summary::after[\s\S]*width:13px[\s\S]*border-right:3px solid var\(--accent\)/.test(stylesCss), 'merge manager collapsible arrow is a larger right-side affordance');
 assert.ok(!/mergeManagerUnit summary::before/.test(stylesCss), 'merge manager collapsible arrow is not left-side before content');
 assert.ok(/mergeManagerDeleteButton/.test(stylesCss), 'merge manager delete buttons have a dedicated compact danger style');
+assert.ok(/Add Army Modifiers/.test(indexHtml), 'matchup sidebar custom modifier dropdown is labeled Add Army Modifiers');
+assert.ok(indexHtml.indexOf('matchup-attacker-custom') < indexHtml.indexOf('matchup-attacker-unit'), 'attacker army modifier dropdown appears above the attacker Unit selector');
+assert.ok(indexHtml.indexOf('matchup-defender-custom') < indexHtml.indexOf('matchup-defender-unit'), 'defender army modifier dropdown appears above the defender Unit selector');
+assert.ok(/copy-attacker/.test(indexHtml) && /export-defender/.test(indexHtml), 'copy/export dropdowns live beside the side army modifier rows');
+assert.ok(!/copy-inline|export-inline/.test(indexHtml), 'copy/export dropdowns are no longer in the matchup mode button row');
+assert.ok(/matchupModifierActionRow[\s\S]*grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/.test(stylesCss), 'army modifier dropdown row splits the dropdown and copy/export area evenly');
 
 const context = {
   window: {},
