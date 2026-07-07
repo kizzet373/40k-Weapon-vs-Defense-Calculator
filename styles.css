@@ -347,7 +347,7 @@ button.secondary.matchupRosterSwapButton{
 .inlineMatchupActions .dropdownButton{padding:7px 9px}
 .matchupModifierActionRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 8px;align-items:end;min-width:0}
 .matchupArmyModifierLabel{grid-column:1 / 2;min-width:0}
-.matchupModifierExportActions{grid-column:2 / 3;justify-self:end;align-self:end;flex-wrap:nowrap}
+.matchupModifierExportActions{grid-column:1 / -1;justify-self:start;align-self:end;flex-wrap:wrap}
 .matchupCustomModifierTool{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;flex:0 0 100%;min-width:0}
 .matchupCustomModifierPills{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .matchupModifierActionRow .matchupCustomModifierPills{grid-column:1 / -1}

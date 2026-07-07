@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=delete-confirm-sidebar-2">
+  <link rel="stylesheet" href="styles.css?v=roster-copy-export-row-1">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -107,20 +107,11 @@
             <summary>Options</summary>
             <div class="matchupSideOptionsBody">
               <div class="matchupModifierActionRow" @keydown.escape.window="matchupActionMenu = ''">
-                <label class="matchupArmyModifierLabel">
-                  Add Army Modifiers
-                  <select @change="addMatchupCustomModifier('attacker', $event.target.value); $event.target.value=''">
-                    <option value="">Add modifier...</option>
-                    <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-attacker-custom-${option.value}`">
-                      <option :value="option.value" x-text="option.label"></option>
-                    </template>
-                  </select>
-                </label>
                 <div class="matchupActions inlineMatchupActions matchupModifierExportActions">
                   <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'copy-attacker' ? '' : matchupActionMenu">
                     <button type="button" class="secondary dropdownButton" @click="toggleMatchupActionMenu('copy-attacker')" :disabled="matchup.loading || matchupVisibleRows().length === 0">
                       <span class="dropdownArrow">&#9662;</span>
-                      <span>Copy</span>
+                      <span>Copy Roster</span>
                     </button>
                     <div class="actionMenu" x-show="matchupActionMenu === 'copy-attacker'" x-cloak>
                       <template x-for="option in matchupExportOptions()" :key="`copy-attacker-${option.value}`">
@@ -131,7 +122,7 @@
                   <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'export-attacker' ? '' : matchupActionMenu">
                     <button type="button" class="secondary dropdownButton" @click="toggleMatchupActionMenu('export-attacker')" :disabled="matchup.loading || matchupVisibleRows().length === 0">
                       <span class="dropdownArrow">&#9662;</span>
-                      <span>Export</span>
+                      <span>Export Roster</span>
                     </button>
                     <div class="actionMenu" x-show="matchupActionMenu === 'export-attacker'" x-cloak>
                       <template x-for="option in matchupExportOptions()" :key="`export-attacker-${option.value}`">
@@ -140,6 +131,15 @@
                     </div>
                   </div>
                 </div>
+                <label class="matchupArmyModifierLabel">
+                  Add Army Modifiers
+                  <select @change="addMatchupCustomModifier('attacker', $event.target.value); $event.target.value=''">
+                    <option value="">Add modifier...</option>
+                    <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-attacker-custom-${option.value}`">
+                      <option :value="option.value" x-text="option.label"></option>
+                    </template>
+                  </select>
+                </label>
                 <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('attacker').length > 0">
                   <template x-for="mod in matchupCustomModifiers('attacker')" :key="mod.id">
                     <span class="modifier matchupCustomModifierPill">
@@ -205,20 +205,11 @@
             <summary>Options</summary>
             <div class="matchupSideOptionsBody">
               <div class="matchupModifierActionRow" @keydown.escape.window="matchupActionMenu = ''">
-                <label class="matchupArmyModifierLabel">
-                  Add Army Modifiers
-                  <select @change="addMatchupCustomModifier('defender', $event.target.value); $event.target.value=''">
-                    <option value="">Add modifier...</option>
-                    <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-defender-custom-${option.value}`">
-                      <option :value="option.value" x-text="option.label"></option>
-                    </template>
-                  </select>
-                </label>
                 <div class="matchupActions inlineMatchupActions matchupModifierExportActions">
                   <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'copy-defender' ? '' : matchupActionMenu">
                     <button type="button" class="secondary dropdownButton" @click="toggleMatchupActionMenu('copy-defender')" :disabled="matchup.loading || matchupVisibleRows().length === 0">
                       <span class="dropdownArrow">&#9662;</span>
-                      <span>Copy</span>
+                      <span>Copy Roster</span>
                     </button>
                     <div class="actionMenu" x-show="matchupActionMenu === 'copy-defender'" x-cloak>
                       <template x-for="option in matchupExportOptions()" :key="`copy-defender-${option.value}`">
@@ -229,7 +220,7 @@
                   <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'export-defender' ? '' : matchupActionMenu">
                     <button type="button" class="secondary dropdownButton" @click="toggleMatchupActionMenu('export-defender')" :disabled="matchup.loading || matchupVisibleRows().length === 0">
                       <span class="dropdownArrow">&#9662;</span>
-                      <span>Export</span>
+                      <span>Export Roster</span>
                     </button>
                     <div class="actionMenu" x-show="matchupActionMenu === 'export-defender'" x-cloak>
                       <template x-for="option in matchupExportOptions()" :key="`export-defender-${option.value}`">
@@ -238,6 +229,15 @@
                     </div>
                   </div>
                 </div>
+                <label class="matchupArmyModifierLabel">
+                  Add Army Modifiers
+                  <select @change="addMatchupCustomModifier('defender', $event.target.value); $event.target.value=''">
+                    <option value="">Add modifier...</option>
+                    <template x-for="option in matchupCustomModifierOptions()" :key="`matchup-defender-custom-${option.value}`">
+                      <option :value="option.value" x-text="option.label"></option>
+                    </template>
+                  </select>
+                </label>
                 <div class="matchupCustomModifierPills" x-show="matchupCustomModifiers('defender').length > 0">
                   <template x-for="mod in matchupCustomModifiers('defender')" :key="mod.id">
                     <span class="modifier matchupCustomModifierPill">
@@ -1377,6 +1377,6 @@
 
 </div>
 
-<script src="utilities.js?v=delete-confirm-sidebar-2"></script>
+<script src="utilities.js?v=roster-copy-export-row-1"></script>
 </body>
 </html>
