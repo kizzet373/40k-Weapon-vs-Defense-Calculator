@@ -2005,6 +2005,7 @@ assert.ok(Math.round(app.profileDefensiveScoreRaw(profileScoreDefender)) > 1, 'd
 assert.ok(/^Offensive Score: \d+ \(Melee: (?:\d+|—) \/ Shooting: (?:\d+|—)\)$/.test(app.profileOffensiveScoreText(profileScoreAttacker)), 'unit profile modal offense line uses precomputed score summaries without extra melee/shooting calculations');
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
+assert.ok(/^Damage: \d+\.\d{2}$/.test(app.profileMetricSummaryText(profileScoreAttacker)), 'unit profile modal shows the selected matchup metric under the scores');
 const preMetricSwitchScores = {
   offense: app.profileOffensiveScoreRaw(profileScoreAttacker),
   melee: app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'),
@@ -2025,6 +2026,7 @@ assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'), 
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'), preMetricSwitchScores.shooting, 'display metric changes do not alter shooting scores');
 assert.strictEqual(app.profileDefensiveScoreRaw(profileScoreAttacker), preMetricSwitchScores.defense, 'display metric changes do not alter defensive scores');
 assert.strictEqual(app.profileOverallScoreRaw(profileScoreAttacker), preMetricSwitchScores.overall, 'display metric changes do not alter overall scores');
+assert.ok(/^Chance to Kill: \d+\.\d%$/.test(app.profileMetricSummaryText(profileScoreAttacker)), 'unit profile modal metric line follows the selected display metric');
 app.computeMatchupCell = originalMetricSwitchCompute;
 
 const realScoreAuditApp = context.weaponVsDefenseApp();

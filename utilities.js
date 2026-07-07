@@ -1706,6 +1706,11 @@ function weaponVsDefenseApp(){
       return `Overall Score: ${this.formatEfficiencyScore(this.profileOverallScoreRaw(unit))}`;
     },
 
+    profileMetricSummaryText(unit){
+      const summary = this.profileScoreSummary(unit);
+      return `${this.matchupMetricLabel()}: ${this.formatMatchupMetricValue(summary?.averageMetric)}`;
+    },
+
     flattenMatchupUnits(units){
       const out = [];
       (units || []).forEach(unit => {
@@ -2866,6 +2871,13 @@ function weaponVsDefenseApp(){
       const value = this.matchupCellMetric(cell);
       if(!Number.isFinite(value)) return '—';
       const mode = this.matchup.metric || 'damage';
+      if(mode === 'unitKill') return `${(Math.min(value, 0.999) * 100).toFixed(1)}%`;
+      if(mode === 'modelWounds') return `${(value * 100).toFixed(0)}%`;
+      return value.toFixed(2);
+    },
+
+    formatMatchupMetricValue(value, mode=this.matchup.metric || 'damage'){
+      if(!Number.isFinite(value)) return String.fromCharCode(8212);
       if(mode === 'unitKill') return `${(Math.min(value, 0.999) * 100).toFixed(1)}%`;
       if(mode === 'modelWounds') return `${(value * 100).toFixed(0)}%`;
       return value.toFixed(2);
