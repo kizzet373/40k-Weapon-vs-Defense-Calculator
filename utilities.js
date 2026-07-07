@@ -1708,7 +1708,7 @@ function weaponVsDefenseApp(){
 
     profileMetricSummaryText(unit){
       const summary = this.profileScoreSummary(unit);
-      return `${this.matchupMetricLabel()}: ${this.formatMatchupMetricValue(summary?.averageMetric)}`;
+      return `Average ${this.matchupMetricLabel()}: ${this.formatMatchupMetricValue(summary?.averageMetric)}`;
     },
 
     flattenMatchupUnits(units){
