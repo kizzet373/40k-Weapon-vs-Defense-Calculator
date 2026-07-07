@@ -2258,6 +2258,26 @@ function weaponVsDefenseApp(){
       this.rebuildMatchup();
     },
 
+    deleteMatchupForce(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const forceKey = side === 'attacker' ? 'attackerForceIdx' : 'defenderForceIdx';
+      const forces = this.getForcesForRoster(rosterIdx);
+      if(!forces.length) return;
+      const index = this.clamp(this.matchup[forceKey] || 0, 0, forces.length - 1);
+      forces.splice(index, 1);
+
+      this.matchup[forceKey] = this.clamp(index, 0, Math.max(0, forces.length - 1));
+      this.onMatchupRosterChanged('attacker', false);
+      this.onMatchupRosterChanged('defender', false);
+      if(rosterIdx === this.selectedRosterIdx){
+        this.selectedForceIdx = this.clamp(this.selectedForceIdx || 0, 0, Math.max(0, this.getForcesForRoster(this.selectedRosterIdx).length - 1));
+        this.refreshForcesWithOptions({ preserveSelection: true });
+      }
+      this.saveCachedRosters();
+      this.saveCachedAppState();
+      this.rebuildMatchup();
+    },
+
     unmergeMatchupUnit(side){
       const unit = this.matchupSideSelectedUnit(side);
       const force = this.matchupSideForce(side);

@@ -14,7 +14,7 @@ assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager uni
 assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
 assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
 assert.ok(/deleteMergeManagerItem\(child\)/.test(indexHtml), 'merge manager model rows expose an inline delete button');
-assert.ok(/mergeManagerUnit summary::after[\s\S]*font-size:24px/.test(stylesCss), 'merge manager collapsible arrow is a larger right-side affordance');
+assert.ok(/mergeManagerUnit summary::after[\s\S]*width:13px[\s\S]*border-right:3px solid var\(--accent\)/.test(stylesCss), 'merge manager collapsible arrow is a larger right-side affordance');
 assert.ok(!/mergeManagerUnit summary::before/.test(stylesCss), 'merge manager collapsible arrow is not left-side before content');
 assert.ok(/mergeManagerDeleteButton/.test(stylesCss), 'merge manager delete buttons have a dedicated compact danger style');
 
@@ -492,6 +492,38 @@ const baseAttacker = baseScoreApp.matchupAttackerUnits.find(unit => unit.label =
 assert.ok(baseAttacker, 'base profiles can be selected as matchup attackers');
 assert.ok(/^\(90 pts\) - Atk Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseAttacker, 'attacker')), 'base profiles display calibrated offensive scores from their point values and weapon profiles');
 assert.ok(baseScoreApp.cachedMatchupCell(baseAttacker, baseScoreApp.matchupDefenderUnits[0]).dmg > 0, 'base profile weapon packages produce matchup damage');
+
+const deleteForceApp = context.weaponVsDefenseApp();
+deleteForceApp.addRoster({
+  roster: {
+    name: 'Delete force roster',
+    forces: [{
+      name: 'Force A',
+      _importedUnits: [{ label: 'Unit A', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'unit-a' }],
+    }, {
+      name: 'Force B',
+      _importedUnits: [{ label: 'Unit B', weapons: [], defense: { T: 5, Sv: 3, W: 3, models: 1 }, _unitKey: 'unit-b' }],
+    }],
+  },
+}, 'Delete force roster');
+deleteForceApp.matchup.attackerRosterIdx = 0;
+deleteForceApp.matchup.defenderRosterIdx = 0;
+deleteForceApp.matchup.attackerForceIdx = 1;
+deleteForceApp.matchup.defenderForceIdx = 1;
+deleteForceApp.onMatchupRosterChanged('attacker', false);
+deleteForceApp.matchup.attackerForceIdx = 1;
+deleteForceApp.onMatchupRosterChanged('defender', false);
+deleteForceApp.matchup.defenderForceIdx = 1;
+let deleteForceRebuilt = false;
+deleteForceApp.rebuildMatchup = () => { deleteForceRebuilt = true; };
+deleteForceApp.deleteMatchupForce('attacker');
+assert.strictEqual(deleteForceApp.getForcesForRoster(0).length, 1, 'deleting a matchup force removes it from the roster');
+assert.strictEqual(deleteForceApp.getForcesForRoster(0)[0].name, 'Force A', 'the selected matchup force is the force that gets deleted');
+assert.strictEqual(deleteForceApp.matchupAttackerForces.length, 1, 'attacker force options refresh after deleting a force');
+assert.strictEqual(deleteForceApp.matchupDefenderForces.length, 1, 'defender force options refresh when both sides share the roster');
+assert.strictEqual(deleteForceApp.matchup.attackerForceIdx, 0, 'attacker force index clamps after force deletion');
+assert.strictEqual(deleteForceApp.matchup.defenderForceIdx, 0, 'defender force index clamps after shared roster force deletion');
+assert.ok(deleteForceRebuilt, 'deleting a matchup force rebuilds the matchup grid');
 
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Dark Pacts')),

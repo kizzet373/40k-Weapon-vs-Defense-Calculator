@@ -248,6 +248,13 @@ main{padding:14px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:con
 .matchupRosterSideTextAttacker{color:#ff3b3b}
 .matchupRosterSideTextDefender{color:#34ff6a}
 .matchupRosterRow label{min-width:0}
+.matchupFieldActionRow{display:grid;grid-template-columns:minmax(0,3fr) auto minmax(0,1fr) auto;gap:8px;align-items:end;min-width:0}
+.matchupFieldActionRow .matchupHalfSelect{grid-column:1 / 2;min-width:0}
+.matchupFieldActionRow .secondary{grid-column:2 / 3}
+.matchupFieldActionRow .deleteSymbolButton{grid-column:4 / 5;justify-self:end}
+.matchupForceActionRow{grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto}
+.matchupForceActionRow .matchupHalfSelect{grid-column:1 / 2}
+.matchupForceActionRow .deleteSymbolButton{grid-column:3 / 4}
 .matchupSideOptions{
   border:1px solid rgba(255,255,255,.08);
   border-radius:10px;
@@ -267,12 +274,16 @@ main{padding:14px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:con
   user-select:none;
 }
 .matchupSideOptions summary::after{
-  content:"⌄";
-  color:var(--accent);
-  font-size:15px;
-  line-height:1;
+  content:"";
+  width:8px;
+  height:8px;
+  border-right:2px solid var(--accent);
+  border-bottom:2px solid var(--accent);
+  transform:rotate(45deg);
+  transform-origin:center;
+  flex:0 0 auto;
 }
-.matchupSideOptions[open] summary::after{content:"⌃"}
+.matchupSideOptions[open] summary::after{transform:rotate(225deg)}
 .matchupSideOptionsBody{
   display:none;
   flex-direction:column;
@@ -302,6 +313,21 @@ button.secondary.matchupRosterSwapButton{
 .unitActionRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .unitActionRow button{flex:0 0 auto}
 .unitDeleteButton{margin-left:auto}
+.symbolButton{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  min-width:34px;
+  height:34px;
+  min-height:34px;
+  padding:0;
+  border-radius:9px;
+  line-height:1;
+  font-size:22px;
+  font-weight:900;
+}
+.deleteSymbolButton{margin-left:auto}
 .pasteJsonModalBody{display:grid;gap:10px}
 .pasteJsonModalBody textarea{width:100%;min-height:260px;box-sizing:border-box;resize:vertical}
 .pasteJsonModalBody .primary{justify-self:end}
@@ -345,8 +371,19 @@ button.secondary.matchupRosterSwapButton{
 .mergeManagerDraggableUnit:active{cursor:grabbing}
 .mergeManagerUnit summary{display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:9px 10px;cursor:pointer;user-select:none}
 .mergeManagerUnit summary::-webkit-details-marker{display:none}
-.mergeManagerUnit summary::after{content:'▸';order:2;flex:0 0 24px;color:var(--accent);font-size:24px;line-height:1;text-align:center;margin-left:0}
-.mergeManagerUnit[open] summary::after{content:'▾'}
+.mergeManagerUnit summary::after{
+  content:"";
+  order:2;
+  flex:0 0 13px;
+  width:13px;
+  height:13px;
+  border-right:3px solid var(--accent);
+  border-bottom:3px solid var(--accent);
+  transform:rotate(-45deg);
+  transform-origin:center;
+  margin-left:0;
+}
+.mergeManagerUnit[open] summary::after{transform:rotate(45deg)}
 .mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 .mergeManagerNameRow{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
 .mergeManagerSummaryActions{order:3;display:inline-flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto}
@@ -396,6 +433,18 @@ input[type="number"]{
   font-size:21px;
   font-weight:900;
 }
+.chevronIcon{
+  display:inline-block;
+  width:11px;
+  height:11px;
+  border-right:3px solid currentColor;
+  border-bottom:3px solid currentColor;
+  transform-origin:center;
+}
+.chevronRight{transform:rotate(-45deg)}
+.chevronLeft{transform:rotate(135deg)}
+.chevronDown{transform:rotate(45deg)}
+.chevronUp{transform:rotate(225deg)}
 .sidebarHandle{
   position:fixed;left:10px;top:10px;z-index:999;
   display:none;
@@ -969,6 +1018,14 @@ details summary{cursor:pointer}
   .matchupControls{
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:6px;
+  }
+
+  .matchupRosterRow{
+    grid-template-columns:1fr;
+  }
+
+  .matchupUnitActionInline{
+    grid-template-columns:minmax(0,9fr) auto minmax(0,1fr) auto;
   }
 
   .matchupSide{padding:6px}
