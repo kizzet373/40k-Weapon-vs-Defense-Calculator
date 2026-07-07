@@ -420,7 +420,7 @@ app.formulaCell = hammerIntoOneWoundModels;
 const hammerLines = app.matchupFormulaLines();
 assert.ok(hammerIntoOneWoundModels.dmg <= 6 + 1e-9, 'six attacks into one-wound models cannot apply more than six damage after allocation spill loss');
 assert.ok(Math.abs(hammerIntoOneWoundModels.dmg - (155 / 36)) < 1e-9, 'high damage hammer into W1 models applies one wound per damaging instance and loses the rest to spill');
-assert.ok(hammerLines.some(line => /^Spill Loss: 4\.306 damage instances x \(3 damage - 1 wounds\) = 8\.611 spill loss$/i.test(line)), 'spill loss is based on expected damage instances instead of whole killed models');
+assert.ok(hammerLines.some(line => /^Spill Loss: 4\.306 instances x 3 damage vs 1 wounds \* 10 models = 8\.611 spill loss$/i.test(line)), 'spill loss is based on expected damage instances instead of whole killed models');
 const movementProfileUnit = { label: 'Movement profile', defense: { M: '6"', T: 4, Sv: 3, Inv: 5, W: 2, models: 5 } };
 assert.ok(/^M6" \| T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.profileDefenseHeaderLabel(movementProfileUnit)), 'unit profile modal defense line shows movement before toughness');
 assert.ok(/^T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.matchupDefenseHeaderLabel(movementProfileUnit)), 'matchup grid defense line does not add movement');

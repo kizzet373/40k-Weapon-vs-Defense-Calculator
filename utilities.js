@@ -3976,8 +3976,12 @@ function weaponVsDefenseApp(){
             const instanceCount = Math.max(0, Number(allocation.damageInstances) || 0);
             const meanDamage = Math.max(0, Number(f.damage) || 0);
             const modelWounds = Math.max(0, Number(f?.defense?.W) || 0);
+            const modelCount = Math.max(0, Number(line.modelsLeft) || 0);
+            const modelText = modelCount > 0
+              ? ` * ${this.formulaNumber(modelCount)} model${Math.abs(modelCount - 1) < 1e-9 ? '' : 's'}`
+              : '';
             const spillBody = instanceCount > 0 && meanDamage > 0 && modelWounds > 0
-              ? `${this.formulaNumber(instanceCount)} damage instances x (${this.formulaNumber(meanDamage)} damage - ${this.formulaNumber(modelWounds)} wounds)`
+              ? `${this.formulaNumber(instanceCount)} instances x ${this.formulaNumber(meanDamage)} damage vs ${this.formulaNumber(modelWounds)} wounds${modelText}`
               : '';
             lines.push(this.formulaLineEntry('Spill Loss', spillBody, `${this.formulaNumber(allocation.rawSpillLoss)} spill loss`));
           }
