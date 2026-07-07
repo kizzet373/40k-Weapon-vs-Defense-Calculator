@@ -397,6 +397,8 @@ button.secondary.matchupRosterSwapButton{
   margin-left:0;
 }
 .mergeManagerUnit[open] summary::before{transform:rotate(45deg)}
+.mergeManagerFlatUnit summary{cursor:inherit}
+.mergeManagerFlatUnit summary::before{display:none}
 .mergeManagerUnitSummary{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
 .mergeManagerNameRow{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
 .mergeManagerSummaryActions{order:3;display:inline-flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto}

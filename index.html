@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-3">
+  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-4">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -1038,10 +1038,11 @@
             <div class="mergeManagerList">
               <template x-for="unit in mergeManagerUnits()" :key="`merge-from-${mergeManagerUnitKey(unit)}`">
                 <details class="mergeManagerUnit mergeManagerDraggableUnit"
+                         :class="mergeManagerIsCollapsible(unit) ? 'mergeManagerCollapsibleUnit' : 'mergeManagerFlatUnit'"
                          draggable="true"
                          @dragstart="mergeManagerDragStart($event, 'unit', unit)"
                          @dragend="mergeManagerDragEnd()">
-                  <summary>
+                  <summary @click="if(!mergeManagerIsCollapsible(unit)) $event.preventDefault()">
                     <span class="mergeManagerUnitSummary">
                       <span class="mergeManagerNameRow">
                         <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
@@ -1058,7 +1059,7 @@
                               @click.stop.prevent="deleteMergeManagerItem(unit)">&times;</button>
                     </span>
                   </summary>
-                  <div class="mergeManagerChildren">
+                  <div class="mergeManagerChildren" x-show="mergeManagerIsCollapsible(unit)">
                     <template x-for="child in mergeManagerChildren(unit)" :key="`merge-from-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
                       <div class="mergeManagerChild"
                            draggable="true"
@@ -1095,9 +1096,10 @@
             <div class="mergeManagerList">
               <template x-for="unit in mergeManagerUnits()" :key="`merge-to-${mergeManagerUnitKey(unit)}`">
                 <details class="mergeManagerUnit mergeManagerDropUnit"
+                         :class="mergeManagerIsCollapsible(unit) ? 'mergeManagerCollapsibleUnit' : 'mergeManagerFlatUnit'"
                          @dragover.prevent
                          @drop="mergeManagerDropOnUnit($event, unit)">
-                  <summary>
+                  <summary @click="if(!mergeManagerIsCollapsible(unit)) $event.preventDefault()">
                       <span class="mergeManagerUnitSummary">
                         <span class="mergeManagerNameRow">
                           <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
@@ -1105,7 +1107,7 @@
                         <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
                       </span>
                   </summary>
-                  <div class="mergeManagerChildren">
+                  <div class="mergeManagerChildren" x-show="mergeManagerIsCollapsible(unit)">
                     <template x-for="child in mergeManagerChildren(unit)" :key="`merge-to-child-${mergeManagerUnitKey(unit)}-${mergeManagerChildKey(child)}`">
                       <div class="mergeManagerChild mergeManagerChildStatic">
                         <span class="mergeManagerChildBody">

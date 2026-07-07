@@ -2156,6 +2156,10 @@ function weaponVsDefenseApp(){
       return (unit?._children && unit._children.length) ? unit._children : [unit];
     },
 
+    mergeManagerIsCollapsible(unit){
+      return this.mergeManagerChildren(unit).length > 1;
+    },
+
     mergeManagerEditIdentity(unit){
       return {
         unitKey: String(unit?._baseUnit?._unitKey || unit?._unitKey || ''),
