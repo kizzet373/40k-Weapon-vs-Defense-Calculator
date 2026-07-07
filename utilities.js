@@ -1542,6 +1542,48 @@ function weaponVsDefenseApp(){
       if(unit._unitKey) map[String(unit._unitKey)] = summary;
     },
 
+    matchupScoreSignature(unit, side=''){
+      if(!unit) return '';
+      const defense = unit.defense || {};
+      const weapons = (unit.weapons || []).map(w => [
+        w?.name || '',
+        w?.range || '',
+        w?.A || '',
+        w?.skill || '',
+        w?.S || '',
+        w?.AP || '',
+        w?.D || '',
+        w?.mode || '',
+        w?.modifiers || '',
+      ].join('~')).sort().join('||');
+      const abilities = (unit.abilities || []).map(x => String(x || '').trim()).filter(Boolean).sort().join('|');
+      const modifiers = [
+        ...(unit._customModifiers || []).map(mod => `${mod?.label || mod?.text || mod?.value || ''}:${mod?.enabled === false ? 0 : 1}`),
+        ...(unit._disabledAbilities || []).map(name => `off:${name}`),
+        ...(unit._disabledEnhancements || []).map(name => `enh-off:${name}`),
+      ].sort().join('|');
+      return [
+        side,
+        this.matchup.conditionsMet ? 1 : 0,
+        this.matchup.combineShootingProfiles ? 1 : 0,
+        this.matchup.showShooting ? 1 : 0,
+        this.matchup.showMelee ? 1 : 0,
+        unit._attackMode || 'all',
+        this.unitPointValue(unit) || '',
+        defense.M ?? defense.Move ?? defense.Movement ?? '',
+        defense.T ?? '',
+        defense.Sv ?? '',
+        defense.Inv ?? '',
+        defense.Fnp ?? '',
+        defense.W ?? '',
+        defense.models ?? '',
+        defense.totalWounds ?? '',
+        abilities,
+        modifiers,
+        weapons,
+      ].join('§');
+    },
+
     matchupSummaryFor(unit, side){
       const map = side === 'defender' ? this.matchup.sortSummaries?.defenders : this.matchup.sortSummaries?.attackers;
       return map?.[this.unitKey(unit)] || (unit?._unitKey ? map?.[String(unit._unitKey)] : null) || null;
@@ -1691,33 +1733,54 @@ function weaponVsDefenseApp(){
       const attackerSummaries = {};
       const defenderSummaries = {};
       const scoreMaps = { attackers: {}, defenders: {} };
+      const summaryCache = { attacker: new Map(), defender: new Map() };
+      const seen = { attacker: new Set(), defender: new Set() };
 
-      attackerRows.forEach(attacker => {
-        const summary = this.composeMatchupScoreSummary(attacker, defenderCols, defenderAttackers, 'attacker', calculationCache);
-        this.matchupSummaryMapSet(attackerSummaries, attacker, summary);
-        if(Number.isFinite(summary.score)){
-          scoreMaps.attackers[this.unitKey(attacker)] = summary.score;
-          if(attacker._unitKey) scoreMaps.attackers[String(attacker._unitKey)] = summary.score;
-        }
-      });
+      const addScoreMapValue = (side, unit, summary) => {
+        if(!Number.isFinite(summary?.score)) return;
+        const map = side === 'defender' ? scoreMaps.defenders : scoreMaps.attackers;
+        map[this.unitKey(unit)] = summary.score;
+        if(unit?._unitKey) map[String(unit._unitKey)] = summary.score;
+      };
 
-      attackerBases.forEach(unit => {
-        const summary = this.composeMatchupScoreSummary(unit, defenderCols, defenderAttackers, 'attacker', calculationCache);
+      const cachedSummary = (unit, side, compute) => {
+        const signature = this.matchupScoreSignature(unit, side);
+        const cache = summaryCache[side];
+        if(signature && cache.has(signature)) return cache.get(signature);
+        const summary = compute();
+        if(signature) cache.set(signature, summary);
+        return summary;
+      };
+
+      const addAttackerSummary = unit => {
+        const key = this.unitKey(unit);
+        if(!unit || !key || seen.attacker.has(key)) return;
+        seen.attacker.add(key);
+        const summary = cachedSummary(unit, 'attacker', () => this.composeMatchupScoreSummary(unit, defenderCols, defenderAttackers, 'attacker', calculationCache));
         this.matchupSummaryMapSet(attackerSummaries, unit, summary);
-        if(Number.isFinite(summary.score)){
-          scoreMaps.attackers[this.unitKey(unit)] = summary.score;
-          if(unit._unitKey) scoreMaps.attackers[String(unit._unitKey)] = summary.score;
-        }
-      });
+        addScoreMapValue('attacker', unit, summary);
+      };
 
-      defenderCols.forEach(defender => {
-        const summary = this.composeMatchupScoreSummary(defender, attackerBases, attackerRows, 'defender', calculationCache);
-        this.matchupSummaryMapSet(defenderSummaries, defender, summary);
-        if(Number.isFinite(summary.score)){
-          scoreMaps.defenders[this.unitKey(defender)] = summary.score;
-          if(defender._unitKey) scoreMaps.defenders[String(defender._unitKey)] = summary.score;
-        }
-      });
+      const addDefenderSummary = unit => {
+        const key = this.unitKey(unit);
+        if(!unit || !key || seen.defender.has(key)) return;
+        seen.defender.add(key);
+        const summary = cachedSummary(unit, 'defender', () => this.composeMatchupScoreSummary(unit, attackerBases, attackerRows, 'defender', calculationCache));
+        this.matchupSummaryMapSet(defenderSummaries, unit, summary);
+        addScoreMapValue('defender', unit, summary);
+      };
+
+      [
+        ...attackerRows,
+        ...attackerBases,
+        ...this.flattenMatchupUnits(attackerBases),
+        ...this.flattenMatchupAttackers(attackerBases),
+      ].forEach(addAttackerSummary);
+
+      [
+        ...defenderCols,
+        ...this.flattenMatchupUnits(defenderCols),
+      ].forEach(addDefenderSummary);
 
       this.matchup.sortSummaries = { attackers: attackerSummaries, defenders: defenderSummaries };
       this.matchup.scoreMaps = scoreMaps;

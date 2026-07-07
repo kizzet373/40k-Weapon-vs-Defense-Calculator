@@ -2093,6 +2093,54 @@ assert.ok(/^Offensive Score: \d+ \(Melee: (?:\d+|—) \/ Shooting: (?:\d+|—)\)
 assert.ok(/^Defensive Score: \d+$/.test(app.profileDefensiveScoreText(profileScoreDefender)), 'unit profile modal shows defensive score');
 assert.ok(/^Overall Score: \d+$/.test(app.profileOverallScoreText(profileScoreAttacker)), 'unit profile modal shows overall score');
 assert.ok(/^Average Damage: \d+\.\d{2}$/.test(app.profileMetricSummaryText(profileScoreAttacker)), 'unit profile modal shows the selected matchup metric under the scores');
+
+const childScoreApp = context.weaponVsDefenseApp();
+childScoreApp.matchup.metric = 'damage';
+childScoreApp.matchup.showMelee = true;
+childScoreApp.matchup.showShooting = true;
+childScoreApp.matchup.combineShootingProfiles = true;
+const childScoreWeaponSet = [
+  { name: 'Child rifle', range: '24', A: '4', skill: 'auto', S: '4', AP: '1', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'child-rifle' },
+  { name: 'Child blade', range: 'Melee', A: '3', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'child-blade' },
+];
+const scoreChildA = { label: 'Score Child A', _unitKey: 'score-child-a', _points: 50, weapons: childScoreWeaponSet, defense: { T: 4, Sv: 3, W: 2, models: 1, totalWounds: 2 } };
+const scoreChildB = { label: 'Score Child B', _unitKey: 'score-child-b', _points: 50, weapons: JSON.parse(JSON.stringify(childScoreWeaponSet)), defense: { T: 4, Sv: 3, W: 2, models: 1, totalWounds: 2 } };
+const scoreChildParent = {
+  label: 'Score Child Parent',
+  _unitKey: 'score-child-parent',
+  _points: 100,
+  weapons: JSON.parse(JSON.stringify(childScoreWeaponSet)),
+  defense: { T: 4, Sv: 3, W: 2, models: 2, totalWounds: 4 },
+  _children: [scoreChildA, scoreChildB],
+};
+const scoreDefenderChild = {
+  label: 'Score Defender Child',
+  _unitKey: 'score-defender-child',
+  _points: 80,
+  weapons: [{ name: 'Return talon', range: 'Melee', A: '4', skill: 'auto', S: '5', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'return-talon' }],
+  defense: { T: 5, Sv: 4, W: 3, models: 1, totalWounds: 3 },
+};
+const scoreDefenderParent = {
+  label: 'Score Defender Parent',
+  _unitKey: 'score-defender-parent',
+  _points: 80,
+  weapons: scoreDefenderChild.weapons,
+  defense: { T: 5, Sv: 4, W: 3, models: 1, totalWounds: 3 },
+  _children: [scoreDefenderChild],
+};
+childScoreApp.matchupAttackerBaseUnits = [scoreChildParent];
+childScoreApp.matchupAttackerUnits = [scoreChildParent];
+childScoreApp.matchupDefenderUnits = [scoreDefenderParent];
+childScoreApp.updateMatchupSortSummaries([scoreChildParent], [scoreDefenderParent]);
+assert.ok(Number.isFinite(childScoreApp.profileOffensiveScoreRaw(scoreChildA)), 'model profile modal shows a precomputed offensive score for child models');
+assert.ok(Number.isFinite(childScoreApp.profileDefensiveScoreRaw(scoreChildA)), 'model profile modal shows a precomputed defensive score for child models');
+assert.ok(Number.isFinite(childScoreApp.profileOverallScoreRaw(scoreChildA)), 'model profile modal shows a precomputed overall score for child models');
+assert.ok(/^Average Damage: \d+\.\d{2}$/.test(childScoreApp.profileMetricSummaryText(scoreChildA)), 'model profile modal shows the selected matchup metric for child models');
+assert.strictEqual(childScoreApp.profileOffensiveScoreRaw(scoreChildA), childScoreApp.profileOffensiveScoreRaw(scoreChildB), 'identical child model profiles reuse the same offensive score value');
+assert.strictEqual(childScoreApp.profileDefensiveScoreRaw(scoreChildA), childScoreApp.profileDefensiveScoreRaw(scoreChildB), 'identical child model profiles reuse the same defensive score value');
+assert.ok(Number.isFinite(childScoreApp.profileOffensiveScoreRaw(scoreDefenderChild)), 'defender-side child model profile modal shows offensive score from reverse matchup');
+assert.ok(Number.isFinite(childScoreApp.profileDefensiveScoreRaw(scoreDefenderChild)), 'defender-side child model profile modal shows defensive score');
+
 const preMetricSwitchScores = {
   offense: app.profileOffensiveScoreRaw(profileScoreAttacker),
   melee: app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'),
