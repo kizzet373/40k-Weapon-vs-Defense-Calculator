@@ -27,12 +27,13 @@ assert.ok(indexHtml.indexOf('copy-defender') < indexHtml.indexOf('matchup-defend
 assert.ok(indexHtml.indexOf('export-attacker') < indexHtml.indexOf("promptDeleteMatchupRoster('attacker'") && indexHtml.indexOf("promptDeleteMatchupRoster('attacker'") < indexHtml.indexOf('matchup-attacker-custom'), 'attacker Delete Roster sits next to Export Roster above Add Army Modifiers');
 assert.ok(indexHtml.indexOf('export-defender') < indexHtml.indexOf("promptDeleteMatchupRoster('defender'") && indexHtml.indexOf("promptDeleteMatchupRoster('defender'") < indexHtml.indexOf('matchup-defender-custom'), 'defender Delete Roster sits next to Export Roster above Add Army Modifiers');
 assert.ok(!/matchup-attacker-unit|matchup-defender-unit/.test(indexHtml), 'Army Matchups sidebar no longer includes per-side Unit selectors');
-assert.ok(indexHtml.indexOf('matchup-attacker-custom') < indexHtml.indexOf("openMatchupArmyEditor('attacker'"), 'attacker army modifier dropdown appears above Army Editor');
-assert.ok(indexHtml.indexOf('matchup-defender-custom') < indexHtml.indexOf("openMatchupArmyEditor('defender'"), 'defender army modifier dropdown appears above Army Editor');
+assert.ok(indexHtml.indexOf("openMatchupArmyEditor('attacker'") < indexHtml.indexOf('matchup-attacker-custom'), 'attacker Army Editor button appears to the left of the army modifier dropdown');
+assert.ok(indexHtml.indexOf("openMatchupArmyEditor('defender'") < indexHtml.indexOf('matchup-defender-custom'), 'defender Army Editor button appears to the left of the army modifier dropdown');
 assert.ok(/Army Editor/.test(indexHtml) && /openMatchupArmyEditor\('attacker'\)/.test(indexHtml) && /openMatchupArmyEditor\('defender'\)/.test(indexHtml), 'Army Matchups sidebar keeps only Army Editor for unit management');
 assert.ok(/copy-attacker/.test(indexHtml) && /export-defender/.test(indexHtml), 'copy/export roster dropdowns remain scoped to each matchup side');
 assert.ok(!/copy-inline|export-inline/.test(indexHtml), 'copy/export dropdowns are no longer in the matchup mode button row');
 assert.ok(/matchupModifierExportActions\{grid-column:1 \/ -1;justify-self:start/.test(stylesCss), 'copy/export roster controls sit above the army modifier dropdown');
+assert.ok(/matchupArmyEditorButton\{grid-column:1 \/ 2;justify-self:start;align-self:end\}/.test(stylesCss) && /matchupArmyModifierLabel\{grid-column:2 \/ 3;min-width:0\}/.test(stylesCss), 'Army Editor and Add Army Modifiers share one row with editor on the left');
 assert.ok(/deleteConfirmModalOpen/.test(indexHtml) && /Confirm delete/.test(indexHtml), 'sidebar destructive actions open a shared delete confirmation modal');
 assert.ok(/promptDeleteSelectedRoster\(\)/.test(indexHtml), 'Weapon Damage Calc roster delete opens a confirmation prompt');
 assert.ok(/promptDeleteMatchupRoster\('attacker'\)/.test(indexHtml) && /promptDeleteMatchupRoster\('defender'\)/.test(indexHtml), 'Army Matchups roster deletes open confirmation prompts');

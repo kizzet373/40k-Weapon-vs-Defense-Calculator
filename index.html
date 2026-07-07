@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-1">
+  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-2">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -131,6 +131,7 @@
                   </div>
                   <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('attacker')">Delete Roster</button>
                 </div>
+                <button class="secondary matchupArmyEditorButton" type="button" :disabled="matchupSideBaseUnits('attacker').length < 1" @click="openMatchupArmyEditor('attacker')">Army Editor</button>
                 <label class="matchupArmyModifierLabel">
                   Add Army Modifiers
                   <select @change="addMatchupCustomModifier('attacker', $event.target.value); $event.target.value=''">
@@ -149,9 +150,6 @@
                   </template>
                 </div>
                 <span class="muted copyStatus matchupModifierStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
-              </div>
-              <div class="unitActionRow matchupSideActionRow">
-                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('attacker').length < 1" @click="openMatchupArmyEditor('attacker')">Army Editor</button>
               </div>
             </div>
           </details>
@@ -213,6 +211,7 @@
                   </div>
                   <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('defender')">Delete Roster</button>
                 </div>
+                <button class="secondary matchupArmyEditorButton" type="button" :disabled="matchupSideBaseUnits('defender').length < 1" @click="openMatchupArmyEditor('defender')">Army Editor</button>
                 <label class="matchupArmyModifierLabel">
                   Add Army Modifiers
                   <select @change="addMatchupCustomModifier('defender', $event.target.value); $event.target.value=''">
@@ -231,9 +230,6 @@
                   </template>
                 </div>
                 <span class="muted copyStatus matchupModifierStatus" x-show="matchupClipboardStatus" x-text="matchupClipboardStatus"></span>
-              </div>
-              <div class="unitActionRow matchupSideActionRow">
-                <button class="secondary" type="button" :disabled="matchupSideBaseUnits('defender').length < 1" @click="openMatchupArmyEditor('defender')">Army Editor</button>
               </div>
             </div>
           </details>

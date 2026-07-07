@@ -345,7 +345,8 @@ button.secondary.matchupRosterSwapButton{
 .inlineMatchupActions{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;min-width:0}
 .inlineMatchupActions .dropdownButton{padding:7px 9px}
 .matchupModifierActionRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 8px;align-items:end;min-width:0}
-.matchupArmyModifierLabel{grid-column:1 / 2;min-width:0}
+.matchupArmyEditorButton{grid-column:1 / 2;justify-self:start;align-self:end}
+.matchupArmyModifierLabel{grid-column:2 / 3;min-width:0}
 .matchupModifierExportActions{grid-column:1 / -1;justify-self:start;align-self:end;flex-wrap:wrap}
 .matchupModifierExportActions .deleteRosterButton{align-self:center}
 .matchupCustomModifierTool{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;flex:0 0 100%;min-width:0}
