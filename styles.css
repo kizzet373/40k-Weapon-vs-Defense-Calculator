@@ -242,7 +242,7 @@ main{padding:14px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:con
 .matchupSideSection{display:flex;flex-direction:column;gap:6px}
 .matchupSideSectionTitle{margin:0;font-size:13px;font-weight:900;letter-spacing:.02em}
 .matchupSideCard{display:flex;flex-direction:column;gap:8px}
-.matchupRosterRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.matchupRosterRow{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr) auto;gap:8px;align-items:end}
 .matchupRosterSide{display:flex;align-items:flex-end;color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.02em;padding-bottom:9px;text-transform:uppercase}
 .matchupRosterSideText{display:inline-block}
 .matchupRosterSideTextAttacker{color:#ff3b3b}
@@ -252,9 +252,15 @@ main{padding:14px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:con
 .matchupFieldActionRow .matchupHalfSelect{grid-column:1 / 2;min-width:0}
 .matchupFieldActionRow .secondary{grid-column:2 / 3}
 .matchupFieldActionRow .deleteSymbolButton{grid-column:4 / 5;justify-self:end}
+.matchupUnitActionInline{grid-template-columns:minmax(0,1fr) auto auto}
+.matchupUnitActionInline .matchupHalfSelect{grid-column:1 / 2}
+.matchupUnitActionInline .secondary{grid-column:2 / 3}
+.matchupUnitActionInline .deleteUnitButton{grid-column:3 / 4;justify-self:end}
 .matchupForceActionRow{grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto}
 .matchupForceActionRow .matchupHalfSelect{grid-column:1 / 2}
 .matchupForceActionRow .deleteSymbolButton{grid-column:3 / 4}
+.deleteRosterButton,.deleteUnitButton{align-self:end;white-space:nowrap}
+.matchupRosterRow .deleteRosterButton{justify-self:end}
 .matchupSideOptions{
   border:1px solid rgba(255,255,255,.08);
   border-radius:10px;
@@ -356,6 +362,8 @@ button.secondary.matchupRosterSwapButton{
 .renameOverlay.modalOverlayTop{z-index:90}
 .renameModalActions{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .renameModalActionRight{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-left:auto}
+.deleteConfirmBody{display:grid;gap:14px}
+.deleteConfirmActions{display:flex;justify-content:flex-end;gap:8px;align-items:center}
 .mergeTargetTable{width:100%;border-collapse:collapse}
 .mergeTargetTable th,.mergeTargetTable td{padding:8px;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
 .mergeTargetTable th{text-align:left;color:var(--muted);font-size:12px}
@@ -1030,7 +1038,7 @@ details summary{cursor:pointer}
   }
 
   .matchupUnitActionInline{
-    grid-template-columns:minmax(0,9fr) auto minmax(0,1fr) auto;
+    grid-template-columns:minmax(0,1fr) auto auto;
   }
 
   .matchupSide{padding:6px}

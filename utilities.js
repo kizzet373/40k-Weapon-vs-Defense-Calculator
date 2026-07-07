@@ -7,6 +7,8 @@ function weaponVsDefenseApp(){
     pasteJsonModalOpen: false,
     jsonPaste: '',
     importStatus: { type: '', text: '' },
+    deleteConfirmModalOpen: false,
+    deleteConfirm: { title: '', message: '', confirmLabel: 'Delete', action: '', side: '', index: null },
     mergeModalOpen: false,
     mergeFromUnit: null,
     mergeManager: {
@@ -797,7 +799,7 @@ function weaponVsDefenseApp(){
 
     removeRoster(idx){
       const i = Math.max(0, Math.min(this.rosters.length - 1, parseInt(idx, 10) || 0));
-      if(this.rosters.length === 0) return;
+      if(this.rosters.length === 0) return false;
 
       this.rosters.splice(i, 1);
 
@@ -807,14 +809,112 @@ function weaponVsDefenseApp(){
         this.units = [];
         this.selectedForceIdx = 0;
         this.selectedUnitIdx = 0;
+        this.matchup.attackerRosterIdx = 0;
+        this.matchup.defenderRosterIdx = 0;
+        this.matchup.attackerForceIdx = 0;
+        this.matchup.defenderForceIdx = 0;
+        this.matchup.attackerUnitIdx = 0;
+        this.matchup.defenderUnitIdx = 0;
+        this.matchupAttackerForces = [];
+        this.matchupDefenderForces = [];
+        this.matchupAttackerBaseUnits = [];
+        this.matchupAttackerUnits = [];
+        this.matchupDefenderUnits = [];
+        this.matchup.rows = [];
+        this.matchup.visibleRows = [];
+        this.matchup.visibleDefenders = [];
         this.clearCachedRostersIfEmpty();
-        return;
+        return true;
       }
 
-      this.selectedRosterIdx = Math.min(this.selectedRosterIdx, this.rosters.length - 1);
-      this.refreshForces();
+      const adjustRosterIndex = current => {
+        const value = Number(current) || 0;
+        if(value > i) return value - 1;
+        return this.clamp(value, 0, this.rosters.length - 1);
+      };
+      this.selectedRosterIdx = adjustRosterIndex(this.selectedRosterIdx);
+      this.matchup.attackerRosterIdx = adjustRosterIndex(this.matchup.attackerRosterIdx);
+      this.matchup.defenderRosterIdx = adjustRosterIndex(this.matchup.defenderRosterIdx);
+      this.normalizeMatchupSelectionState();
+      this.refreshForcesWithOptions({ preserveSelection: true });
+      this.onMatchupRosterChanged('attacker', false);
+      this.onMatchupRosterChanged('defender', false);
       if(this.cacheableRosters().length) this.saveCachedRosters();
       else this.clearCachedRostersIfEmpty();
+      this.saveCachedAppState();
+      if(this.matchupModalOpen || this.activeView === 'matchups') this.rebuildMatchup();
+      return true;
+    },
+
+    openDeleteConfirm({ title='Delete', message='', confirmLabel='Delete', action='', side='', index=null }={}){
+      this.deleteConfirm = { title, message, confirmLabel, action, side, index };
+      this.deleteConfirmModalOpen = true;
+    },
+
+    closeDeleteConfirm(){
+      this.deleteConfirmModalOpen = false;
+      this.deleteConfirm = { title: '', message: '', confirmLabel: 'Delete', action: '', side: '', index: null };
+    },
+
+    confirmDeleteAction(){
+      const { action, side, index } = this.deleteConfirm || {};
+      this.closeDeleteConfirm();
+      if(action === 'selectedRoster') this.removeRoster(index);
+      else if(action === 'matchupRoster') this.deleteMatchupRoster(side, index);
+      else if(action === 'selectedUnit') this.deleteSelectedUnit();
+      else if(action === 'matchupUnit') this.deleteMatchupUnit(side);
+    },
+
+    promptDeleteSelectedRoster(){
+      const index = this.selectedRosterIdx;
+      const roster = this.rosters?.[index] || null;
+      if(!roster) return;
+      const name = roster?.label || roster?.data?.roster?.name || `Roster ${Number(index) + 1}`;
+      this.openDeleteConfirm({
+        title: 'Delete Roster',
+        message: `Delete ${name}? This removes the full roster from the app.`,
+        confirmLabel: 'Delete Roster',
+        action: 'selectedRoster',
+        index,
+      });
+    },
+
+    promptDeleteMatchupRoster(side){
+      const rosterIdx = side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx;
+      const roster = this.rosters?.[rosterIdx] || null;
+      if(!roster) return;
+      const name = roster?.label || roster?.data?.roster?.name || `Roster ${Number(rosterIdx) + 1}`;
+      this.openDeleteConfirm({
+        title: 'Delete Roster',
+        message: `Delete ${name}? This removes the full roster from the app.`,
+        confirmLabel: 'Delete Roster',
+        action: 'matchupRoster',
+        side,
+        index: rosterIdx,
+      });
+    },
+
+    promptDeleteSelectedUnit(){
+      const unit = this.activeUnit;
+      if(!unit) return;
+      this.openDeleteConfirm({
+        title: 'Delete Unit',
+        message: `Delete ${this.unitLabelText(unit, 'Unit')}?`,
+        confirmLabel: 'Delete Unit',
+        action: 'selectedUnit',
+      });
+    },
+
+    promptDeleteMatchupUnit(side){
+      const unit = this.matchupSideSelectedUnit(side);
+      if(!unit) return;
+      this.openDeleteConfirm({
+        title: 'Delete Unit',
+        message: `Delete ${this.unitLabelText(unit, 'Unit')}?`,
+        confirmLabel: 'Delete Unit',
+        action: 'matchupUnit',
+        side,
+      });
     },
 
     refreshForces(options={}){
@@ -2256,6 +2356,13 @@ function weaponVsDefenseApp(){
       this.matchup[key] = Math.max(0, (this.matchup[key] || 0) - 1);
       this.saveCachedRosters();
       this.rebuildMatchup();
+    },
+
+    deleteMatchupRoster(side, index=null){
+      const rosterIdx = Number.isFinite(Number(index))
+        ? Number(index)
+        : (side === 'attacker' ? this.matchup.attackerRosterIdx : this.matchup.defenderRosterIdx);
+      return this.removeRoster(rosterIdx);
     },
 
     deleteMatchupForce(side){

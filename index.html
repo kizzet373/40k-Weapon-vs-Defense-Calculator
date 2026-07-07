@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=army-modifier-row-1">
+  <link rel="stylesheet" href="styles.css?v=delete-confirm-sidebar-2">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -15,7 +15,7 @@
 
 <body>
 <div class="app" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''" x-data="weaponVsDefenseApp()" x-init="init()"
-     x-effect="document.documentElement.classList.toggle('modalOpen', pasteJsonModalOpen || renameModalOpen || mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen); document.body.classList.toggle('modalOpen', pasteJsonModalOpen || renameModalOpen || mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen)">
+     x-effect="document.documentElement.classList.toggle('modalOpen', pasteJsonModalOpen || deleteConfirmModalOpen || renameModalOpen || mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen); document.body.classList.toggle('modalOpen', pasteJsonModalOpen || deleteConfirmModalOpen || renameModalOpen || mergeModalOpen || profileModalOpen || formulaModalOpen || ruleDescriptionModalOpen)">
   <aside id="sidebar">
     <div class="asideHead">
       <h1>Army Loader</h1>
@@ -58,8 +58,7 @@
             </select>
           </label>
 
-          <button class="secondary" type="button" style="align-self:flex-end" :disabled="rosters.length === 0" @click="removeRoster(selectedRosterIdx)"> Remove roster
-          </button>
+          <button class="danger deleteRosterButton" type="button" style="align-self:flex-end" :disabled="rosters.length === 0" @click="promptDeleteSelectedRoster()">Delete Roster</button>
         </div>
 
         <div class="row forcePickerRow">
@@ -83,7 +82,7 @@
         <h2 class="matchupSideSectionTitle matchupRosterSideTextAttacker">Attacker</h2>
         <div class="card matchupSideCard">
           <div class="matchupRosterRow">
-            <label>
+            <label class="matchupRosterSelectLabel">
               Roster
               <select x-model.number="matchup.attackerRosterIdx" @change="onMatchupRosterChanged('attacker')">
                 <template x-for="(r, i) in rosters" :key="`sidebar-atk-r-${i}`">
@@ -91,20 +90,18 @@
                 </template>
               </select>
             </label>
-            <div class="matchupFieldActionRow matchupForceActionRow">
-              <label class="matchupHalfSelect">
-                Force
-                <select x-model.number="matchup.attackerForceIdx" @change="onMatchupForceChanged('attacker')">
-                  <template x-for="(f, i) in matchupAttackerForces" :key="`sidebar-atk-f-${i}`">
-                    <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
-                  </template>
-                  <template x-if="matchupAttackerForces.length === 0">
-                    <option value="0">No forces found</option>
-                  </template>
-                </select>
-              </label>
-              <button class="danger symbolButton deleteSymbolButton" type="button" aria-label="Delete attacker force" :disabled="matchupAttackerForces.length === 0" @click="deleteMatchupForce('attacker')">&times;</button>
-            </div>
+            <label class="matchupForceSelectLabel">
+              Force
+              <select x-model.number="matchup.attackerForceIdx" @change="onMatchupForceChanged('attacker')">
+                <template x-for="(f, i) in matchupAttackerForces" :key="`sidebar-atk-f-${i}`">
+                  <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+                </template>
+                <template x-if="matchupAttackerForces.length === 0">
+                  <option value="0">No forces found</option>
+                </template>
+              </select>
+            </label>
+            <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('attacker')">Delete Roster</button>
           </div>
           <details class="matchupSideOptions">
             <summary>Options</summary>
@@ -166,7 +163,7 @@
                   </select>
                 </label>
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptRenameUnit(matchupSideSelectedUnit('attacker'))">Rename</button>
-                <button class="danger symbolButton deleteSymbolButton" type="button" aria-label="Delete attacker unit" :disabled="!matchupSideSelectedUnit('attacker')" @click="deleteMatchupUnit('attacker')">&times;</button>
+                <button class="danger deleteUnitButton" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="promptDeleteMatchupUnit('attacker')">Delete Unit</button>
               </div>
               <div class="unitActionRow matchupSideActionRow">
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('attacker')" @click="duplicateMatchupUnit('attacker')">Duplicate</button>
@@ -183,7 +180,7 @@
         <h2 class="matchupSideSectionTitle matchupRosterSideTextDefender">Defender</h2>
         <div class="card matchupSideCard">
           <div class="matchupRosterRow">
-            <label>
+            <label class="matchupRosterSelectLabel">
               Roster
               <select x-model.number="matchup.defenderRosterIdx" @change="onMatchupRosterChanged('defender')">
                 <template x-for="(r, i) in rosters" :key="`sidebar-def-r-${i}`">
@@ -191,20 +188,18 @@
                 </template>
               </select>
             </label>
-            <div class="matchupFieldActionRow matchupForceActionRow">
-              <label class="matchupHalfSelect">
-                Force
-                <select x-model.number="matchup.defenderForceIdx" @change="onMatchupForceChanged('defender')">
-                  <template x-for="(f, i) in matchupDefenderForces" :key="`sidebar-def-f-${i}`">
-                    <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
-                  </template>
-                  <template x-if="matchupDefenderForces.length === 0">
-                    <option value="0">No forces found</option>
-                  </template>
-                </select>
-              </label>
-              <button class="danger symbolButton deleteSymbolButton" type="button" aria-label="Delete defender force" :disabled="matchupDefenderForces.length === 0" @click="deleteMatchupForce('defender')">&times;</button>
-            </div>
+            <label class="matchupForceSelectLabel">
+              Force
+              <select x-model.number="matchup.defenderForceIdx" @change="onMatchupForceChanged('defender')">
+                <template x-for="(f, i) in matchupDefenderForces" :key="`sidebar-def-f-${i}`">
+                  <option :value="i" x-text="f.name || `Force ${i+1}`"></option>
+                </template>
+                <template x-if="matchupDefenderForces.length === 0">
+                  <option value="0">No forces found</option>
+                </template>
+              </select>
+            </label>
+            <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('defender')">Delete Roster</button>
           </div>
           <details class="matchupSideOptions">
             <summary>Options</summary>
@@ -266,7 +261,7 @@
                   </select>
                 </label>
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptRenameUnit(matchupSideSelectedUnit('defender'))">Rename</button>
-                <button class="danger symbolButton deleteSymbolButton" type="button" aria-label="Delete defender unit" :disabled="!matchupSideSelectedUnit('defender')" @click="deleteMatchupUnit('defender')">&times;</button>
+                <button class="danger deleteUnitButton" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="promptDeleteMatchupUnit('defender')">Delete Unit</button>
               </div>
               <div class="unitActionRow matchupSideActionRow">
                 <button class="secondary" type="button" :disabled="!matchupSideSelectedUnit('defender')" @click="duplicateMatchupUnit('defender')">Duplicate</button>
@@ -299,7 +294,7 @@
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptRenameUnit(activeUnit)">Rename</button>
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="duplicateSelectedUnit()">Duplicate</button>
           <button class="secondary" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="openMergeUnitModal()">Merge/Unmerge</button>
-          <button class="danger symbolButton unitDeleteButton" type="button" style="align-self:flex-end" aria-label="Delete unit" :disabled="units.length === 0" @click="deleteSelectedUnit()">&times;</button>
+          <button class="danger deleteUnitButton unitDeleteButton" type="button" style="align-self:flex-end" :disabled="units.length === 0" @click="promptDeleteSelectedUnit()">Delete Unit</button>
         </div>
       </div>
     </div>
@@ -1008,6 +1003,27 @@
     </div>
   </div>
 
+  <!-- Delete confirmation modal -->
+  <div class="modalOverlay" x-show="deleteConfirmModalOpen" x-cloak
+       @keydown.escape.window="closeDeleteConfirm()" @click.self="closeDeleteConfirm()">
+    <div class="modal modalTiny" role="dialog" aria-modal="true" :aria-label="deleteConfirm.title || 'Confirm delete'">
+      <div class="modalHead">
+        <div>
+          <div style="font-weight:800" x-text="deleteConfirm.title || 'Confirm delete'"></div>
+          <div class="muted" style="font-size:12px">This cannot be undone.</div>
+        </div>
+        <button class="secondary" type="button" @click="closeDeleteConfirm()">Close</button>
+      </div>
+      <div class="modalBody deleteConfirmBody">
+        <div x-text="deleteConfirm.message"></div>
+        <div class="deleteConfirmActions">
+          <button type="button" class="secondary" @click="closeDeleteConfirm()">Cancel</button>
+          <button type="button" class="danger" @click="confirmDeleteAction()" x-text="deleteConfirm.confirmLabel || 'Delete'"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Rename unit/model modal -->
   <div class="modalOverlay renameOverlay" :class="{ modalOverlayTop: profileModalOpen }" x-show="renameModalOpen" x-cloak
        @keydown.escape.window="closeRenameUnitModal()" @click.self="closeRenameUnitModal()">
@@ -1361,6 +1377,6 @@
 
 </div>
 
-<script src="utilities.js?v=score-multiplier-tune-1"></script>
+<script src="utilities.js?v=delete-confirm-sidebar-2"></script>
 </body>
 </html>

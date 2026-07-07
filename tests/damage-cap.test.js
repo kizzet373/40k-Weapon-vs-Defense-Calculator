@@ -23,6 +23,15 @@ assert.ok(indexHtml.indexOf('matchup-defender-custom') < indexHtml.indexOf('matc
 assert.ok(/copy-attacker/.test(indexHtml) && /export-defender/.test(indexHtml), 'copy/export dropdowns live beside the side army modifier rows');
 assert.ok(!/copy-inline|export-inline/.test(indexHtml), 'copy/export dropdowns are no longer in the matchup mode button row');
 assert.ok(/matchupModifierActionRow[\s\S]*grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/.test(stylesCss), 'army modifier dropdown row splits the dropdown and copy/export area evenly');
+assert.ok(/deleteConfirmModalOpen/.test(indexHtml) && /Confirm delete/.test(indexHtml), 'sidebar destructive actions open a shared delete confirmation modal');
+assert.ok(/promptDeleteSelectedRoster\(\)/.test(indexHtml), 'Weapon Damage Calc roster delete opens a confirmation prompt');
+assert.ok(/promptDeleteMatchupRoster\('attacker'\)/.test(indexHtml) && /promptDeleteMatchupRoster\('defender'\)/.test(indexHtml), 'Army Matchups roster deletes open confirmation prompts');
+assert.ok(/promptDeleteSelectedUnit\(\)/.test(indexHtml), 'main unit delete opens a confirmation prompt');
+assert.ok(/promptDeleteMatchupUnit\('attacker'\)/.test(indexHtml) && /promptDeleteMatchupUnit\('defender'\)/.test(indexHtml), 'Army Matchups unit deletes open confirmation prompts');
+assert.ok(/Delete Roster/.test(indexHtml) && /Delete Unit/.test(indexHtml), 'sidebar delete buttons use explicit roster and unit labels');
+assert.ok(!/deleteMatchupForce\('attacker'\)|deleteMatchupForce\('defender'\)/.test(indexHtml), 'Army Matchups sidebar no longer exposes force deletion');
+assert.ok(/matchupRosterRow\{display:grid;grid-template-columns:minmax\(0,\.75fr\) minmax\(0,1\.25fr\) auto/.test(stylesCss), 'matchup roster rows make Roster narrower and Force wider beside Delete Roster');
+assert.ok(/matchupUnitActionInline\{grid-template-columns:minmax\(0,1fr\) auto auto\}/.test(stylesCss) && /matchupUnitActionInline \.deleteUnitButton\{grid-column:3 \/ 4;justify-self:end\}/.test(stylesCss), 'matchup unit Delete Unit buttons get a full auto-width column');
 
 const context = {
   window: {},
@@ -499,37 +508,52 @@ assert.ok(baseAttacker, 'base profiles can be selected as matchup attackers');
 assert.ok(/^\(90 pts\) - Atk Score: \d+$/.test(baseScoreApp.matchupHeaderMeta(baseAttacker, 'attacker')), 'base profiles display calibrated offensive scores from their point values and weapon profiles');
 assert.ok(baseScoreApp.cachedMatchupCell(baseAttacker, baseScoreApp.matchupDefenderUnits[0]).dmg > 0, 'base profile weapon packages produce matchup damage');
 
-const deleteForceApp = context.weaponVsDefenseApp();
-deleteForceApp.addRoster({
+const deleteRosterApp = context.weaponVsDefenseApp();
+deleteRosterApp.addRoster({
   roster: {
-    name: 'Delete force roster',
+    name: 'Delete roster A',
     forces: [{
       name: 'Force A',
       _importedUnits: [{ label: 'Unit A', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'unit-a' }],
-    }, {
-      name: 'Force B',
-      _importedUnits: [{ label: 'Unit B', weapons: [], defense: { T: 5, Sv: 3, W: 3, models: 1 }, _unitKey: 'unit-b' }],
     }],
   },
-}, 'Delete force roster');
-deleteForceApp.matchup.attackerRosterIdx = 0;
-deleteForceApp.matchup.defenderRosterIdx = 0;
-deleteForceApp.matchup.attackerForceIdx = 1;
-deleteForceApp.matchup.defenderForceIdx = 1;
-deleteForceApp.onMatchupRosterChanged('attacker', false);
-deleteForceApp.matchup.attackerForceIdx = 1;
-deleteForceApp.onMatchupRosterChanged('defender', false);
-deleteForceApp.matchup.defenderForceIdx = 1;
-let deleteForceRebuilt = false;
-deleteForceApp.rebuildMatchup = () => { deleteForceRebuilt = true; };
-deleteForceApp.deleteMatchupForce('attacker');
-assert.strictEqual(deleteForceApp.getForcesForRoster(0).length, 1, 'deleting a matchup force removes it from the roster');
-assert.strictEqual(deleteForceApp.getForcesForRoster(0)[0].name, 'Force A', 'the selected matchup force is the force that gets deleted');
-assert.strictEqual(deleteForceApp.matchupAttackerForces.length, 1, 'attacker force options refresh after deleting a force');
-assert.strictEqual(deleteForceApp.matchupDefenderForces.length, 1, 'defender force options refresh when both sides share the roster');
-assert.strictEqual(deleteForceApp.matchup.attackerForceIdx, 0, 'attacker force index clamps after force deletion');
-assert.strictEqual(deleteForceApp.matchup.defenderForceIdx, 0, 'defender force index clamps after shared roster force deletion');
-assert.ok(deleteForceRebuilt, 'deleting a matchup force rebuilds the matchup grid');
+}, 'Delete roster A');
+deleteRosterApp.addRoster({
+  roster: {
+    name: 'Delete roster B',
+    forces: [{
+      name: 'Force B',
+      _importedUnits: [{ label: 'Unit B', weapons: [], defense: { T: 5, Sv: 3, W: 3, models: 1 }, _unitKey: 'unit-b' }],
+    }, {
+      name: 'Force C',
+      _importedUnits: [{ label: 'Unit C', weapons: [], defense: { T: 6, Sv: 2, W: 4, models: 1 }, _unitKey: 'unit-c' }],
+    }],
+  },
+}, 'Delete roster B');
+deleteRosterApp.matchup.attackerRosterIdx = 1;
+deleteRosterApp.matchup.defenderRosterIdx = 0;
+deleteRosterApp.matchup.attackerForceIdx = 1;
+deleteRosterApp.onMatchupRosterChanged('attacker', false);
+deleteRosterApp.matchup.attackerForceIdx = 1;
+deleteRosterApp.onMatchupRosterChanged('defender', false);
+let deleteRosterRebuilt = false;
+deleteRosterApp.rebuildMatchup = () => { deleteRosterRebuilt = true; };
+deleteRosterApp.promptDeleteMatchupRoster('attacker');
+assert.strictEqual(deleteRosterApp.deleteConfirmModalOpen, true, 'sidebar Delete Roster opens a confirmation modal before deleting');
+assert.strictEqual(deleteRosterApp.deleteConfirm.confirmLabel, 'Delete Roster', 'Delete Roster confirmation uses the roster label');
+deleteRosterApp.closeDeleteConfirm();
+assert.strictEqual(deleteRosterApp.rosters.length, 2, 'closing Delete Roster confirmation keeps the roster list unchanged');
+deleteRosterApp.promptDeleteMatchupRoster('attacker');
+deleteRosterApp.matchup.attackerRosterIdx = 0;
+deleteRosterApp.confirmDeleteAction();
+assert.strictEqual(deleteRosterApp.rosters.length, 1, 'confirming Delete Roster removes one full roster');
+assert.strictEqual(deleteRosterApp.rosters[0].label, 'Delete roster A', 'Delete Roster removes the originally confirmed roster, not a force or later dropdown selection');
+assert.strictEqual(deleteRosterApp.getForcesForRoster(0).length, 1, 'Delete Roster leaves the remaining roster forces intact');
+assert.strictEqual(deleteRosterApp.matchup.attackerRosterIdx, 0, 'attacker roster index clamps after roster deletion');
+assert.strictEqual(deleteRosterApp.matchup.defenderRosterIdx, 0, 'defender roster index clamps after roster deletion');
+assert.strictEqual(deleteRosterApp.matchupAttackerForces.length, 1, 'attacker force options refresh after roster deletion');
+assert.strictEqual(deleteRosterApp.matchupDefenderForces.length, 1, 'defender force options refresh after roster deletion');
+assert.ok(deleteRosterRebuilt, 'confirming Delete Roster rebuilds the matchup grid');
 
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Dark Pacts')),
@@ -675,6 +699,11 @@ deleteUnitApp.addRoster({
 }, 'Delete unit check');
 assert.strictEqual(deleteUnitApp.unitDropdownLabel(deleteUnitApp.units[0]), 'Unit A (1)', 'main unit dropdown labels include model count');
 deleteUnitApp.selectedUnitIdx = 0;
+deleteUnitApp.promptDeleteSelectedUnit();
+assert.strictEqual(deleteUnitApp.deleteConfirmModalOpen, true, 'Delete Unit opens a confirmation modal before deleting');
+assert.strictEqual(deleteUnitApp.deleteConfirm.confirmLabel, 'Delete Unit', 'Delete Unit confirmation uses the unit label');
+deleteUnitApp.closeDeleteConfirm();
+assert.strictEqual(deleteUnitApp.units.length, 2, 'closing Delete Unit confirmation keeps units unchanged');
 deleteUnitApp.duplicateSelectedUnit();
 assert.strictEqual(deleteUnitApp.units.length, 3, 'Duplicate adds a copy of the selected unit');
 assert.ok(/^Unit A Copy/.test(deleteUnitApp.activeUnit.label), 'Duplicate selects the copied unit');
