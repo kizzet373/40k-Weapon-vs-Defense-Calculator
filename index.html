@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=roster-copy-export-row-1">
+  <link rel="stylesheet" href="styles.css?v=delete-roster-export-row-1">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -101,7 +101,6 @@
                 </template>
               </select>
             </label>
-            <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('attacker')">Delete Roster</button>
           </div>
           <details class="matchupSideOptions">
             <summary>Options</summary>
@@ -130,6 +129,7 @@
                       </template>
                     </div>
                   </div>
+                  <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('attacker')">Delete Roster</button>
                 </div>
                 <label class="matchupArmyModifierLabel">
                   Add Army Modifiers
@@ -199,7 +199,6 @@
                 </template>
               </select>
             </label>
-            <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('defender')">Delete Roster</button>
           </div>
           <details class="matchupSideOptions">
             <summary>Options</summary>
@@ -228,6 +227,7 @@
                       </template>
                     </div>
                   </div>
+                  <button class="danger deleteRosterButton" type="button" :disabled="rosters.length === 0" @click="promptDeleteMatchupRoster('defender')">Delete Roster</button>
                 </div>
                 <label class="matchupArmyModifierLabel">
                   Add Army Modifiers
@@ -1377,6 +1377,6 @@
 
 </div>
 
-<script src="utilities.js?v=roster-copy-export-row-1"></script>
+<script src="utilities.js?v=delete-roster-export-row-1"></script>
 </body>
 </html>

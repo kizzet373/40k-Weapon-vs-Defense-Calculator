@@ -21,6 +21,8 @@ assert.ok(/Add Army Modifiers/.test(indexHtml), 'matchup sidebar custom modifier
 assert.ok(/Copy Roster/.test(indexHtml) && /Export Roster/.test(indexHtml), 'matchup sidebar copy/export dropdowns are labeled as roster actions');
 assert.ok(indexHtml.indexOf('copy-attacker') < indexHtml.indexOf('matchup-attacker-custom'), 'attacker Copy Roster/Export Roster controls appear above Add Army Modifiers');
 assert.ok(indexHtml.indexOf('copy-defender') < indexHtml.indexOf('matchup-defender-custom'), 'defender Copy Roster/Export Roster controls appear above Add Army Modifiers');
+assert.ok(indexHtml.indexOf('export-attacker') < indexHtml.indexOf("promptDeleteMatchupRoster('attacker'") && indexHtml.indexOf("promptDeleteMatchupRoster('attacker'") < indexHtml.indexOf('matchup-attacker-custom'), 'attacker Delete Roster sits next to Export Roster above Add Army Modifiers');
+assert.ok(indexHtml.indexOf('export-defender') < indexHtml.indexOf("promptDeleteMatchupRoster('defender'") && indexHtml.indexOf("promptDeleteMatchupRoster('defender'") < indexHtml.indexOf('matchup-defender-custom'), 'defender Delete Roster sits next to Export Roster above Add Army Modifiers');
 assert.ok(indexHtml.indexOf('matchup-attacker-custom') < indexHtml.indexOf('matchup-attacker-unit'), 'attacker army modifier dropdown appears above the attacker Unit selector');
 assert.ok(indexHtml.indexOf('matchup-defender-custom') < indexHtml.indexOf('matchup-defender-unit'), 'defender army modifier dropdown appears above the defender Unit selector');
 assert.ok(/copy-attacker/.test(indexHtml) && /export-defender/.test(indexHtml), 'copy/export roster dropdowns remain scoped to each matchup side');
@@ -33,7 +35,7 @@ assert.ok(/promptDeleteSelectedUnit\(\)/.test(indexHtml), 'main unit delete open
 assert.ok(/promptDeleteMatchupUnit\('attacker'\)/.test(indexHtml) && /promptDeleteMatchupUnit\('defender'\)/.test(indexHtml), 'Army Matchups unit deletes open confirmation prompts');
 assert.ok(/Delete Roster/.test(indexHtml) && /Delete Unit/.test(indexHtml), 'sidebar delete buttons use explicit roster and unit labels');
 assert.ok(!/deleteMatchupForce\('attacker'\)|deleteMatchupForce\('defender'\)/.test(indexHtml), 'Army Matchups sidebar no longer exposes force deletion');
-assert.ok(/matchupRosterRow\{display:grid;grid-template-columns:minmax\(0,\.75fr\) minmax\(0,1\.25fr\) auto/.test(stylesCss), 'matchup roster rows make Roster narrower and Force wider beside Delete Roster');
+assert.ok(/matchupRosterRow\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.25fr\)/.test(stylesCss), 'matchup roster rows restore Roster width while keeping Force wider');
 assert.ok(/matchupUnitActionInline\{grid-template-columns:minmax\(0,1fr\) auto auto\}/.test(stylesCss) && /matchupUnitActionInline \.deleteUnitButton\{grid-column:3 \/ 4;justify-self:end\}/.test(stylesCss), 'matchup unit Delete Unit buttons get a full auto-width column');
 
 const context = {
