@@ -425,9 +425,9 @@
     const S = Math.max(0, (parseFloat(weapon?.S) || 0) + (kw.strengthAdd || 0));
     const apRaw = parseFloat(weapon?.AP) || 0;
     const AP = Math.max(0, Math.abs(apRaw) + (kw.apAdd || 0));
-    const D = Math.max(0, parseNdX(weapon?.D).mean + (kw.damageAdd || 0));
+    const D = Math.max(0, expectedCappedDamage(weapon?.D, null, kw.damageAdd || 0, kw.damageDivisor || 1));
     const cappedD = expectedCappedDamage(weapon?.D, def.W, kw.damageAdd || 0, kw.damageDivisor || 1);
-    const damageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, 1);
+    const damageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, kw.damageDivisor || 1);
     const cappedDamageText = modifiedDiceText(weapon?.D, kw.damageAdd || 0, kw.damageDivisor || 1);
     const profileFnp = parseFloat(def?.Fnp ?? def?.fnp) || 0;
     const modifierFnp = parseFloat(kw.defensiveFnp) || 0;

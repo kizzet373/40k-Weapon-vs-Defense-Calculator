@@ -43,6 +43,9 @@ vm.runInContext(fs.readFileSync(path.join(root, 'utilities.js'), 'utf8'), contex
 
 const cappedD6 = context.window.WeaponCalc.expectedCappedDamage('D6', 2);
 assert.ok(Math.abs(cappedD6 - (11 / 6)) < 1e-9, 'D6 damage into W2 averages the capped roll distribution');
+assert.ok(Math.abs(context.window.WeaponCalc.expectedCappedDamage('1', null, 0, 2) - 1) < 1e-9, 'halved flat damage 1 rounds up to 1');
+assert.ok(Math.abs(context.window.WeaponCalc.expectedCappedDamage('3', null, 0, 2) - 2) < 1e-9, 'halved flat damage 3 rounds up to 2');
+assert.ok(Math.abs(context.window.WeaponCalc.expectedCappedDamage('D3', null, 0, 2) - (4 / 3)) < 1e-9, 'halved dice damage rounds each roll up before averaging');
 
 const cappedResult = context.window.WeaponCalc.calcOneWeapon(
   { name: 'D6 overkill', A: '6', skill: 'auto', S: '8', AP: '6', D: 'D6', modifiers: '' },
@@ -57,6 +60,27 @@ const devResult = context.window.WeaponCalc.calcOneWeapon(
   'Devastating Wounds'
 );
 assert.ok(devResult.dmg > cappedResult.dmg, 'spill-capable devastating wound damage still contributes beyond the normal per-attack cap');
+
+const halvedDamageOne = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'D1 halved', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  'Damage /2'
+);
+const unhalvedDamageOne = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'D1 normal', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '' },
+  { T: 4, sv: 7, inv: 0, W: 2 },
+  ''
+);
+assert.ok(Math.abs(halvedDamageOne.dmg - unhalvedDamageOne.dmg) < 1e-9, 'halved D1 attacks still deal 1 damage per failed save');
+
+const halvedDevD3 = context.window.WeaponCalc.calcOneWeapon(
+  { name: 'D3 devastating halved', A: '6', skill: 'auto', S: '8', AP: '6', D: 'D3', modifiers: 'Devastating Wounds' },
+  { T: 4, sv: 7, inv: 0, W: 10 },
+  'Devastating Wounds, Damage /2',
+  { includeFormula: true }
+);
+assert.ok(Math.abs(halvedDevD3.dmg - (20 / 3)) < 1e-9, 'halved damage applies to both normal and devastating wound damage using rounded per-roll damage');
+assert.strictEqual(halvedDevD3.formula.damageText, '1d3 / 2', 'formula displays halved dice damage instead of only the average');
 
 const noFnpWeapon = context.window.WeaponCalc.calcOneWeapon(
   { name: 'FNP check', A: '6', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '' },
