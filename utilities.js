@@ -1222,7 +1222,6 @@ function weaponVsDefenseApp(){
           d.Sv ?? '',
           d.Inv ?? '',
           d.Fnp ?? '',
-          d.cover ? 'cover' : '',
           d.W ?? '',
         ].join('|');
         const models = parseFloat(d.models ?? profileUnit?.size ?? 1);
@@ -1262,10 +1261,9 @@ function weaponVsDefenseApp(){
       const saves = [sv, inv].filter(Boolean).join(' ');
       const w = (d.W!=null) ? this.changedDefensePart('W', d.W, base.W) : '';
       const fnp = (d.Fnp!=null && d.Fnp!=='') ? this.changedDefensePart('FNP ', d.Fnp, base.Fnp, value => `${value}+`) : '';
-      const cover = d.cover ? 'Cover' : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' | ');
+      return [t, saves, w, fnp, size].filter(Boolean).join(' | ');
     },
 
     profileDefenseHeaderLabel(u){
@@ -1286,7 +1284,6 @@ function weaponVsDefenseApp(){
           d.Sv ?? '',
           d.Inv ?? '',
           d.Fnp ?? '',
-          d.cover ? 'cover' : '',
           d.W ?? '',
         ].join('|');
         const models = parseFloat(d.models ?? profileUnit?.size ?? 1);
@@ -1320,10 +1317,9 @@ function weaponVsDefenseApp(){
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
       const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
-      const cover = d.cover ? 'Cover' : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
-      return [t, saves, w, fnp, cover, size].filter(Boolean).join(' | ');
+      return [t, saves, w, fnp, size].filter(Boolean).join(' | ');
     },
 
     matchupWeaponSummary(u){

@@ -818,7 +818,8 @@ const modifiedDefenseLine = app.matchupDefenseProfileLine(
 assert.strictEqual(modifiedDefenseLine, 'T5 | 2+ 5++ | W2 | FNP 5+ | 1 models', 'defensive modifiers and FNP are reflected in header formatting');
 const stealthTarget = { label: 'Stealth target', abilities: ['Stealth'], defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 }, _unitKey: 'stealth-target' };
 assert.strictEqual(app.effectiveDefense(stealthTarget).cover, true, 'Stealth gives the unit cover in its effective defensive profile');
-assert.strictEqual(app.matchupDefenseProfileLine(app.effectiveDefense(stealthTarget), 1), 'T4 | 4+ | W2 | Cover | 1 models', 'cover is reflected in defensive profile text');
+assert.strictEqual(app.matchupDefenseProfileLine(app.effectiveDefense(stealthTarget), 1), 'T4 | 4+ | W2 | 1 models', 'cover is omitted from defensive profile text');
+assert.ok(app.unitDefenseModifierList(stealthTarget).some(mod => /Cover/i.test(mod)), 'cover remains listed as a defensive modifier instead of a profile stat');
 const faithfulFlockTarget = { label: 'Faithful Flock target', abilities: ['Faithful Flock'], defense: { T: 3, Sv: 7, W: 1, models: 10 }, _unitKey: 'faithful-flock' };
 const faithfulDefenseHtml = app.renderUnitDefenseProfiles(faithfulFlockTarget);
 assert.ok(/5\+\+/.test(faithfulDefenseHtml), 'main defense profile display includes ability-granted invulnerable saves');
