@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>40k Weapon vs Defense Calculator</title>
-  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-4">
+  <link rel="stylesheet" href="styles.css?v=army-editor-sidebar-5">
   <script defer src="calculator-core.js?v=dice-profile-display-1"></script>
   <script defer src="ability-modifiers.js?v=slashing-dive-1"></script>
   <script defer src="keyword-definitions.js?v=state-race-fix"></script>
@@ -1045,7 +1045,10 @@
                   <summary @click="if(!mergeManagerIsCollapsible(unit)) $event.preventDefault()">
                     <span class="mergeManagerUnitSummary">
                       <span class="mergeManagerNameRow">
-                        <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                        <button type="button" class="profileLink mergeManagerProfileLink"
+                                @click.stop.prevent="openUnitProfile(unit, 'Unit')">
+                          <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                        </button>
                         <button class="mergeManagerIconButton" type="button" aria-label="Rename unit"
                                 @click.stop.prevent="promptMergeManagerRename(unit)">✎</button>
                       </span>
@@ -1067,7 +1070,10 @@
                            @dragend="mergeManagerDragEnd()">
                         <span class="mergeManagerChildBody">
                           <span class="mergeManagerNameRow">
-                            <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                            <button type="button" class="profileLink mergeManagerProfileLink"
+                                    @click.stop.prevent="openUnitProfile(child, 'Model')">
+                              <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                            </button>
                             <button class="mergeManagerIconButton" type="button" aria-label="Rename model"
                                     @click.stop.prevent="promptMergeManagerRename(child)">✎</button>
                           </span>
@@ -1102,7 +1108,10 @@
                   <summary @click="if(!mergeManagerIsCollapsible(unit)) $event.preventDefault()">
                       <span class="mergeManagerUnitSummary">
                         <span class="mergeManagerNameRow">
-                          <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                          <button type="button" class="profileLink mergeManagerProfileLink"
+                                  @click.stop.prevent="openUnitProfile(unit, 'Unit')">
+                            <span class="mergeManagerUnitName" x-text="unitDropdownLabel(unit)"></span>
+                          </button>
                         </span>
                         <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(unit))"></span>
                       </span>
@@ -1112,7 +1121,10 @@
                       <div class="mergeManagerChild mergeManagerChildStatic">
                         <span class="mergeManagerChildBody">
                           <span class="mergeManagerNameRow">
-                            <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                            <button type="button" class="profileLink mergeManagerProfileLink"
+                                    @click.stop.prevent="openUnitProfile(child, 'Model')">
+                              <span class="mergeManagerChildName" x-text="unitDropdownLabel(child)"></span>
+                            </button>
                           </span>
                           <span class="muted" x-html="defenseProfileTextHtml(matchupDefenseHeaderLabel(child))"></span>
                         </span>

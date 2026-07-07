@@ -1385,6 +1385,7 @@ function weaponVsDefenseApp(){
           d.Inv ?? '',
           d.Fnp ?? '',
           d.W ?? '',
+          d.OC ?? d.Oc ?? d.ObjectiveControl ?? base.OC ?? base.Oc ?? base.ObjectiveControl ?? '',
         ].join('|');
         const models = parseFloat(d.models ?? profileUnit?.size ?? 1);
         if(!profiles.has(key)){
@@ -1405,8 +1406,18 @@ function weaponVsDefenseApp(){
       const base = unit?.defense || {};
       const movement = movementOverride || d.M || d.Move || d.Movement || base.M || base.Move || base.Movement || '';
       const move = movement !== '' && movement != null ? `M${movement}` : '';
-      const line = this.matchupDefenseProfileLineForUnit(unit, modelsOverride);
-      return [move, line].filter(Boolean).join(' | ');
+      const t = (d.T!=null) ? this.changedDefensePart('T', d.T, base.T) : '';
+      const sv = (d.Sv!=null && d.Sv!=='') ? this.changedDefensePart('', d.Sv, base.Sv, value => `${value}+`) : '';
+      const inv = (d.Inv!=null && d.Inv!=='') ? this.changedDefensePart('', d.Inv, base.Inv, value => `${value}++`) : '';
+      const saves = [sv, inv].filter(Boolean).join(' ');
+      const w = (d.W!=null) ? this.changedDefensePart('W', d.W, base.W) : '';
+      const fnp = (d.Fnp!=null && d.Fnp!=='') ? this.changedDefensePart('FNP ', d.Fnp, base.Fnp, value => `${value}+`) : '';
+      const effectiveOc = d.OC ?? d.Oc ?? d.ObjectiveControl;
+      const baseOc = base.OC ?? base.Oc ?? base.ObjectiveControl;
+      const oc = (effectiveOc !== '' && effectiveOc != null) ? this.changedDefensePart('OC', effectiveOc, baseOc) : '';
+      const models = modelsOverride ?? d.models ?? null;
+      const size = (models!=null) ? `${models} models` : '';
+      return [move, t, saves, w, fnp, oc, size].filter(Boolean).join(' | ');
     },
 
     matchupDefenseProfileLine(d, modelsOverride=null){

@@ -12,6 +12,8 @@ assert.ok(/mergeManagerDraggableUnit[\s\S]*draggable="true"[\s\S]*mergeManagerDr
 assert.ok(/mergeManagerDragBubble[\s\S]*>\s*drag\s*</i.test(indexHtml), 'merge manager source units and models show a compact drag bubble');
 assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(unit\)[\s\S]*>\s*Duplicate\s*<\/button>/.test(indexHtml), 'merge manager source unit rows expose a Duplicate button');
 assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(child\)[\s\S]*>\s*Duplicate\s*<\/button>/.test(indexHtml), 'merge manager source model rows expose a Duplicate button');
+assert.ok(/mergeManagerProfileLink[\s\S]*openUnitProfile\(unit, 'Unit'\)[\s\S]*mergeManagerUnitName/.test(indexHtml), 'merge manager unit names open the unit profile modal');
+assert.ok(/mergeManagerProfileLink[\s\S]*openUnitProfile\(child, 'Model'\)[\s\S]*mergeManagerChildName/.test(indexHtml), 'merge manager model names open the model profile modal');
 assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline rename button');
 assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
 assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
@@ -455,6 +457,9 @@ const movementProfileUnit = { label: 'Movement profile', defense: { M: '6"', T: 
 assert.ok(/^M6" \| T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.profileDefenseHeaderLabel(movementProfileUnit)), 'unit profile modal defense line shows movement before toughness');
 assert.ok(/^T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.matchupDefenseHeaderLabel(movementProfileUnit)), 'matchup grid defense line does not add movement');
 assert.ok(/M6&quot;.*T4/.test(app.profileChildSummaryHtml(movementProfileUnit)), 'unit profile modal child summaries show movement before toughness');
+const objectiveControlProfileUnit = { label: 'OC profile', defense: { M: '10"', T: 5, Sv: 2, Inv: 4, W: 3, OC: 2, models: 1 } };
+assert.ok(/^M10" \| T5 \| 2\+ 4\+\+ \| W3 \| OC2 \| 1 models$/.test(app.profileDefenseHeaderLabel(objectiveControlProfileUnit)), 'unit profile modal defense line shows objective control');
+assert.ok(/^T5 \| 2\+ 4\+\+ \| W3 \| 1 models$/.test(app.matchupDefenseHeaderLabel(objectiveControlProfileUnit)), 'matchup grid defense headers do not add objective control');
 app.addBaseProfilesRoster();
 assert.strictEqual(app.activeView, 'matchups', 'Unit Matchups view is active by default');
 app.switchToMatchupView({ reset: true });

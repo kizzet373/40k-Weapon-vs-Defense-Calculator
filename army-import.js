@@ -167,15 +167,21 @@
   function parseStatline(lines){
     const headerIdx = lines.findIndex(line => /\bM\b/i.test(line) && /\bT\b/i.test(line) && /\bSv\b/i.test(line) && /\bW\b/i.test(line));
     if(headerIdx < 0) return null;
+    const headerParts = lines[headerIdx].trim().split(/\s+/).map(part => part.toLowerCase().replace(/[^a-z]/g, ''));
     const values = lines.slice(headerIdx + 1).find(line => line.trim());
     if(!values) return null;
     const parts = values.trim().split(/\s+/);
     if(parts.length < 4) return null;
+    const at = (...names) => {
+      const idx = headerParts.findIndex(part => names.includes(part));
+      return idx >= 0 ? parts[idx] : '';
+    };
     return {
-      M: parts[0],
-      T: parseFloat(parts[1]),
-      Sv: parseSave(parts[2]),
-      W: parseFloat(parts[3]),
+      M: at('m', 'move', 'movement') || parts[0],
+      T: parseFloat(at('t', 'toughness') || parts[1]),
+      Sv: parseSave(at('sv', 'save') || parts[2]),
+      W: parseFloat(at('w', 'wounds') || parts[3]),
+      OC: parseFloat(at('oc', 'objectivecontrol')),
     };
   }
 
@@ -306,6 +312,7 @@
         Sv: Number.isFinite(statline.Sv) ? statline.Sv : null,
         Inv: invMatch ? parseFloat(invMatch[1]) : null,
         W: Number.isFinite(statline.W) ? statline.W : null,
+        OC: Number.isFinite(statline.OC) ? statline.OC : null,
         models: 1,
       },
       abilities,
@@ -995,6 +1002,7 @@
       Sv: null,
       Inv: null,
       W: null,
+      OC: null,
       Fnp: null,
       models: modelCount,
     };
@@ -1004,17 +1012,19 @@
     const save = parseSave(profileCharacteristic(profile, ['Sv', 'SV', 'Save']));
     const inv = parseSave(profileCharacteristic(profile, ['InSv', 'Invulnerable Save', 'Invuln']));
     const wounds = parseFloat(profileCharacteristic(profile, ['W', 'Wounds']));
+    const objectiveControl = parseFloat(profileCharacteristic(profile, ['OC', 'Objective Control']));
     if(movement != null && String(movement).trim() !== '') defense.M = String(movement).trim();
     if(Number.isFinite(toughness)) defense.T = toughness;
     if(save != null) defense.Sv = save;
     if(inv != null) defense.Inv = inv;
     if(Number.isFinite(wounds)) defense.W = wounds;
+    if(Number.isFinite(objectiveControl)) defense.OC = objectiveControl;
     return defense;
   }
 
   function cloneDefenseForModel(parentDefense, modelProfile, count){
     const modelDefense = defenseFromProfile(modelProfile, count);
-    ['M', 'T', 'Sv', 'Inv', 'W', 'Fnp'].forEach(key => {
+    ['M', 'T', 'Sv', 'Inv', 'W', 'OC', 'Fnp'].forEach(key => {
       if(modelDefense[key] == null && parentDefense?.[key] != null) modelDefense[key] = parentDefense[key];
     });
     modelDefense.models = count;
