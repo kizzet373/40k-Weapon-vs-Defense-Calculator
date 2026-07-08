@@ -1565,9 +1565,6 @@ function weaponVsDefenseApp(){
       return [
         side,
         this.matchup.conditionsMet ? 1 : 0,
-        this.matchup.combineShootingProfiles ? 1 : 0,
-        this.matchup.showShooting ? 1 : 0,
-        this.matchup.showMelee ? 1 : 0,
         unit._attackMode || 'all',
         this.unitPointValue(unit) || '',
         defense.M ?? defense.Move ?? defense.Movement ?? '',
@@ -1836,10 +1833,10 @@ function weaponVsDefenseApp(){
     profileScoreCell(attackerUnit, defenderUnit, overrides={}){
       if(!Object.keys(overrides || {}).length) return this.cachedMatchupCell(attackerUnit, defenderUnit);
       return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
-        combineShootingProfiles: overrides.combineShootingProfiles ?? !!this.matchup.combineShootingProfiles,
+        combineShootingProfiles: true,
         conditionsMet: !!this.matchup.conditionsMet,
-        isWeaponEnabled: w => this.isWeaponEnabledByToggles(w),
-        isMeleeEnabled: () => !!this.matchup.showMelee,
+        isWeaponEnabled: () => true,
+        isMeleeEnabled: () => true,
         effectiveWeaponModifiers: (w, unit, defender) => this.effectiveWeaponModifiers(w, unit, defender),
         effectiveDefense: (unit, opposingUnit) => this.effectiveDefense(unit, opposingUnit),
         isAbilityEnabled: (unit, ability) => this.isUnitAbilityEnabled(unit, ability),
@@ -1912,17 +1909,56 @@ function weaponVsDefenseApp(){
       };
     },
 
+    attackModePresence(unit){
+      const weapons = (unit?.weapons || []).filter(w => this.weaponMatchesAttackMode(w, unit?._attackMode || 'all'));
+      return {
+        shooting: weapons.some(w => !this.isMeleeWeapon(w)),
+        melee: weapons.some(w => this.isMeleeWeapon(w)),
+      };
+    },
+
     attackModeVariants(unit){
       if(unit?._attackMode) return [unit];
-      if(this.matchup.combineShootingProfiles) return [unit];
+      const presence = this.attackModePresence(unit);
+      const variants = [unit];
+      if(presence.shooting) variants.push(this.attackModeVariant(unit, 'shooting'));
+      if(presence.melee) variants.push(this.attackModeVariant(unit, 'melee'));
+      return variants;
+    },
 
-      const weapons = (unit?.weapons || []).filter(w => this.isWeaponEnabledByToggles(w));
-      const hasShooting = this.matchup.showShooting && weapons.some(w => !this.isMeleeWeapon(w));
-      const hasMelee = this.matchup.showMelee && weapons.some(w => this.isMeleeWeapon(w));
+    displayAttackModeVariants(unit){
+      if(unit?._attackMode) return this.attackModeAllowedByDisplay(unit._attackMode) ? [unit] : [];
+      const presence = this.attackModePresence(unit);
+      const showShooting = !!this.matchup.showShooting && presence.shooting;
+      const showMelee = !!this.matchup.showMelee && presence.melee;
+      if(this.matchup.combineShootingProfiles){
+        if(showShooting && showMelee) return [unit];
+        if(showShooting && !presence.melee) return [unit];
+        if(showMelee && !presence.shooting) return [unit];
+      }
       const variants = [];
-      if(hasShooting) variants.push(this.attackModeVariant(unit, 'shooting'));
-      if(hasMelee) variants.push(this.attackModeVariant(unit, 'melee'));
-      return variants.length ? variants : [unit];
+      if(showShooting) variants.push(this.attackModeVariant(unit, 'shooting'));
+      if(showMelee) variants.push(this.attackModeVariant(unit, 'melee'));
+      return variants;
+    },
+
+    attackModeAllowedByDisplay(attackMode){
+      if(attackMode === 'shooting') return !!this.matchup.showShooting;
+      if(attackMode === 'melee') return !!this.matchup.showMelee;
+      return !!this.matchup.showShooting || !!this.matchup.showMelee;
+    },
+
+    displayedAttackerKeySet(){
+      const keys = new Set();
+      const bases = (this.matchupAttackerBaseUnits || []).length
+        ? this.matchupAttackerBaseUnits
+        : (this.matchupAttackerUnits || []);
+      bases.forEach(unit => {
+        this.displayAttackModeVariants(unit)
+          .filter(variant => this.hasMatchupWeaponProfiles(variant))
+          .forEach(variant => keys.add(this.unitKey(variant)));
+      });
+      return keys;
     },
 
     flattenMatchupAttackers(units){
@@ -1955,13 +1991,9 @@ function weaponVsDefenseApp(){
     seedAggregateCellCache(){
       const cache = {};
       (this.matchup.rows || []).forEach(row => {
-        this.attackModeVariants(row.unit).forEach(attacker => {
-          (this.matchupDefenderUnits || []).forEach((defender, index) => {
-            const cell = attacker === row.unit
-              ? (row.cells?.[index] || this.computeMatchupCell(row.unit, defender))
-              : this.computeMatchupCell(attacker, defender);
-            cache[this.cellCacheKey(attacker, defender)] = cell;
-          });
+        (this.matchupDefenderUnits || []).forEach((defender, index) => {
+          const cell = row.cells?.[index];
+          if(cell) cache[this.cellCacheKey(row.unit, defender)] = cell;
         });
       });
       this.matchup.cellCache = cache;
@@ -2045,8 +2077,10 @@ function weaponVsDefenseApp(){
     refreshVisibleMatchup(options={}){
       const cellFor = this.matchupCellReader(options);
       const defenders = this.buildVisibleDefenders(options);
+      const displayedKeys = this.displayedAttackerKeySet();
       const rows = [];
       (this.matchup.rows || []).forEach((row, rowIndex) => {
+        if(!displayedKeys.has(this.unitKey(row.unit))) return;
         rows.push({
           ...row,
           rowIndex,
@@ -2579,7 +2613,7 @@ function weaponVsDefenseApp(){
     },
 
     hasMatchupWeaponProfiles(unit){
-      return (unit?.weapons || []).some(w => this.isWeaponEnabledByToggles(w) && this.weaponMatchesAttackMode(w, unit?._attackMode || 'all'));
+      return (unit?.weapons || []).some(w => this.weaponMatchesAttackMode(w, unit?._attackMode || 'all'));
     },
 
     scheduleMatchupBuild(work){
@@ -2661,10 +2695,7 @@ function weaponVsDefenseApp(){
         attackerForceIdx: Number(this.matchup.attackerForceIdx) || 0,
         defenderRosterIdx: Number(this.matchup.defenderRosterIdx) || 0,
         defenderForceIdx: Number(this.matchup.defenderForceIdx) || 0,
-        combineShootingProfiles: !!this.matchup.combineShootingProfiles,
         conditionsMet: !!this.matchup.conditionsMet,
-        showMelee: !!this.matchup.showMelee,
-        showShooting: !!this.matchup.showShooting,
         metric: this.matchup.metric || 'damage',
       };
       const buildIsCurrent = () => {
@@ -2673,10 +2704,7 @@ function weaponVsDefenseApp(){
           && (Number(this.matchup.attackerForceIdx) || 0) === buildState.attackerForceIdx
           && (Number(this.matchup.defenderRosterIdx) || 0) === buildState.defenderRosterIdx
           && (Number(this.matchup.defenderForceIdx) || 0) === buildState.defenderForceIdx
-          && !!this.matchup.combineShootingProfiles === buildState.combineShootingProfiles
           && !!this.matchup.conditionsMet === buildState.conditionsMet
-          && !!this.matchup.showMelee === buildState.showMelee
-          && !!this.matchup.showShooting === buildState.showShooting
           && (this.matchup.metric || 'damage') === buildState.metric;
       };
       this.matchup.rows = [];
@@ -3011,14 +3039,27 @@ function weaponVsDefenseApp(){
       if(!(key in this.matchup)) return;
       this.matchup[key] = !this.matchup[key];
       this.saveCachedAppState();
-      this.rebuildMatchup();
+      if(['showShooting', 'showMelee', 'combineShootingProfiles'].includes(key)){
+        this.refreshMatchupDisplayOnly();
+      }else{
+        this.rebuildMatchup();
+      }
     },
 
     setMatchupRecomputeOption(key, value){
       if(!(key in this.matchup)) return;
       this.matchup[key] = !!value;
       this.saveCachedAppState();
-      this.rebuildMatchup();
+      if(['showShooting', 'showMelee', 'combineShootingProfiles'].includes(key)){
+        this.refreshMatchupDisplayOnly();
+      }else{
+        this.rebuildMatchup();
+      }
+    },
+
+    refreshMatchupDisplayOnly(){
+      this.applyMatchupSorting(false, { computeMissing: false });
+      this.refreshVisibleMatchup({ computeMissing: false });
     },
 
     computeMatchupCell(attackerUnit, defenderUnit, options={}){
@@ -3042,10 +3083,10 @@ function weaponVsDefenseApp(){
       return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
         includeFormula: !!options.includeFormula,
         metric: options.metric || this.matchup.metric || 'damage',
-        combineShootingProfiles: !!this.matchup.combineShootingProfiles,
+        combineShootingProfiles: true,
         conditionsMet: !!this.matchup.conditionsMet,
-        isWeaponEnabled: w => this.isWeaponEnabledByToggles(w),
-        isMeleeEnabled: () => !!this.matchup.showMelee,
+        isWeaponEnabled: () => true,
+        isMeleeEnabled: () => true,
         effectiveWeaponModifiers: (w, unit, defender) => {
           const key = modifierKeyFor(w, unit, defender);
           if(modifierCache.has(key)) return modifierCache.get(key);

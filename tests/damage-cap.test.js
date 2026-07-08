@@ -2013,6 +2013,59 @@ conditionalDefenderOverallSortApp.refreshMatchupPresentation({ computeMissing: f
 assert.strictEqual(conditionalDefenderOverallSortApp.matchupVisibleDefenders()[0].unit.label, 'Conditional shooter defender', 'Overall Score defender sorting uses the visible grid score after Conditions Met');
 assert.ok(!conditionalDefenderOverallSortApp.lookupCachedMatchupCell(conditionalSortShooterDefender, conditionalSortPlainDefender), 'defender Overall Score sorting does not create hidden cross-axis cells');
 
+const displayToggleApp = context.weaponVsDefenseApp();
+const displayToggleAttacker = {
+  label: 'Display Toggle Unit',
+  _unitKey: 'display-toggle-unit',
+  _viewKey: 'display-toggle-unit',
+  _points: 100,
+  weapons: [
+    { name: 'Toggle rifle', range: '24', A: '6', skill: 'auto', S: '4', AP: '1', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'toggle-rifle' },
+    { name: 'Toggle blade', range: 'Melee', A: '6', skill: 'auto', S: '5', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'toggle-blade' },
+  ],
+  defense: { T: 4, Sv: 3, W: 2, models: 1, totalWounds: 2 },
+};
+const displayToggleDefender = {
+  label: 'Display Toggle Target',
+  _unitKey: 'display-toggle-target',
+  _viewKey: 'display-toggle-target',
+  _points: 100,
+  weapons: [],
+  defense: { T: 4, Sv: 4, W: 2, models: 1, totalWounds: 2 },
+};
+displayToggleApp.matchupModalOpen = true;
+displayToggleApp.matchup.showShooting = true;
+displayToggleApp.matchup.showMelee = true;
+displayToggleApp.matchup.combineShootingProfiles = true;
+displayToggleApp.matchupAttackerBaseUnits = [displayToggleAttacker];
+displayToggleApp.matchupAttackerUnits = displayToggleApp.attackModeVariants(displayToggleAttacker);
+displayToggleApp.matchupDefenderUnits = [displayToggleDefender];
+displayToggleApp.matchup.rows = displayToggleApp.matchupAttackerUnits.map(unit => ({
+  unit,
+  cells: [displayToggleApp.computeMatchupCell(unit, displayToggleDefender)],
+}));
+displayToggleApp.seedAggregateCellCache();
+displayToggleApp.updateMatchupSortSummaries();
+displayToggleApp.refreshVisibleMatchup();
+assert.strictEqual(displayToggleApp.matchupVisibleRows().map(row => row.unit._attackMode || 'all').join('|'), 'all', 'combined display starts with the already-computed combined row');
+displayToggleApp.computeMatchupCell = () => {
+  throw new Error('matchup display toggles should not recalculate cells or scores');
+};
+displayToggleApp.toggleMatchupRecomputeOption('combineShootingProfiles');
+assert.strictEqual(
+  displayToggleApp.matchupVisibleRows().map(row => row.unit._attackMode).sort().join('|'),
+  'melee|shooting',
+  'turning off Combined only reveals already-computed shooting and melee rows'
+);
+displayToggleApp.toggleMatchupRecomputeOption('showMelee');
+assert.strictEqual(displayToggleApp.matchupVisibleRows().map(row => row.unit._attackMode).join('|'), 'shooting', 'turning off Melee only hides melee rows');
+displayToggleApp.toggleMatchupRecomputeOption('showShooting');
+assert.strictEqual(displayToggleApp.matchupVisibleRows().length, 0, 'turning off both profile buttons hides attacker rows without recalculation');
+displayToggleApp.toggleMatchupRecomputeOption('showMelee');
+assert.strictEqual(displayToggleApp.matchupVisibleRows().map(row => row.unit._attackMode).join('|'), 'melee', 'turning Melee back on reveals the cached melee row');
+displayToggleApp.toggleMatchupRecomputeOption('combineShootingProfiles');
+assert.strictEqual(displayToggleApp.matchupVisibleRows().map(row => row.unit._attackMode).join('|'), 'melee', 'Combined remains display-only when just one profile type is visible');
+
 const staleBuildApp = context.weaponVsDefenseApp();
 staleBuildApp.addBaseProfilesRoster();
 staleBuildApp.addRoster({
