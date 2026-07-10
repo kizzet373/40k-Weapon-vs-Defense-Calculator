@@ -1596,12 +1596,11 @@
 
     postDamageGroups.forEach(group => applyMortalGroup(group, 'postDamage'));
 
-    const shouldComputeKillChance = metric === 'unitKill' || options.includeFormula;
     return {
       dmg,
       kills,
       pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
-      pctUnitKilled: shouldComputeKillChance && unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
+      pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
       weaponName: formatProfiles(selectedProfiles),
       profileModifierText: formatProfileModifiers(selectedProfileModifiers),
       profilesUsed: aggregateProfiles(selectedProfiles),

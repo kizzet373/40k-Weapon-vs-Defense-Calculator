@@ -2131,6 +2131,7 @@ app.matchup.showShooting = true;
 app.matchup.combineShootingProfiles = true;
 app.matchup.conditionsMet = false;
 app.clearMatchupComputationCache();
+app.matchupAttackerBaseUnits = [profileScoreAttacker];
 app.matchupAttackerUnits = [profileScoreAttacker];
 app.matchupDefenderUnits = [profileScoreDefender];
 app.matchup.rows = [{ unit: profileScoreAttacker, cells: [app.computeMatchupCell(profileScoreAttacker, profileScoreDefender)] }];
@@ -2209,6 +2210,11 @@ app.computeMatchupCell = (...args) => {
 };
 app.setMatchupMetric('unitKill');
 assert.strictEqual(metricSwitchRecalcCount, 0, 'changing the display metric refreshes presentation without recalculating cells');
+const metricSwitchCell = app.matchup.visibleRows
+  .find(row => row.unit?._unitKey === profileScoreAttacker._unitKey)
+  ?.cells?.[0] || null;
+assert.ok((metricSwitchCell?.pctUnitKilled || 0) > 0, 'cached matchup cells include chance-to-kill data before switching to the Chance to Kill display metric');
+assert.notStrictEqual(app.formatMatchupMetric(metricSwitchCell), '0.0%', 'Chance to Kill display uses cached kill chance instead of falling back to null as zero');
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker), preMetricSwitchScores.offense, 'display metric changes do not alter offensive scores');
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'), preMetricSwitchScores.melee, 'display metric changes do not alter melee scores');
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'), preMetricSwitchScores.shooting, 'display metric changes do not alter shooting scores');
