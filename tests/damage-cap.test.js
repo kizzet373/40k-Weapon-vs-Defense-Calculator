@@ -1733,8 +1733,29 @@ const brassStampedeFnpCell = app.computeMatchupCell(
 );
 app.formulaCell = brassStampedeFnpCell;
 const brassStampedeFnpLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
-assert.ok(brassStampedeFnpLines.some(line => /Damage: 6 models x 50\.0% x 1d3 damage x 66\.7% after FNP = 4 damage/i.test(line)), 'Brass Stampede formula shows FNP reduction for flat mortal wounds');
+assert.ok(brassStampedeFnpLines.some(line => /Mortal Wounds: 6 models x 50\.0% x 1d3 damage = 6 mortal wounds/i.test(line)), 'Brass Stampede formula shows raw expected mortal wounds before FNP');
+assert.ok(brassStampedeFnpLines.some(line => /Feel No Pain: 6 mortal wounds x 66\.7% after FNP = 4 damage/i.test(line)), 'Brass Stampede formula shows FNP reduction for flat mortal wounds');
 assert.ok(brassStampedeFnpLines.some(line => /^Profile Total: 4 damage \(4 wounds\)$/i.test(line)), 'Brass Stampede FNP profile total reports post-FNP applied wounds');
+
+const brassStampedeFnpOverkillCell = app.computeMatchupCell(
+  {
+    label: 'Nine mortal Bloodcrushers into FNP',
+    abilities: ['Brass Stampede'],
+    weapons: [],
+    defense: { T: 7, Sv: 3, W: 4, models: 9 },
+    _children: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(index => ({
+      label: `FNP Overkill Bloodcrusher ${index}`,
+      weapons: [],
+      defense: { T: 7, Sv: 3, W: 4, models: 1 },
+    })),
+  },
+  { label: 'Four wound FNP overkill target', defense: { T: 4, Sv: 3, W: 4, Fnp: 5, models: 1, totalWounds: 4 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = brassStampedeFnpOverkillCell;
+const brassStampedeFnpOverkillLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.ok(brassStampedeFnpOverkillLines.some(line => /Feel No Pain: 9 mortal wounds x 66\.7% after FNP = 6 damage/i.test(line)), 'Brass Stampede overkill formula applies FNP before overkill');
+assert.ok(brassStampedeFnpOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\)$/i.test(line)), 'Brass Stampede mortal wounds count post-FNP overkill beyond the whole unit');
 
 const conditionalAttacker = {
   label: 'Conditional attacker',
