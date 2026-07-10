@@ -1240,6 +1240,29 @@
       }
       remainingRaw = mult > 0 ? Math.max(0, remainingRaw - (applied / mult)) : 0;
     }
+    if(remainingRaw > 1e-9){
+      const line = overkillStateLine(state);
+      const mult = fnpDamageMultiplier(line?.def || {});
+      const applied = remainingRaw * mult;
+      const W = parseFloat(line?.def?.W) || 0;
+      if(applied > 1e-9 && line){
+        dmg += applied;
+        kills += W > 0 ? applied / W : 0;
+        lines.push({
+          targetName: line.unit?.label || 'Defender',
+          woundPool: 0,
+          appliedDamage: applied,
+          formula: { defense: defensePayloadForLine(line) },
+          allocation: {
+            overkill: true,
+            appliedDamage: applied,
+            remainingPool: 0,
+            rawSpillLoss: 0,
+            overkillDamage: applied,
+          },
+        });
+      }
+    }
     return { dmg, kills, lines };
   }
 

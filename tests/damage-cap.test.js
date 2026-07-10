@@ -1696,6 +1696,26 @@ const brassStampedeKillSummaryCell = app.computeMatchupCell(
 app.formulaCell = brassStampedeKillSummaryCell;
 assert.strictEqual(app.formulaTotalKillSummaryText(), 'Models killed: 2 (T4 | 3+ 0++ | W3)', 'pre-damage mortal wounds count toward the total killed-model summary');
 
+const brassStampedeOverkillCell = app.computeMatchupCell(
+  {
+    label: 'Six mortal Bloodcrushers overkill',
+    abilities: ['Brass Stampede'],
+    weapons: [],
+    defense: { T: 7, Sv: 3, W: 4, models: 6 },
+    _children: [1, 2, 3, 4, 5, 6].map(index => ({
+      label: `Overkill Bloodcrusher ${index}`,
+      weapons: [],
+      defense: { T: 7, Sv: 3, W: 4, models: 1 },
+    })),
+  },
+  { label: 'Four wound target', defense: { T: 4, Sv: 3, W: 4, models: 1, totalWounds: 4 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = brassStampedeOverkillCell;
+const brassStampedeOverkillLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.ok(brassStampedeOverkillLines.some(line => /Damage: 6 models x 50\.0% x 1d3 damage = 6 damage/i.test(line)), 'Brass Stampede formula shows raw expected mortal damage instead of capped remaining wounds');
+assert.ok(brassStampedeOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\)$/i.test(line)), 'Brass Stampede profile total separates applied wounds from overkill');
+
 const conditionalAttacker = {
   label: 'Conditional attacker',
   abilities: ['Chance for Glory'],
