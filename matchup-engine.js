@@ -938,8 +938,9 @@
         line.remainingPool = allocated.remainingPool;
         state._lastTargetLine = line;
       }
-      const countedDamage = (Number(allocated.appliedDamage) || 0)
-        + (Number(allocated.overkillDamage) || 0);
+      const countedDamage = Number.isFinite(Number(allocated.totalDamage))
+        ? Number(allocated.totalDamage)
+        : ((Number(allocated.appliedDamage) || 0) + (Number(allocated.overkillDamage) || 0));
       dmg += countedDamage;
       kills += W > 0 ? countedDamage / W : allocated.kills;
       if(options.includeFormula){
@@ -1103,6 +1104,7 @@
       const rawSpillLoss = Math.max(0, allocated.rawSpillLoss);
       return {
         appliedDamage,
+        totalDamage: appliedDamage,
         kills: modelWounds > 0 ? appliedDamage / modelWounds : 0,
         normalApplied: allocated.normalApplied,
         mortalApplied: allocated.mortalApplied,
@@ -1155,12 +1157,15 @@
       killedModels += overkillAllocation.killedModels;
     }
     const rawSpillLoss = Math.max(0, allocated.rawSpillLoss + rawOverkillSpillLoss);
+    const totalDamage = Math.max(0, rawDamageTotal - rawSpillLoss - rawDamageRemaining);
+    rawOverkillDamage = finalTarget ? Math.max(0, totalDamage - appliedDamage) : rawOverkillDamage;
     const remainingLocalFraction = rawDamageTotal > 1e-9
       ? Math.max(0, Math.min(1, rawDamageRemaining / rawDamageTotal))
       : Math.max(normalFractionRemaining, mortalFractionRemaining);
 
     return {
       appliedDamage,
+      totalDamage,
       kills: modelWounds > 0 ? appliedDamage / modelWounds : 0,
       normalApplied,
       mortalApplied,

@@ -1491,8 +1491,28 @@ const finalProfileOverkillCell = app.computeMatchupCell(
 app.formulaCell = finalProfileOverkillCell;
 const finalProfileOverkillLines = app.matchupFormulaLines();
 assert.ok(Math.abs(finalProfileOverkillCell.dmg - (10 / 3)) < 1e-9, 'the profile that kills the final model still applies no-spill damage loss to its overkill attacks');
+assert.ok(Math.abs(finalProfileOverkillCell.formulaItems[0].totalDamage - finalProfileOverkillCell.dmg) < 1e-9, 'the killing profile formula item includes its own overkill in total damage');
+assert.ok(/3\.33 \(Damage two claws\)[\s\S]*Total damage: 3\.33/i.test(app.formulaTotalEquation()), 'the final total includes overkill from the profile that killed the unit');
 assert.ok(finalProfileOverkillLines.some(line => /^Spill Loss: .* = 3\.333 spill loss$/i.test(line)), 'last-profile overkill shows spill loss from the repeated final defensive profile');
 assert.ok(finalProfileOverkillLines.some(line => /^Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\)$/i.test(line)), 'last-profile overkill total reports post-spill overkill damage');
+
+const groupedFinalProfileOverkillCell = app.computeMatchupCell(
+  {
+    label: 'Grouped final profile overkill attacker',
+    weapons: [
+      { name: 'Matched claws', range: 'Melee', A: '1', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'matched-1' },
+      { name: 'Matched claws', range: 'Melee', A: '1', skill: 'auto', S: '8', AP: '6', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'matched-2' },
+    ],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'One wound grouped defender', defense: { T: 4, Sv: 7, W: 1, models: 1, totalWounds: 1 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = groupedFinalProfileOverkillCell;
+const groupedFinalProfileOverkillLines = app.matchupFormulaLines();
+assert.ok(Math.abs(groupedFinalProfileOverkillCell.dmg - (5 / 3)) < 1e-9, 'grouped duplicate profiles keep overkill from the profile that killed the unit');
+assert.ok(/1\.67 \(Matched claws\)[\s\S]*Total damage: 1\.67/i.test(app.formulaTotalEquation()), 'grouped killing profile overkill reaches the final total equation');
+assert.ok(groupedFinalProfileOverkillLines.some(line => /^Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\)$/i.test(line)), 'grouped killing profile reports wounds plus overkill after spill loss');
 
 const remainingAllocationFormulaCell = app.computeMatchupCell(
   {
