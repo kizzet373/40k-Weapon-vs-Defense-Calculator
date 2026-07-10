@@ -1716,6 +1716,26 @@ const brassStampedeOverkillLines = app.matchupFormulaSections()[0].lines.map(lin
 assert.ok(brassStampedeOverkillLines.some(line => /Damage: 6 models x 50\.0% x 1d3 damage = 6 damage/i.test(line)), 'Brass Stampede formula shows raw expected mortal damage instead of capped remaining wounds');
 assert.ok(brassStampedeOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\)$/i.test(line)), 'Brass Stampede profile total separates applied wounds from overkill');
 
+const brassStampedeFnpCell = app.computeMatchupCell(
+  {
+    label: 'Six mortal Bloodcrushers into FNP',
+    abilities: ['Brass Stampede'],
+    weapons: [],
+    defense: { T: 7, Sv: 3, W: 4, models: 6 },
+    _children: [1, 2, 3, 4, 5, 6].map(index => ({
+      label: `FNP Bloodcrusher ${index}`,
+      weapons: [],
+      defense: { T: 7, Sv: 3, W: 4, models: 1 },
+    })),
+  },
+  { label: 'Four wound FNP target', defense: { T: 4, Sv: 3, W: 4, Fnp: 5, models: 1, totalWounds: 4 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = brassStampedeFnpCell;
+const brassStampedeFnpLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
+assert.ok(brassStampedeFnpLines.some(line => /Damage: 6 models x 50\.0% x 1d3 damage x 66\.7% after FNP = 4 damage/i.test(line)), 'Brass Stampede formula shows FNP reduction for flat mortal wounds');
+assert.ok(brassStampedeFnpLines.some(line => /^Profile Total: 4 damage \(4 wounds\)$/i.test(line)), 'Brass Stampede FNP profile total reports post-FNP applied wounds');
+
 const conditionalAttacker = {
   label: 'Conditional attacker',
   abilities: ['Chance for Glory'],

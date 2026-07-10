@@ -4166,14 +4166,31 @@ function weaponVsDefenseApp(){
       return components.length ? ` (${components.join(' + ')})` : '';
     },
 
+    formulaMortalFnpMultiplier(item){
+      const raw = Number(item?.rawDamage);
+      const applied = Number(item?.totalDamage);
+      const hasFnp = (item?.lines || []).some(line => {
+        const def = line?.formula?.defense || {};
+        return (Number(def.Fnp ?? def.fnp) || 0) > 0;
+      });
+      if(!hasFnp || !Number.isFinite(raw) || raw <= 1e-9 || !Number.isFinite(applied)) return null;
+      if(applied >= raw - 1e-9) return null;
+      return Math.max(0, applied / raw);
+    },
+
     formulaItemLines(item, index=0){
       const lines = [];
       if((item?.phase === 'preDamage' || item?.phase === 'postDamage') && item?.effect){
         const count = Math.max(1, Number(item.effect.count) || 1);
         const countText = count > 1 ? `${this.formulaNumber(count)} ${item.effect.label || 'models'} x ` : '';
+        const parts = [
+          `${countText}${this.formulaPercent(item.effect.chance)} x ${item.effect.dice || this.formulaNumber(item.rawDamage ?? item.totalDamage)} damage`,
+        ];
+        const fnpMultiplier = this.formulaMortalFnpMultiplier(item);
+        if(fnpMultiplier != null) parts.push(`x ${this.formulaPercent(fnpMultiplier)} after FNP`);
         lines.push(this.formulaLineEntry(
           'Damage',
-          `${countText}${this.formulaPercent(item.effect.chance)} x ${item.effect.dice || this.formulaNumber(item.totalDamage)} damage`,
+          parts.join(' '),
           `${this.formulaNumber(item.totalDamage)} damage`
         ));
       }else (item?.lines || []).forEach((line, lineIndex) => {

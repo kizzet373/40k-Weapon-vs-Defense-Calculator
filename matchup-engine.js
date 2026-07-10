@@ -509,11 +509,13 @@
   }
 
   function mortalFormulaItem(item, defenderUnit){
+    const rawDamage = Number(item.dmg);
     return {
       weaponName: item.profile.name,
       modifierText: item.modifierText || 'Mortal wounds',
       phase: item.phase || 'preDamage',
       effect: item.effect || null,
+      rawDamage: Number.isFinite(rawDamage) ? rawDamage : (item.allocated?.dmg || 0),
       totalDamage: item.allocated?.dmg || 0,
       totalKills: item.allocated?.kills || 0,
       lines: (item.allocated?.lines || []).length
