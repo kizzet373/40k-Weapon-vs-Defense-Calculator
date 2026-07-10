@@ -1408,6 +1408,25 @@ const groupedWeaponSections = app.matchupFormulaSections();
 assert.strictEqual(groupedWeaponSections.length, 1, 'identical attacking weapon profiles are grouped into one formula section');
 assert.ok(/Heavy melee weapon \(x4\).*A:8 Skill:3 S:8 AP:2 D:2/.test(groupedWeaponSections[0].title), 'grouped weapon formula title shows combined profile count and multiplied attacks');
 
+const importedKeyGroupedWeaponCell = app.computeMatchupCell(
+  {
+    label: 'Imported keyed melee models',
+    defense: { T: 4, Sv: 3, W: 1, models: 3 },
+    _children: [1, 2, 3].map(index => ({
+      label: `Imported model ${index}`,
+      _unitKey: `imported-model-${index}`,
+      weapons: [{ name: 'Imported sword', range: 'Melee', A: '1', skill: 'auto', S: '8', AP: '6', D: '1', modifiers: '', mode: 'melee', _weaponKey: `imported-sword-${index}` }],
+      defense: { T: 4, Sv: 3, W: 1, models: 1 },
+    })),
+  },
+  { label: 'Imported key target', defense: { T: 4, Sv: 7, W: 10, models: 1, totalWounds: 10 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = importedKeyGroupedWeaponCell;
+const importedKeyGroupedSections = app.matchupFormulaSections();
+assert.strictEqual(importedKeyGroupedSections.length, 1, 'identical imported weapon profiles group even when each model has a unique import weapon key');
+assert.ok(/Imported sword \(x3\).*A:3 Skill:auto S:8 AP:6 D:1/.test(importedKeyGroupedSections[0].title), 'unique import keys do not prevent grouped weapon formula titles');
+
 const reorderedModifierWeapon = { name: 'Slashing claws', range: 'Melee', A: '8', skill: '3', S: '5', AP: '1', D: '1', modifiers: '', mode: 'melee' };
 const reorderedModifierCell = context.window.MatchupEngine.computeCell(
   {
@@ -1651,6 +1670,31 @@ assert.ok(brassStampedeCell.dmg > 1, 'Brass Stampede pre-damage is added before 
 assert.ok(/^1\. Pre-Damage - Brass Stampede mortal wounds/i.test(brassStampedeSections[0]?.title || ''), 'Brass Stampede appears as the first Pre-Damage formula section');
 assert.strictEqual(brassStampedeCell.formulaItems[0]?.phase, 'preDamage', 'Brass Stampede formula item is tagged as pre-damage');
 assert.ok(brassStampedeSections[0].lines.some(line => /Damage: 50\.0% x 1d3 damage = 1 damage/i.test(line.text || line)), 'Brass Stampede formula shows the charge chance and dice damage expression');
+
+const brassStampedeKillSummaryCell = app.computeMatchupCell(
+  {
+    label: 'Six mortal Bloodcrushers',
+    abilities: ['Brass Stampede'],
+    weapons: [],
+    defense: { T: 7, Sv: 3, W: 4, models: 6 },
+    _children: [1, 2, 3, 4, 5, 6].map(index => ({
+      label: `Bloodcrusher ${index}`,
+      weapons: [],
+      defense: { T: 7, Sv: 3, W: 4, models: 1 },
+    })),
+  },
+  {
+    label: 'Mortal wound summary target',
+    defense: { T: 4, Sv: 3, W: 3, models: 3, totalWounds: 9 },
+    _children: [1, 2, 3].map(index => ({
+      label: `Mortal target ${index}`,
+      defense: { T: 4, Sv: 3, W: 3, models: 1, totalWounds: 3 },
+    })),
+  },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = brassStampedeKillSummaryCell;
+assert.strictEqual(app.formulaTotalKillSummaryText(), 'Models killed: 2 (T4 | 3+ 0++ | W3)', 'pre-damage mortal wounds count toward the total killed-model summary');
 
 const conditionalAttacker = {
   label: 'Conditional attacker',

@@ -1427,7 +1427,8 @@ function weaponVsDefenseApp(){
         (d.Inv!=null && d.Inv!=='') ? `${d.Inv}++` : '',
       ].filter(Boolean).join(' ');
       const w = (d.W!=null) ? `W${d.W}` : '';
-      const fnp = (d.Fnp!=null && d.Fnp!=='') ? `FNP ${d.Fnp}+` : '';
+      const fnpValue = parseFloat(d.Fnp);
+      const fnp = (Number.isFinite(fnpValue) && fnpValue > 0) ? `FNP ${d.Fnp}+` : '';
       const models = modelsOverride ?? d.models ?? null;
       const size = (models!=null) ? `${models} models` : '';
       return [t, saves, w, fnp, size].filter(Boolean).join(' | ');

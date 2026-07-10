@@ -516,7 +516,9 @@
       effect: item.effect || null,
       totalDamage: item.allocated?.dmg || 0,
       totalKills: item.allocated?.kills || 0,
-      lines: [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: item.allocated?.dmg || 0 }],
+      lines: (item.allocated?.lines || []).length
+        ? item.allocated.lines
+        : [{ targetName: defenderUnit?.label || 'Defender', appliedDamage: item.allocated?.dmg || 0 }],
     };
   }
 
@@ -1182,13 +1184,29 @@
     let remainingRaw = Math.max(0, parseFloat(rawDamage) || 0);
     let dmg = 0;
     let kills = 0;
+    const lines = [];
     const alive = aliveStateLines(state);
     if(!alive.length){
       const line = overkillStateLine(state);
       const mult = fnpDamageMultiplier(line?.def || {});
       const applied = remainingRaw * mult;
       const W = parseFloat(line?.def?.W) || 0;
-      return { dmg: applied, kills: W > 0 ? applied / W : 0, overkill: true };
+      if(applied > 1e-9 && line){
+        lines.push({
+          targetName: line.unit?.label || 'Defender',
+          woundPool: 0,
+          appliedDamage: applied,
+          formula: { defense: defensePayloadForLine(line) },
+          allocation: {
+            overkill: true,
+            appliedDamage: applied,
+            remainingPool: 0,
+            rawSpillLoss: 0,
+            overkillDamage: applied,
+          },
+        });
+      }
+      return { dmg: applied, kills: W > 0 ? applied / W : 0, overkill: true, lines };
     }
     const ordered = [
       ...(precision ? alive.filter(line => line.isCharacter) : alive.filter(line => !line.isCharacter)),
@@ -1201,13 +1219,28 @@
       const capacity = Math.max(0, line.remainingPool || 0);
       const applied = Math.min(effectiveAvailable, capacity);
       const W = parseFloat(line.def?.W) || 0;
+      const beforePool = capacity;
       line.remainingPool = Math.max(0, capacity - applied);
       state._lastTargetLine = line;
       dmg += applied;
       kills += W > 0 ? (applied / W) : 0;
+      if(applied > 1e-9){
+        lines.push({
+          targetName: line.unit?.label || 'Defender',
+          woundPool: beforePool,
+          appliedDamage: applied,
+          formula: { defense: defensePayloadForLine(line) },
+          allocation: {
+            appliedDamage: applied,
+            remainingPool: line.remainingPool,
+            rawSpillLoss: 0,
+            overkillDamage: 0,
+          },
+        });
+      }
       remainingRaw = mult > 0 ? Math.max(0, remainingRaw - (applied / mult)) : 0;
     }
-    return { dmg, kills };
+    return { dmg, kills, lines };
   }
 
   function allocateFlatDamageIntoDefender(rawDamage, defenderUnit, precision=false, options={}, attackerUnit=null){
@@ -1285,12 +1318,14 @@
   function weaponChoiceSignature(item, defenderUnit, options){
     const weapon = item?.weapon || {};
     const source = item?.sourceUnit || {};
+    const modifierText = typeof options?.effectiveWeaponModifiers === 'function'
+      ? options.effectiveWeaponModifiers(weapon, source, defenderUnit)
+      : (weapon?.modifiers || '');
     const sourceRules = [
       ...(source?.abilities || []),
       ...(source?._enhancements || []).map(enh => enh?.name || enh),
     ].map(value => String(value || '').trim().toLowerCase()).filter(Boolean).sort().join('~');
     return JSON.stringify({
-      weaponKey: String(weapon?._weaponKey || ''),
       name: String(weapon.name || ''),
       range: String(weapon.range ?? weapon.R ?? weapon.Range ?? ''),
       A: String(weapon.A ?? ''),
@@ -1299,10 +1334,10 @@
       AP: String(weapon.AP ?? ''),
       D: String(weapon.D ?? ''),
       mode: String(weapon.mode ?? weapon.type ?? ''),
-      modifiers: canonicalModifierKey(weapon?.modifiers || ''),
+      modifiers: canonicalModifierKey(modifierText || ''),
       sourceRules,
       melee: isMeleeWeapon(weapon),
-      extra: !!parsedWeaponKeywords(weapon?.modifiers || '', weapon).extraAttacks,
+      extra: !!parsedWeaponKeywords(modifierText || weapon?.modifiers || '', weapon).extraAttacks,
     });
   }
 
