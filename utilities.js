@@ -3173,7 +3173,7 @@ function weaponVsDefenseApp(){
     matchupMetricLabel(){
       const mode = this.matchup.metric || 'damage';
       if(mode === 'modelWounds') return 'Damage %';
-      if(mode === 'unitKill') return 'Chance to Kill';
+      if(mode === 'unitKill') return 'Chance to Destroy';
       return 'Damage';
     },
 
@@ -3629,8 +3629,8 @@ function weaponVsDefenseApp(){
               display: this.formatMatchupMetric(cell),
               damage: cell?.dmg || 0,
               damagePct: cell?.pctModelWounds ?? null,
-              chanceToKill: cell?.pctUnitKilled ?? null,
-              kills: cell?.kills || 0,
+              chanceToDestroy: cell?.pctUnitKilled ?? null,
+              modelsDestroyed: cell?.kills || 0,
               weaponName: cell?.weaponName || '',
               profilesUsed: cell?.profilesUsed || [],
               style: this.matchupCellStyleForExport(cell, grid.range),
@@ -4108,7 +4108,7 @@ function weaponVsDefenseApp(){
       }, null);
     },
 
-    formulaActualKilledModels(line){
+    formulaActualDestroyedModels(line){
       const allocation = line?.allocation || {};
       if(allocation.overkill) return 0;
       const modelWounds = Math.max(0, Number(line?.formula?.defense?.W) || 0);
@@ -4121,36 +4121,36 @@ function weaponVsDefenseApp(){
       return Math.max(0, beforeModels - afterModels);
     },
 
-    formulaTotalKillSummaryParts(){
+    formulaDestroyedSummaryParts(items=null){
       const order = [];
       const profiles = new Map();
-      (this.formulaCell?.formulaItems || []).forEach(item => {
+      (items || this.formulaCell?.formulaItems || []).forEach(item => {
         (item?.lines || []).forEach(line => {
-          const killed = this.formulaActualKilledModels(line);
+          const destroyed = this.formulaActualDestroyedModels(line);
           const defense = line?.formula?.defense;
-          if(killed <= 1e-9 || !defense) return;
+          if(destroyed <= 1e-9 || !defense) return;
           const label = this.formulaDefenseProfileSummaryText(defense);
           if(!profiles.has(label)){
-            profiles.set(label, { label, killed: 0 });
+            profiles.set(label, { label, destroyed: 0 });
             order.push(label);
           }
-          profiles.get(label).killed += killed;
+          profiles.get(label).destroyed += destroyed;
         });
       });
       return order.map(label => profiles.get(label)).filter(Boolean);
     },
 
-    formulaTotalKillSummaryText(){
-      const parts = this.formulaTotalKillSummaryParts();
-      if(!parts.length) return 'Models killed: 0';
-      return `Models killed: ${parts.map(part => `${this.formulaNumber(part.killed)} (${part.label})`).join(', ')}`;
+    formulaDestroyedSummaryText(items=null){
+      const parts = this.formulaDestroyedSummaryParts(items);
+      if(!parts.length) return 'Models destroyed: 0';
+      return `Models destroyed: ${parts.map(part => `${this.formulaNumber(part.destroyed)} (${part.label})`).join(', ')}`;
     },
 
-    formulaTotalKillSummaryHtml(){
-      const parts = this.formulaTotalKillSummaryParts();
-      if(!parts.length) return 'Models killed: 0';
-      return `Models killed: ${parts.map(part => [
-        this.escapeFormulaHtml(this.formulaNumber(part.killed)),
+    formulaDestroyedSummaryHtml(items=null){
+      const parts = this.formulaDestroyedSummaryParts(items);
+      if(!parts.length) return 'Models destroyed: 0';
+      return `Models destroyed: ${parts.map(part => [
+        this.escapeFormulaHtml(this.formulaNumber(part.destroyed)),
         ` <span class="formulaProfileName">(${this.escapeFormulaHtml(part.label)})</span>`,
       ].join('')).join(', ')}`;
     },
@@ -4298,7 +4298,10 @@ function weaponVsDefenseApp(){
       if(item?.totalDamage != null){
         const parts = this.formulaProfileDamageParts(item);
         const total = parts.wounds + parts.overkill;
-        const result = `${this.formulaNumber(total || item.totalDamage)} damage${this.formulaDamageComponentText(parts)}`;
+        const result = [
+          `${this.formulaNumber(total || item.totalDamage)} damage${this.formulaDamageComponentText(parts)}`,
+          this.formulaDestroyedSummaryText([item]),
+        ].join('; ');
         if(lines.length) lines.push({ text: '', html: '&nbsp;', spacer: true });
         lines.push(this.formulaResultLine('Profile Total', result));
       }
@@ -4311,7 +4314,7 @@ function weaponVsDefenseApp(){
         `${this.matchupMetricLabel()}: ${this.formatMatchupMetric(cell)}`,
         `Total average damage: ${this.formulaNumber(cell.dmg, 2)}`,
         `Damage %: ${cell.pctModelWounds == null ? '—' : this.formulaPercent(cell.pctModelWounds)}`,
-        `Chance to Kill: ${cell.pctUnitKilled == null ? '—' : this.formulaPercent(Math.min(cell.pctUnitKilled, 0.999))}`,
+        `Chance to Destroy: ${cell.pctUnitKilled == null ? '—' : this.formulaPercent(Math.min(cell.pctUnitKilled, 0.999))}`,
       ];
       if(cell.weaponName) lines.push(`Profiles used: ${cell.weaponName}`);
       return lines;
@@ -4336,7 +4339,7 @@ function weaponVsDefenseApp(){
       const left = addends.length
         ? addends.map(addend => `${this.formulaNumber(addend.value, 2)} (${addend.name})`).join(' + ')
         : '0';
-      return `${left}\n${this.formulaTotalKillSummaryText()}\n\nTotal damage: ${this.formulaNumber(sum, 2)}`;
+      return `${left}\n${this.formulaDestroyedSummaryText()}\n\nTotal damage: ${this.formulaNumber(sum, 2)}`;
     },
 
     formulaTotalEquationHtml(){
@@ -4351,7 +4354,7 @@ function weaponVsDefenseApp(){
             ` <span class="formulaProfileName">(${this.escapeFormulaHtml(addend.name)})</span>`,
           ].join('')).join(' + ')
         : '0';
-      return `${left}\n${this.formulaTotalKillSummaryHtml()}\n\nTotal damage: ${this.escapeFormulaHtml(this.formulaNumber(sum, 2))}`;
+      return `${left}\n${this.formulaDestroyedSummaryHtml()}\n\nTotal damage: ${this.escapeFormulaHtml(this.formulaNumber(sum, 2))}`;
     },
 
     matchupFormulaLines(){
@@ -5378,7 +5381,7 @@ function weaponVsDefenseApp(){
       if(parseFloat(this.defense.DR) > 0) lines.push(`<span class="pill">Damage Reduction ${this.defense.DR}</span>`);
       if(parseFloat(this.defense.Fnp)) lines.push(`<span class="pill">FNP ${this.defense.Fnp}+</span>`);
       if(mods.melta > 0 && mods.withinHalf) lines.push(`<span class="pill">Melta +${mods.melta}</span>`);
-      lines.push(`<span class="pill">Expected Models Killed~${output.modelsKilled.toFixed(2)}</span>`);
+      lines.push(`<span class="pill">Expected Models Destroyed~${output.modelsKilled.toFixed(2)}</span>`);
       this.output.breakdownHtml = lines.join(' ');
 
       const hitExtras = [];

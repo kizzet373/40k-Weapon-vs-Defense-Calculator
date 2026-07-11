@@ -161,7 +161,7 @@ assert.ok(/background:hsl/.test(app.matchupCellStyle(firstCell)), 'creates gradi
 app.matchup.metric = 'modelWounds';
 assert.ok(app.formatMatchupMetric(firstCell).endsWith('%'), 'formats model wound percent metric');
 app.matchup.metric = 'unitKill';
-assert.ok(app.formatMatchupMetric(firstCell).endsWith('%'), 'formats unit kill percent metric');
+assert.ok(app.formatMatchupMetric(firstCell).endsWith('%'), 'formats unit destroy percent metric');
 
 const beLakor = app.matchupAttackerUnits.find(u => /Bel'?akor|Be.lakor/i.test(u.label));
 assert.ok(beLakor, 'finds Be-lakor profile');
@@ -328,9 +328,9 @@ const threeModelOverkill = app.computeMatchupCell(overkillAttacker, threeModelDe
 assert.ok(Math.abs(oneModelOverkill.dmg - 9) < 1e-9, 'overkill fixture has expected damage');
 assert.ok(Math.abs(oneModelOverkill.pctModelWounds - 4.5) < 1e-9, 'damage percent can exceed 100 percent for one model');
 assert.ok(Math.abs(threeModelOverkill.pctModelWounds - 1.5) < 1e-9, 'unit damage percent uses the full defender wound pool');
-assert.ok(threeModelOverkill.pctUnitKilled >= 0 && threeModelOverkill.pctUnitKilled < 1, 'chance to kill is a bounded probability estimate');
+assert.ok(threeModelOverkill.pctUnitKilled >= 0 && threeModelOverkill.pctUnitKilled < 1, 'chance to destroy is a bounded probability estimate');
 app.matchup.metric = 'unitKill';
-assert.ok(!/^1\d\d/.test(app.formatMatchupMetric(threeModelOverkill)), 'chance to kill does not format above 100 percent');
+assert.ok(!/^1\d\d/.test(app.formatMatchupMetric(threeModelOverkill)), 'chance to destroy does not format above 100 percent');
 app.matchup.metric = 'damage';
 
 app.matchup.sortAttackers = 'overallDamage';
@@ -393,7 +393,7 @@ app.matchup.sortAttackers = 'alpha';
 app.setMatchupMetric('modelWounds');
 assert.strictEqual(app.matchupMetricRange().max, 0.5, 'metric changes refresh the gradient range for damage percent');
 app.setMatchupMetric('unitKill');
-assert.strictEqual(app.matchupMetricRange().max, 0.8, 'metric changes refresh the gradient range for chance to kill');
+assert.strictEqual(app.matchupMetricRange().max, 0.8, 'metric changes refresh the gradient range for chance to destroy');
 
 app.matchupAttackerUnits = [{ label:'Low damage' }, { label:'High damage' }];
 app.matchupDefenderUnits = [{ label:'Soft target' }, { label:'Tough target' }];

@@ -1241,7 +1241,7 @@ assert.ok(noSpillLines.some(line => /Wound: .* x .* wound rate = .* wounds/i.tes
 assert.ok(noSpillLines.some(line => /Damage: .* x 2 damage = .* damage/i.test(line)), 'damage step shows generated damage before allocation loss');
 assert.ok(noSpillLines.some(line => /^Spill Loss: .* = .* spill loss$/i.test(line)), 'spill loss is split into its own calculation step');
 assert.ok(noSpillLines.some(line => /^Total: .* damage \(.* wounds\)$/i.test(line)), 'target total summarizes damage after spill loss');
-assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\)$/i.test(line)), 'profile total summarizes all target totals');
+assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\); Models destroyed: /i.test(line)), 'profile total summarizes all target totals and destroyed models');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
@@ -1474,8 +1474,8 @@ assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/
 assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
 assert.ok(overkillLines.some(line => /0 models left/i.test(line)), 'formula shows zero models left for weapon profiles calculated after the defender is destroyed');
 assert.ok(overkillLines.some((line, index) => /0 models left/i.test(line) && overkillLines.slice(index, index + 8).some(next => /^Spill Loss:/i.test(next))), 'post-destroy weapon profile calculations still apply no-spill damage loss');
-assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models killed');
-assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\)$/i.test(line)), 'profile totals summarize overkill damage instead of models killed');
+assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models destroyed');
+assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\); Models destroyed: /i.test(line)), 'profile totals summarize overkill damage and destroyed models');
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');
 assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
 
@@ -1490,11 +1490,12 @@ const finalProfileOverkillCell = app.computeMatchupCell(
 );
 app.formulaCell = finalProfileOverkillCell;
 const finalProfileOverkillLines = app.matchupFormulaLines();
-assert.ok(Math.abs(finalProfileOverkillCell.dmg - (10 / 3)) < 1e-9, 'the profile that kills the final model still applies no-spill damage loss to its overkill attacks');
+assert.ok(Math.abs(finalProfileOverkillCell.dmg - (10 / 3)) < 1e-9, 'the profile that destroys the final model still applies no-spill damage loss to its overkill attacks');
 assert.ok(Math.abs(finalProfileOverkillCell.formulaItems[0].totalDamage - finalProfileOverkillCell.dmg) < 1e-9, 'the killing profile formula item includes its own overkill in total damage');
 assert.ok(/3\.33 \(Damage two claws\)[\s\S]*Total damage: 3\.33/i.test(app.formulaTotalEquation()), 'the final total includes overkill from the profile that killed the unit');
 assert.ok(finalProfileOverkillLines.some(line => /^Spill Loss: .* = 3\.333 spill loss$/i.test(line)), 'last-profile overkill shows spill loss from the repeated final defensive profile');
 assert.ok(finalProfileOverkillLines.some(line => /^Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\)$/i.test(line)), 'last-profile overkill total reports post-spill overkill damage');
+assert.ok(finalProfileOverkillLines.some(line => /^Profile Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\); Models destroyed: 1 \(T4 \| 7\+ 0\+\+ \| W1\)$/i.test(line)), 'killing profile total reports its own destroyed models');
 
 const groupedFinalProfileOverkillCell = app.computeMatchupCell(
   {
@@ -1513,6 +1514,7 @@ const groupedFinalProfileOverkillLines = app.matchupFormulaLines();
 assert.ok(Math.abs(groupedFinalProfileOverkillCell.dmg - (5 / 3)) < 1e-9, 'grouped duplicate profiles keep overkill from the profile that killed the unit');
 assert.ok(/1\.67 \(Matched claws\)[\s\S]*Total damage: 1\.67/i.test(app.formulaTotalEquation()), 'grouped killing profile overkill reaches the final total equation');
 assert.ok(groupedFinalProfileOverkillLines.some(line => /^Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\)$/i.test(line)), 'grouped killing profile reports wounds plus overkill after spill loss');
+assert.ok(groupedFinalProfileOverkillLines.some(line => /^Profile Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\); Models destroyed: 1 \(T4 \| 7\+ 0\+\+ \| W1\)$/i.test(line)), 'grouped profile total reports destroyed models');
 
 const remainingAllocationFormulaCell = app.computeMatchupCell(
   {
@@ -1549,7 +1551,7 @@ app.formulaCell = {
   ],
 };
 assert.strictEqual(app.matchupFormulaSections().length, 2, 'formula modal keeps multiple weapon profiles separated');
-assert.strictEqual(app.formulaTotalEquation(), '1.25 (weapon a) + 2.5 (weapon b)\nModels killed: 0\n\nTotal damage: 3.75', 'formula modal shows a labeled bottom summation equation');
+assert.strictEqual(app.formulaTotalEquation(), '1.25 (weapon a) + 2.5 (weapon b)\nModels destroyed: 0\n\nTotal damage: 3.75', 'formula modal shows a labeled bottom summation equation');
 assert.ok(app.formulaTotalEquationHtml().includes('<span class="formulaProfileName">(weapon a)</span>'), 'formula modal styles weapon profile names separately from damage values');
 app.formulaCell = {
   dmg: 9,
@@ -1591,7 +1593,7 @@ app.formulaCell = {
     },
   ],
 };
-assert.strictEqual(app.formulaTotalKillSummaryText(), 'Models killed: 3 (T4 | 3+ 0++ | W2), 1 (T5 | 2+ 4++ | W3 | FNP 5+)', 'formula total result summarizes killed models by defensive profile');
+assert.strictEqual(app.formulaDestroyedSummaryText(), 'Models destroyed: 3 (T4 | 3+ 0++ | W2), 1 (T5 | 2+ 4++ | W3 | FNP 5+)', 'formula total result summarizes destroyed models by defensive profile');
 
 const sharedAbilitySource = {
   label: 'Icon bearer',
@@ -1714,7 +1716,7 @@ const brassStampedeKillSummaryCell = app.computeMatchupCell(
   { includeFormula: true, combineShootingProfiles: true }
 );
 app.formulaCell = brassStampedeKillSummaryCell;
-assert.strictEqual(app.formulaTotalKillSummaryText(), 'Models killed: 2 (T4 | 3+ 0++ | W3)', 'pre-damage mortal wounds count toward the total killed-model summary');
+assert.strictEqual(app.formulaDestroyedSummaryText(), 'Models destroyed: 2 (T4 | 3+ 0++ | W3)', 'pre-damage mortal wounds count toward the total destroyed-model summary');
 
 const brassStampedeOverkillCell = app.computeMatchupCell(
   {
@@ -1734,7 +1736,7 @@ const brassStampedeOverkillCell = app.computeMatchupCell(
 app.formulaCell = brassStampedeOverkillCell;
 const brassStampedeOverkillLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
 assert.ok(brassStampedeOverkillLines.some(line => /Damage: 6 models x 50\.0% x 1d3 damage = 6 damage/i.test(line)), 'Brass Stampede formula shows raw expected mortal damage instead of capped remaining wounds');
-assert.ok(brassStampedeOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\)$/i.test(line)), 'Brass Stampede profile total separates applied wounds from overkill');
+assert.ok(brassStampedeOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\); Models destroyed: 1 \(T4 \| 3\+ 0\+\+ \| W4\)$/i.test(line)), 'Brass Stampede profile total separates applied wounds from overkill and destroyed models');
 
 const brassStampedeFnpCell = app.computeMatchupCell(
   {
@@ -1755,7 +1757,7 @@ app.formulaCell = brassStampedeFnpCell;
 const brassStampedeFnpLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
 assert.ok(brassStampedeFnpLines.some(line => /Mortal Wounds: 6 models x 50\.0% x 1d3 damage = 6 mortal wounds/i.test(line)), 'Brass Stampede formula shows raw expected mortal wounds before FNP');
 assert.ok(brassStampedeFnpLines.some(line => /Feel No Pain: 6 mortal wounds x 66\.7% after FNP = 4 damage/i.test(line)), 'Brass Stampede formula shows FNP reduction for flat mortal wounds');
-assert.ok(brassStampedeFnpLines.some(line => /^Profile Total: 4 damage \(4 wounds\)$/i.test(line)), 'Brass Stampede FNP profile total reports post-FNP applied wounds');
+assert.ok(brassStampedeFnpLines.some(line => /^Profile Total: 4 damage \(4 wounds\); Models destroyed: 1 \(T4 \| 3\+ 0\+\+ \| W4 \| FNP 5\+\)$/i.test(line)), 'Brass Stampede FNP profile total reports post-FNP applied wounds and destroyed models');
 
 const brassStampedeFnpOverkillCell = app.computeMatchupCell(
   {
@@ -1775,7 +1777,7 @@ const brassStampedeFnpOverkillCell = app.computeMatchupCell(
 app.formulaCell = brassStampedeFnpOverkillCell;
 const brassStampedeFnpOverkillLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
 assert.ok(brassStampedeFnpOverkillLines.some(line => /Feel No Pain: 9 mortal wounds x 66\.7% after FNP = 6 damage/i.test(line)), 'Brass Stampede overkill formula applies FNP before overkill');
-assert.ok(brassStampedeFnpOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\)$/i.test(line)), 'Brass Stampede mortal wounds count post-FNP overkill beyond the whole unit');
+assert.ok(brassStampedeFnpOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\); Models destroyed: 1 \(T4 \| 3\+ 0\+\+ \| W4 \| FNP 5\+\)$/i.test(line)), 'Brass Stampede mortal wounds count post-FNP overkill beyond the whole unit and reports destroyed models');
 
 const conditionalAttacker = {
   label: 'Conditional attacker',
@@ -2338,14 +2340,14 @@ assert.strictEqual(metricSwitchRecalcCount, 0, 'changing the display metric refr
 const metricSwitchCell = app.matchup.visibleRows
   .find(row => row.unit?._unitKey === profileScoreAttacker._unitKey)
   ?.cells?.[0] || null;
-assert.ok((metricSwitchCell?.pctUnitKilled || 0) > 0, 'cached matchup cells include chance-to-kill data before switching to the Chance to Kill display metric');
-assert.notStrictEqual(app.formatMatchupMetric(metricSwitchCell), '0.0%', 'Chance to Kill display uses cached kill chance instead of falling back to null as zero');
+assert.ok((metricSwitchCell?.pctUnitKilled || 0) > 0, 'cached matchup cells include chance-to-destroy data before switching to the Chance to Destroy display metric');
+assert.notStrictEqual(app.formatMatchupMetric(metricSwitchCell), '0.0%', 'Chance to Destroy display uses cached destroy chance instead of falling back to null as zero');
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker), preMetricSwitchScores.offense, 'display metric changes do not alter offensive scores');
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'melee'), preMetricSwitchScores.melee, 'display metric changes do not alter melee scores');
 assert.strictEqual(app.profileOffensiveScoreRaw(profileScoreAttacker, 'shooting'), preMetricSwitchScores.shooting, 'display metric changes do not alter shooting scores');
 assert.strictEqual(app.profileDefensiveScoreRaw(profileScoreAttacker), preMetricSwitchScores.defense, 'display metric changes do not alter defensive scores');
 assert.strictEqual(app.profileOverallScoreRaw(profileScoreAttacker), preMetricSwitchScores.overall, 'display metric changes do not alter overall scores');
-assert.ok(/^Average Chance to Kill: \d+\.\d%$/.test(app.profileMetricSummaryText(profileScoreAttacker)), 'unit profile modal metric line follows the selected display metric');
+assert.ok(/^Average Chance to Destroy: \d+\.\d%$/.test(app.profileMetricSummaryText(profileScoreAttacker)), 'unit profile modal metric line follows the selected display metric');
 app.computeMatchupCell = originalMetricSwitchCompute;
 
 const realScoreAuditApp = context.weaponVsDefenseApp();
