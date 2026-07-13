@@ -1241,7 +1241,7 @@ assert.ok(noSpillLines.some(line => /Wound: .* x .* wound rate = .* wounds/i.tes
 assert.ok(noSpillLines.some(line => /Damage: .* x 2 damage = .* damage/i.test(line)), 'damage step shows generated damage before allocation loss');
 assert.ok(noSpillLines.some(line => /^Spill Loss: .* = .* spill loss$/i.test(line)), 'spill loss is split into its own calculation step');
 assert.ok(noSpillLines.some(line => /^Total: .* damage \(.* wounds\)$/i.test(line)), 'target total summarizes damage after spill loss');
-assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\); Models destroyed: /i.test(line)), 'profile total summarizes all target totals and destroyed models');
+assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\) - Models destroyed: /i.test(line)), 'profile total summarizes all target totals and destroyed models');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
 
@@ -1475,7 +1475,7 @@ assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does
 assert.ok(overkillLines.some(line => /0 models left/i.test(line)), 'formula shows zero models left for weapon profiles calculated after the defender is destroyed');
 assert.ok(overkillLines.some((line, index) => /0 models left/i.test(line) && overkillLines.slice(index, index + 8).some(next => /^Spill Loss:/i.test(next))), 'post-destroy weapon profile calculations still apply no-spill damage loss');
 assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models destroyed');
-assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\); Models destroyed: /i.test(line)), 'profile totals summarize overkill damage and destroyed models');
+assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\) - Models destroyed: /i.test(line)), 'profile totals summarize overkill damage and destroyed models');
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');
 assert.ok(!overkillLines.some(line => /^Target \d+:/i.test(line)), 'formula steps are not prefixed with target numbers or model names');
 
@@ -1495,7 +1495,7 @@ assert.ok(Math.abs(finalProfileOverkillCell.formulaItems[0].totalDamage - finalP
 assert.ok(/3\.33 \(Damage two claws\)[\s\S]*Total damage: 3\.33/i.test(app.formulaTotalEquation()), 'the final total includes overkill from the profile that killed the unit');
 assert.ok(finalProfileOverkillLines.some(line => /^Spill Loss: .* = 3\.333 spill loss$/i.test(line)), 'last-profile overkill shows spill loss from the repeated final defensive profile');
 assert.ok(finalProfileOverkillLines.some(line => /^Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\)$/i.test(line)), 'last-profile overkill total reports post-spill overkill damage');
-assert.ok(finalProfileOverkillLines.some(line => /^Profile Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\); Models destroyed: 1 \(T4 \| 7\+ 0\+\+ \| W1\)$/i.test(line)), 'killing profile total reports its own destroyed models');
+assert.ok(finalProfileOverkillLines.some(line => /^Profile Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\) - Models destroyed: 1$/i.test(line)), 'killing profile total reports its own destroyed models');
 
 const groupedFinalProfileOverkillCell = app.computeMatchupCell(
   {
@@ -1514,7 +1514,8 @@ const groupedFinalProfileOverkillLines = app.matchupFormulaLines();
 assert.ok(Math.abs(groupedFinalProfileOverkillCell.dmg - (5 / 3)) < 1e-9, 'grouped duplicate profiles keep overkill from the profile that killed the unit');
 assert.ok(/1\.67 \(Matched claws\)[\s\S]*Total damage: 1\.67/i.test(app.formulaTotalEquation()), 'grouped killing profile overkill reaches the final total equation');
 assert.ok(groupedFinalProfileOverkillLines.some(line => /^Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\)$/i.test(line)), 'grouped killing profile reports wounds plus overkill after spill loss');
-assert.ok(groupedFinalProfileOverkillLines.some(line => /^Profile Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\); Models destroyed: 1 \(T4 \| 7\+ 0\+\+ \| W1\)$/i.test(line)), 'grouped profile total reports destroyed models');
+assert.ok(groupedFinalProfileOverkillLines.some(line => /^Profile Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\) - Models destroyed: 1$/i.test(line)), 'grouped profile total reports destroyed models');
+assert.ok(app.matchupFormulaSections()[0].lines.some(line => /^Profile Total:/i.test(line.text || '') && /formulaProfileTotalMeta/.test(line.html || '')), 'profile total suffix uses white meta styling');
 
 const remainingAllocationFormulaCell = app.computeMatchupCell(
   {
@@ -1736,7 +1737,8 @@ const brassStampedeOverkillCell = app.computeMatchupCell(
 app.formulaCell = brassStampedeOverkillCell;
 const brassStampedeOverkillLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
 assert.ok(brassStampedeOverkillLines.some(line => /Damage: 6 models x 50\.0% x 1d3 damage = 6 damage/i.test(line)), 'Brass Stampede formula shows raw expected mortal damage instead of capped remaining wounds');
-assert.ok(brassStampedeOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\); Models destroyed: 1 \(T4 \| 3\+ 0\+\+ \| W4\)$/i.test(line)), 'Brass Stampede profile total separates applied wounds from overkill and destroyed models');
+assert.ok(brassStampedeOverkillLines.some(line => /^~ T4 \| 3\+ 0\+\+ \| W4 \| 1 models left ~$/.test(line)), 'Brass Stampede ability section shows the target defensive profile before its damage math');
+assert.ok(brassStampedeOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\) - Models destroyed: 1$/i.test(line)), 'Brass Stampede profile total separates applied wounds from overkill and destroyed models');
 
 const brassStampedeFnpCell = app.computeMatchupCell(
   {
@@ -1757,7 +1759,8 @@ app.formulaCell = brassStampedeFnpCell;
 const brassStampedeFnpLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
 assert.ok(brassStampedeFnpLines.some(line => /Mortal Wounds: 6 models x 50\.0% x 1d3 damage = 6 mortal wounds/i.test(line)), 'Brass Stampede formula shows raw expected mortal wounds before FNP');
 assert.ok(brassStampedeFnpLines.some(line => /Feel No Pain: 6 mortal wounds x 66\.7% after FNP = 4 damage/i.test(line)), 'Brass Stampede formula shows FNP reduction for flat mortal wounds');
-assert.ok(brassStampedeFnpLines.some(line => /^Profile Total: 4 damage \(4 wounds\); Models destroyed: 1 \(T4 \| 3\+ 0\+\+ \| W4 \| FNP 5\+\)$/i.test(line)), 'Brass Stampede FNP profile total reports post-FNP applied wounds and destroyed models');
+assert.ok(brassStampedeFnpLines.some(line => /^~ T4 \| 3\+ 0\+\+ \| W4 \| FNP 5\+ \| 1 models left ~$/.test(line)), 'Brass Stampede FNP ability section shows the target defensive profile before its damage math');
+assert.ok(brassStampedeFnpLines.some(line => /^Profile Total: 4 damage \(4 wounds\) - Models destroyed: 1$/i.test(line)), 'Brass Stampede FNP profile total reports post-FNP applied wounds and destroyed models');
 
 const brassStampedeFnpOverkillCell = app.computeMatchupCell(
   {
@@ -1777,7 +1780,7 @@ const brassStampedeFnpOverkillCell = app.computeMatchupCell(
 app.formulaCell = brassStampedeFnpOverkillCell;
 const brassStampedeFnpOverkillLines = app.matchupFormulaSections()[0].lines.map(line => line.text || line);
 assert.ok(brassStampedeFnpOverkillLines.some(line => /Feel No Pain: 9 mortal wounds x 66\.7% after FNP = 6 damage/i.test(line)), 'Brass Stampede overkill formula applies FNP before overkill');
-assert.ok(brassStampedeFnpOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\); Models destroyed: 1 \(T4 \| 3\+ 0\+\+ \| W4 \| FNP 5\+\)$/i.test(line)), 'Brass Stampede mortal wounds count post-FNP overkill beyond the whole unit and reports destroyed models');
+assert.ok(brassStampedeFnpOverkillLines.some(line => /^Profile Total: 6 damage \(4 wounds \+ 2 overkill\) - Models destroyed: 1$/i.test(line)), 'Brass Stampede mortal wounds count post-FNP overkill beyond the whole unit and reports destroyed models');
 
 const conditionalAttacker = {
   label: 'Conditional attacker',

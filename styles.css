@@ -360,7 +360,6 @@ button.secondary.matchupRosterSwapButton{
 .matchupPage{min-height:calc(100dvh - 70px);min-width:0}
 .matchupPage .matchupGridWrap{height:calc(100dvh - 88px);max-height:none;width:100%;max-width:100%;box-sizing:border-box}
 .renameModalBody{display:flex;flex-direction:column;gap:14px}
-.renameOverlay.modalOverlayTop{z-index:90}
 .renameModalActions{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .renameModalActionRight{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-left:auto}
 .deleteConfirmBody{display:grid;gap:14px}
@@ -634,7 +633,14 @@ details summary{cursor:pointer}
 
 /* ---------------- Matchup Modal ---------------- */
 [x-cloak]{display:none!important}
-.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50;overscroll-behavior:contain}
+.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:var(--modal-layer,2000);overscroll-behavior:contain}
+.modalOverlayPaste{--modal-layer:2000}
+.modalOverlayMerge{--modal-layer:2100}
+.modalOverlayProfile{--modal-layer:2200}
+.modalOverlayFormula{--modal-layer:2300}
+.modalOverlayRule{--modal-layer:2400}
+.modalOverlayRename{--modal-layer:2500}
+.modalOverlayConfirm{--modal-layer:2600}
 .modal{
   background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:16px;
   max-width:1050px;width:100%;max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);
@@ -644,7 +650,7 @@ details summary{cursor:pointer}
 .modalWide{max-width:1400px}
 .modalSmall{max-width:720px}
 .modalTiny{max-width:520px}
-.formulaOverlay{z-index:80}
+.formulaOverlay{z-index:var(--modal-layer,2300)}
 .formulaBody{max-height:70vh}
 .formulaSummary{margin-bottom:10px}
 .formulaSection{border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 12px;margin:10px 0;background:rgba(255,255,255,.035)}
@@ -657,6 +663,7 @@ details summary{cursor:pointer}
 .formulaTotalEquation{white-space:pre-line}
 .formulaTotalEquation .formulaProfileName{color:#fff!important;font-weight:400}
 .formulaStepName,.formulaStepResult{color:#8fd8ff;font-weight:800}
+.formulaProfileTotalMeta{color:#fff;font-weight:400}
 .modalWide[aria-label="Unit matchups"]{width:calc(100vw - 12px);max-width:1600px;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;border-radius:12px}
 .modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}
 .profileHeadRight{display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:44%;flex:0 1 auto}
@@ -963,11 +970,7 @@ details summary{cursor:pointer}
   .modalOverlay{
     align-items:stretch;
     padding:8px;
-    z-index:2000;
-  }
-
-  .renameOverlay.modalOverlayTop{
-    z-index:2100;
+    z-index:var(--modal-layer,2000);
   }
 
   .modalOverlay:has(.modalWide[aria-label="Unit matchups"]){

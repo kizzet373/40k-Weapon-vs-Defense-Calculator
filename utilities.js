@@ -3919,6 +3919,23 @@ function weaponVsDefenseApp(){
       return text.replace(/\|\s*([^|]+?)\s+models$/, '| $1 models left');
     },
 
+    formulaLineModelsLeft(line){
+      if(line?.modelsLeft != null) return line.modelsLeft;
+      const allocation = line?.allocation || {};
+      if(allocation.overkill) return 0;
+      const modelWounds = Math.max(0, Number(line?.formula?.defense?.W) || 0);
+      const pool = Math.max(0, Number(line?.woundPool) || 0);
+      if(modelWounds <= 0) return null;
+      return Math.ceil(pool / modelWounds);
+    },
+
+    formulaDefenseLine(line){
+      const defense = line?.formula?.defense;
+      if(!defense) return null;
+      const text = `~ ${this.formulaDefenseText(defense, this.formulaLineModelsLeft(line))} ~`;
+      return { text, html: this.escapeFormulaHtml(text) };
+    },
+
     escapeFormulaHtml(value){
       return String(value ?? '').replace(/[&<>"']/g, ch => ({
         '&': '&amp;',
@@ -3942,6 +3959,18 @@ function weaponVsDefenseApp(){
     formulaResultLine(label, result=''){
       const text = `${label}: ${result}`;
       const html = `<span class="formulaStepName">${this.escapeFormulaHtml(label)}</span>: <span class="formulaStepResult">${this.escapeFormulaHtml(result)}</span>`;
+      return { text, html };
+    },
+
+    formulaProfileTotalLine(damageText, componentText='', destroyedText='Models destroyed: 0'){
+      const component = String(componentText || '').trim();
+      const text = `Profile Total: ${damageText}${component ? ` ${component}` : ''} - ${destroyedText}`;
+      const html = [
+        '<span class="formulaStepName">Profile Total</span>: ',
+        `<span class="formulaStepResult">${this.escapeFormulaHtml(damageText)}</span>`,
+        component ? ` <span class="formulaProfileTotalMeta">${this.escapeFormulaHtml(component)}</span>` : '',
+        ` <span class="formulaProfileTotalMeta">- ${this.escapeFormulaHtml(destroyedText)}</span>`,
+      ].join('');
       return { text, html };
     },
 
@@ -4146,6 +4175,12 @@ function weaponVsDefenseApp(){
       return `Models destroyed: ${parts.map(part => `${this.formulaNumber(part.destroyed)} (${part.label})`).join(', ')}`;
     },
 
+    formulaDestroyedCountText(items=null){
+      const total = this.formulaDestroyedSummaryParts(items)
+        .reduce((sum, part) => sum + (Number(part.destroyed) || 0), 0);
+      return `Models destroyed: ${this.formulaNumber(total)}`;
+    },
+
     formulaDestroyedSummaryHtml(items=null){
       const parts = this.formulaDestroyedSummaryParts(items);
       if(!parts.length) return 'Models destroyed: 0';
@@ -4181,6 +4216,15 @@ function weaponVsDefenseApp(){
     formulaItemLines(item, index=0){
       const lines = [];
       if((item?.phase === 'preDamage' || item?.phase === 'postDamage') && item?.effect){
+        const seenDefenseLines = new Set();
+        const itemLines = item?.lines || [];
+        const liveTargetLines = itemLines.filter(line => !line?.allocation?.overkill);
+        (liveTargetLines.length ? liveTargetLines : itemLines).forEach(line => {
+          const defenseLine = this.formulaDefenseLine(line);
+          if(!defenseLine || seenDefenseLines.has(defenseLine.text)) return;
+          seenDefenseLines.add(defenseLine.text);
+          lines.push(defenseLine);
+        });
         const count = Math.max(1, Number(item.effect.count) || 1);
         const countText = count > 1 ? `${this.formulaNumber(count)} ${item.effect.label || 'models'} x ` : '';
         const rawDamage = Number(item.rawDamage ?? item.totalDamage) || 0;
@@ -4209,10 +4253,8 @@ function weaponVsDefenseApp(){
         const totals = f.totals || {};
         const scale = Number(line.damageFraction) > 0 ? Number(line.damageFraction) : 1;
         if(lineIndex > 0) lines.push({ text: '', html: '&nbsp;', spacer: true });
-        if(f.defense) lines.push({
-          text: `~ ${this.formulaDefenseText(f.defense, line.modelsLeft)} ~`,
-          html: `~ ${this.escapeFormulaHtml(this.formulaDefenseText(f.defense, line.modelsLeft))} ~`,
-        });
+        const defenseLine = this.formulaDefenseLine(line);
+        if(defenseLine) lines.push(defenseLine);
         if(f.attacks != null){
           const attacks = (Number(f.attacks) || 0) * scale;
           const hits = (Number(totals.expectedHits) || 0) * scale;
@@ -4298,12 +4340,11 @@ function weaponVsDefenseApp(){
       if(item?.totalDamage != null){
         const parts = this.formulaProfileDamageParts(item);
         const total = parts.wounds + parts.overkill;
-        const result = [
-          `${this.formulaNumber(total || item.totalDamage)} damage${this.formulaDamageComponentText(parts)}`,
-          this.formulaDestroyedSummaryText([item]),
-        ].join('; ');
+        const damageText = `${this.formulaNumber(total || item.totalDamage)} damage`;
+        const componentText = this.formulaDamageComponentText(parts).trim();
+        const destroyedText = this.formulaDestroyedCountText([item]);
         if(lines.length) lines.push({ text: '', html: '&nbsp;', spacer: true });
-        lines.push(this.formulaResultLine('Profile Total', result));
+        lines.push(this.formulaProfileTotalLine(damageText, componentText, destroyedText));
       }
       return lines;
     },
