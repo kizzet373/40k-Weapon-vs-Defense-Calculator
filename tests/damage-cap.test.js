@@ -2536,6 +2536,21 @@ assert.ok(context.window.ArmyImportService.collectImportedUnits(mergeEditForce).
 mergeEditApp.submitMergeManager();
 assert.ok(!context.window.ArmyImportService.collectImportedUnits(mergeEditForce).find(unit => unit._unitKey === 'edit-squad')._children.some(child => child._unitKey === 'delete-me'), 'merge manager submit applies staged model delete to the real army');
 
+const modalStackApp = context.weaponVsDefenseApp();
+const modalStackUnit = { label: 'Modal Stack Unit', _unitKey: 'modal-stack-unit', weapons: [], abilities: [], defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+modalStackApp.openMatchupFormula({ dmg: 0, formulaItems: [] });
+assert.strictEqual(modalStackApp.modalZIndex('formula'), 3000, 'first opened modal uses the bottom dynamic modal layer');
+modalStackApp.openUnitProfile(modalStackUnit, 'Unit');
+assert.ok(modalStackApp.modalZIndex('profile') > modalStackApp.modalZIndex('formula'), 'a profile opened after a formula modal stacks above it');
+modalStackApp.openRuleDescription({ type: 'Rule', title: 'Stacked Rule', description: 'Stacked rule description.', unit: modalStackUnit });
+assert.ok(modalStackApp.modalZIndex('rule') > modalStackApp.modalZIndex('profile'), 'a rule description opened from a profile stacks above it');
+modalStackApp.openRenameUnitModal(modalStackUnit);
+assert.ok(modalStackApp.modalZIndex('rename') > modalStackApp.modalZIndex('rule'), 'rename modal stacks above the modal that opened it');
+modalStackApp.openDeleteConfirm({ title: 'Delete', message: 'Delete stacked item?' });
+assert.ok(modalStackApp.modalZIndex('confirm') > modalStackApp.modalZIndex('rename'), 'delete confirmation stacks above all currently open modals');
+modalStackApp.closeDeleteConfirm();
+assert.ok(modalStackApp.modalZIndex('rename') > modalStackApp.modalZIndex('confirm'), 'closing the top modal restores the previous modal to the highest active layer');
+
 const localStorageStore = new Map();
 context.localStorage = {
   getItem: key => localStorageStore.has(key) ? localStorageStore.get(key) : null,

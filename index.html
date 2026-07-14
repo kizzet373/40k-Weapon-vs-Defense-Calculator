@@ -898,6 +898,7 @@
 
   <!-- Calculation formula modal -->
   <div class="modalOverlay modalOverlayFormula formulaOverlay" x-show="formulaModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('formula') }"
        @click.self="closeMatchupFormula()">
     <div class="modal modalSmall" role="dialog" aria-modal="true" aria-label="Calculation formula">
       <div class="modalHead">
@@ -936,6 +937,7 @@
 
   <!-- Rule / keyword description modal -->
   <div class="modalOverlay modalOverlayRule formulaOverlay" x-show="ruleDescriptionModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('rule') }"
        @keydown.escape.window="closeRuleDescription()" @click.self="closeRuleDescription()">
     <div class="modal modalTiny" role="dialog" aria-modal="true" aria-label="Rule description">
       <div class="modalHead">
@@ -954,6 +956,7 @@
 
   <!-- Paste JSON modal -->
   <div class="modalOverlay modalOverlayPaste" x-show="pasteJsonModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('paste') }"
        @keydown.escape.window="closePasteJsonModal()" @click.self="closePasteJsonModal()">
     <div class="modal modalSmall" role="dialog" aria-modal="true" aria-label="Paste roster JSON">
       <div class="modalHead">
@@ -969,6 +972,7 @@
 
   <!-- Delete confirmation modal -->
   <div class="modalOverlay modalOverlayConfirm" x-show="deleteConfirmModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('confirm') }"
        @keydown.escape.window="closeDeleteConfirm()" @click.self="closeDeleteConfirm()">
     <div class="modal modalTiny" role="dialog" aria-modal="true" :aria-label="deleteConfirm.title || 'Confirm delete'">
       <div class="modalHead">
@@ -990,6 +994,7 @@
 
   <!-- Rename unit/model modal -->
   <div class="modalOverlay modalOverlayRename renameOverlay" x-show="renameModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('rename') }"
        @keydown.escape.window="closeRenameUnitModal()" @click.self="closeRenameUnitModal()">
     <div class="modal modalSmall" role="dialog" aria-modal="true" :aria-label="renameModalTitle()">
       <div class="modalHead">
@@ -1017,6 +1022,7 @@
 
   <!-- Army editor modal -->
   <div class="modalOverlay modalOverlayMerge" x-show="mergeModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('merge') }"
        @keydown.escape.window="closeMergeUnitModal()" @click.self="closeMergeUnitModal()">
     <div class="modal modalWide mergeManagerModal" role="dialog" aria-modal="true" aria-label="Army editor">
       <div class="modalHead">
@@ -1147,6 +1153,7 @@
 
   <!-- Unit profile modal -->
   <div class="modalOverlay modalOverlayProfile" x-show="profileModalOpen" x-cloak
+       :style="{ '--modal-layer': modalZIndex('profile') }"
        @keydown.escape.window="ruleDescriptionModalOpen ? closeRuleDescription() : closeUnitProfile()" @click.self="closeUnitProfile()">
     <div class="modal" role="dialog" aria-modal="true" aria-label="Unit profile">
       <div class="modalHead">

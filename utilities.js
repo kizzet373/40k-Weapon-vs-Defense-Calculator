@@ -4,6 +4,7 @@ function weaponVsDefenseApp(){
     sidebarCollapsed: false,
     activeView: 'matchups',
     matchupOptionsCollapsed: false,
+    modalStack: [],
     pasteJsonModalOpen: false,
     jsonPaste: '',
     importStatus: { type: '', text: '' },
@@ -736,12 +737,49 @@ function weaponVsDefenseApp(){
       this.$refs?.rosterFileInput?.click?.();
     },
 
+    modalBaseLayer(name){
+      return ({
+        paste: 2000,
+        merge: 2100,
+        profile: 2200,
+        formula: 2300,
+        rule: 2400,
+        rename: 2500,
+        confirm: 2600,
+      })[name] || 2000;
+    },
+
+    openModalLayer(name){
+      if(!name) return;
+      const stack = Array.isArray(this.modalStack) ? this.modalStack.filter(item => item !== name) : [];
+      stack.push(name);
+      this.modalStack = stack;
+    },
+
+    closeModalLayer(name){
+      if(!name) return;
+      this.modalStack = (Array.isArray(this.modalStack) ? this.modalStack : []).filter(item => item !== name);
+    },
+
+    modalZIndex(name){
+      const stack = Array.isArray(this.modalStack) ? this.modalStack : [];
+      const index = stack.lastIndexOf(name);
+      if(index >= 0) return 3000 + (index * 10);
+      return this.modalBaseLayer(name);
+    },
+
+    modalLayerStyle(name){
+      return `--modal-layer:${this.modalZIndex(name)}`;
+    },
+
     openPasteJsonModal(){
       this.pasteJsonModalOpen = true;
+      this.openModalLayer('paste');
     },
 
     closePasteJsonModal(){
       this.pasteJsonModalOpen = false;
+      this.closeModalLayer('paste');
     },
 
     async onRosterFile(evt){
@@ -849,11 +887,13 @@ function weaponVsDefenseApp(){
     openDeleteConfirm({ title='Delete', message='', confirmLabel='Delete', action='', side='', index=null }={}){
       this.deleteConfirm = { title, message, confirmLabel, action, side, index };
       this.deleteConfirmModalOpen = true;
+      this.openModalLayer('confirm');
     },
 
     closeDeleteConfirm(){
       this.deleteConfirmModalOpen = false;
       this.deleteConfirm = { title: '', message: '', confirmLabel: 'Delete', action: '', side: '', index: null };
+      this.closeModalLayer('confirm');
     },
 
     confirmDeleteAction(){
@@ -1061,6 +1101,7 @@ function weaponVsDefenseApp(){
       this.renameDraft = this.unitLabelText(target, 'Unit');
       this.renameModalContext = context || '';
       this.renameModalOpen = true;
+      this.openModalLayer('rename');
       const focusInput = () => {
         this.$refs?.renameInput?.focus?.();
         this.$refs?.renameInput?.select?.();
@@ -1075,6 +1116,7 @@ function weaponVsDefenseApp(){
       this.renameTargetUnit = null;
       this.renameDraft = '';
       this.renameModalContext = '';
+      this.closeModalLayer('rename');
     },
 
     submitRenameUnit(){
@@ -2230,6 +2272,7 @@ function weaponVsDefenseApp(){
         dragged: null,
       };
       this.mergeModalOpen = true;
+      this.openModalLayer('merge');
     },
 
     closeMergeUnitModal(){
@@ -2238,6 +2281,7 @@ function weaponVsDefenseApp(){
       this.mergeFromForce = null;
       this.mergeCandidateUnits = null;
       this.mergeManager = { side:'', force:null, previewForce:null, units:[], moves:[], dragged:null };
+      this.closeModalLayer('merge');
     },
 
     mergeManagerUnits(){
@@ -3784,12 +3828,14 @@ function weaponVsDefenseApp(){
       this.profileUnit = unit || null;
       this.profileModalRole = role;
       this.profileModalOpen = true;
+      this.openModalLayer('profile');
     },
 
     closeUnitProfile(){
       this.profileModalOpen = false;
       this.profileModalRole = '';
       this.profileUnit = null;
+      this.closeModalLayer('profile');
     },
 
     ruleLookupName(value){
@@ -3869,11 +3915,13 @@ function weaponVsDefenseApp(){
         source: payload.source || (type === 'Keyword' || type === 'Modifier' ? 'Local keyword definition' : 'Imported roster data'),
       };
       this.ruleDescriptionModalOpen = true;
+      this.openModalLayer('rule');
     },
 
     closeRuleDescription(){
       this.ruleDescriptionModalOpen = false;
       this.ruleDescription = { title: '', type: '', description: '', source: '' };
+      this.closeModalLayer('rule');
     },
 
     openMatchupFormula(cell, attacker, defender){
@@ -3881,6 +3929,7 @@ function weaponVsDefenseApp(){
       this.formulaAttacker = attacker || null;
       this.formulaDefender = defender || null;
       this.formulaModalOpen = true;
+      this.openModalLayer('formula');
     },
 
     closeMatchupFormula(){
@@ -3888,6 +3937,7 @@ function weaponVsDefenseApp(){
       this.formulaCell = null;
       this.formulaAttacker = null;
       this.formulaDefender = null;
+      this.closeModalLayer('formula');
     },
 
     formulaTitle(){
