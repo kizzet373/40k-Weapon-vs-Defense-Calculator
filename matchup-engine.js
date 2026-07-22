@@ -1004,6 +1004,15 @@
       kw.damageAdd || 0,
       kw.damageDivisor || 1
     ) * fnpMultiplier;
+    // A damage-1 instance can never lose damage to spill: each point that gets
+    // through FNP is a single wound. Fractional expected wounds on the current
+    // model must therefore continue into overkill instead of being discarded.
+    const damageCannotSpill = window.WeaponCalc.expectedCappedDamage(
+      weapon?.D,
+      null,
+      kw.damageAdd || 0,
+      kw.damageDivisor || 1
+    ) <= 1 + 1e-9;
     const mortalDamageTotal = mortalAttackTotal * rawDamagePerHit;
     const rawNormalDamageTotal = Math.max(0, normalAttacksTotal * rawDamagePerHit);
     const rawDamageTotal = Math.max(0, rawNormalDamageTotal + mortalDamageTotal);
@@ -1092,7 +1101,7 @@
         remainingPool,
         normalAttacksRemaining: instancesRemaining,
         damageInstancesRemaining: instancesRemaining,
-        rawSpillLoss,
+        rawSpillLoss: damageCannotSpill ? 0 : rawSpillLoss,
         killedModels,
       };
     };

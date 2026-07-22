@@ -747,9 +747,10 @@ renameUnitApp.addRoster({
         defense: { T: 4, Sv: 3, W: 2, models: 2 },
         _unitKey: 'wolf-squad',
         _groupId: 'wolf-squad',
+        _points: 100,
         _children: [
-          { label: 'Pack Leader', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'pack-leader', _groupId: 'wolf-squad' },
-          { label: 'Wolf Guard', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'wolf-guard', _groupId: 'wolf-squad' },
+          { label: 'Pack Leader', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'pack-leader', _groupId: 'wolf-squad', _points: 40 },
+          { label: 'Wolf Guard', weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 1 }, _unitKey: 'wolf-guard', _groupId: 'wolf-squad', _points: 60 },
         ],
       }, {
         label: 'Leader',
@@ -774,6 +775,13 @@ renameUnitApp.renameUnit(renamedChild, 'Pack Boss');
 assert.strictEqual(renameUnitApp.profileUnit.label, 'Renamed Squad', 'renaming a child keeps the parent profile modal open');
 assert.ok(renameUnitApp.profileUnit._children.some(child => child.label === 'Pack Boss'), 'renaming a child updates model rows in the profile modal');
 assert.ok(renameUnitApp.forces[0]._importedUnits[0]._children.some(child => child.label === 'Pack Boss'), 'renaming a child persists to the imported model source');
+const pointsEditChild = renameUnitApp.profileUnit._children.find(child => child.label === 'Pack Boss');
+renameUnitApp.renameTargetUnit = pointsEditChild;
+renameUnitApp.renameDraft = 'Pack Boss';
+renameUnitApp.renamePointsDraft = '45';
+renameUnitApp.submitRenameUnit();
+assert.strictEqual(renameUnitApp.forces[0]._importedUnits[0]._children.find(child => child.label === 'Pack Boss')._points, 45, 'unit summary edit persists model points');
+assert.strictEqual(renameUnitApp.forces[0]._importedUnits[0]._points, 105, 'editing model points updates the parent unit total by the same delta');
 renameUnitApp.matchup.attackerRosterIdx = 0;
 renameUnitApp.matchup.attackerForceIdx = 0;
 renameUnitApp.matchup.defenderRosterIdx = 0;
@@ -1244,6 +1252,23 @@ assert.ok(noSpillLines.some(line => /^Total: .* damage \(.* wounds\)$/i.test(lin
 assert.ok(noSpillLines.some(line => /^Profile Total: .* damage \(.* wounds\) - Models destroyed: /i.test(line)), 'profile total summarizes all target totals and destroyed models');
 assert.ok(!noSpillLines.some(line => /\bexpected\b/i.test(line)), 'profile calculation steps do not use expected wording');
 assert.ok(!noSpillLines.some(line => /sustained|lethal|after FNP/i.test(line)), 'formula omits sustained, lethal, and FNP text when they do not apply');
+
+const damageOneFractionalTargetCell = app.computeMatchupCell(
+  {
+    label: 'Damage one spill attacker',
+    weapons: [
+      { name: 'Fractional setup', range: 'Melee', A: '7', skill: '3', S: '5', AP: '2', D: '3', modifiers: '', mode: 'melee' },
+      { name: 'Damage one finisher', range: 'Melee', A: '12', skill: '4', S: '6', AP: '1', D: '1', modifiers: 'Extra Attacks, Lance', mode: 'melee' },
+    ],
+    defense: { T: 4, Sv: 3, W: 1, models: 1 },
+  },
+  { label: 'Fractional target', defense: { T: 4, Sv: 3, Fnp: 5, W: 4, models: 1, totalWounds: 4 } },
+  { includeFormula: true }
+);
+app.formulaCell = damageOneFractionalTargetCell;
+const damageOneFinisherLines = app.matchupFormulaSections()[1].lines.map(line => line.text || line);
+assert.ok(!damageOneFinisherLines.some(line => /^Spill Loss:/i.test(line)), 'damage-1 profiles never lose damage to spill against a fractionally wounded model');
+assert.ok(damageOneFinisherLines.some(line => /^Profile Total: 1\.667 damage /i.test(line)), 'damage-1 profiles deal all expected post-FNP damage even when the target has fractional wounds remaining');
 
 const halvedFlatFormulaCell = app.computeMatchupCell(
   {

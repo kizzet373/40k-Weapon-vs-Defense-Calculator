@@ -927,6 +927,13 @@ details summary{cursor:pointer}
 .profileScoreSummary{margin-top:5px;color:#cfd7e3;font-size:12px;line-height:1.35}
 .profileScoreDivider{color:var(--muted)}
 .profileBody{display:grid;grid-template-columns:1.4fr .8fr;gap:14px;max-height:70vh;overflow:auto}
+.profileModelWeaponSection{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px;margin-bottom:12px;background:rgba(255,255,255,.018)}
+.profileModelWeaponHead{padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.profileModelWeaponHead>strong{display:block;font-size:15px;margin-bottom:3px}
+.profileModelWeaponHead .muted{font-size:12px}
+.profileWeaponModeSection h3{margin:10px 0 7px;font-size:13px;color:#dce5f2}
+.profileNoWeapons{font-size:12px;margin-bottom:7px}
+.matchupSideConditionsToggle{width:max-content;margin-bottom:10px}
 .profileWeapon{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.025)}
 .profileModel{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;margin-bottom:8px;background:rgba(255,255,255,.02)}
 .profileModelHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}

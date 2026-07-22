@@ -23,6 +23,7 @@ function weaponVsDefenseApp(){
     renameModalOpen: false,
     renameTargetUnit: null,
     renameDraft: '',
+    renamePointsDraft: '',
     renameModalContext: '',
 
     // ---------------- Matchups ----------------
@@ -41,6 +42,8 @@ function weaponVsDefenseApp(){
       sortDefendersRowKey: '',
       combineShootingProfiles: true,
       conditionsMet: false,
+      attackerConditionsMet: null,
+      defenderConditionsMet: null,
       showMelee: true,
       showShooting: true,
       metric: 'modelWounds',
@@ -1091,7 +1094,7 @@ function weaponVsDefenseApp(){
     },
 
     renameModalTitle(){
-      return this.isModelRenameTarget() ? 'Rename Model' : 'Rename Unit';
+      return this.isModelRenameTarget() ? 'Edit Model' : 'Edit Unit';
     },
 
     openRenameUnitModal(unit=null, context=''){
@@ -1099,6 +1102,7 @@ function weaponVsDefenseApp(){
       if(!target) return;
       this.renameTargetUnit = target;
       this.renameDraft = this.unitLabelText(target, 'Unit');
+      this.renamePointsDraft = Number.isFinite(parseFloat(target?._points)) ? String(parseFloat(target._points)) : '';
       this.renameModalContext = context || '';
       this.renameModalOpen = true;
       this.openModalLayer('rename');
@@ -1115,6 +1119,7 @@ function weaponVsDefenseApp(){
       this.renameModalOpen = false;
       this.renameTargetUnit = null;
       this.renameDraft = '';
+      this.renamePointsDraft = '';
       this.renameModalContext = '';
       this.closeModalLayer('rename');
     },
@@ -1127,7 +1132,18 @@ function weaponVsDefenseApp(){
         if(this.renameMergeManagerItem(target, label)) this.closeRenameUnitModal();
         return;
       }
+      const points = Number(this.renamePointsDraft);
+      if(!Number.isFinite(points) || points < 0) return;
+      const selectedKey = this.sourceUnitKey(this.activeUnit);
+      const profileKey = this.sourceUnitKey(this.profileUnit);
       this.renameUnit(target, label);
+      let pointsChanged = false;
+      this.rosterForces().forEach(force => {
+        if(window.ArmyImportService?.setUnitPoints(force, target, points)) pointsChanged = true;
+      });
+      if(!pointsChanged) target._points = points;
+      this.refreshAfterRosterUnitChange(selectedKey, profileKey);
+      this.saveCachedRosters();
       this.closeRenameUnitModal();
     },
 
@@ -1327,6 +1343,50 @@ function weaponVsDefenseApp(){
       if(keys.some(key => key.startsWith('attacker:'))) return 'attacker';
       if(keys.some(key => key.startsWith('defender:'))) return 'defender';
       return '';
+    },
+
+    matchupConditionsMet(sideOrUnit=''){
+      const side = typeof sideOrUnit === 'string' ? sideOrUnit : this.matchupSideForUnit(sideOrUnit);
+      const key = side === 'attacker' ? 'attackerConditionsMet' : (side === 'defender' ? 'defenderConditionsMet' : '');
+      if(key && typeof this.matchup[key] === 'boolean') return this.matchup[key];
+      return !!this.matchup.conditionsMet;
+    },
+
+    matchupConditionsSignature(){
+      return `${this.matchupConditionsMet('attacker') ? 1 : 0}${this.matchupConditionsMet('defender') ? 1 : 0}`;
+    },
+
+    setMatchupSideConditions(side, value){
+      const key = side === 'defender' ? 'defenderConditionsMet' : 'attackerConditionsMet';
+      this.matchup[key] = !!value;
+      this.saveCachedAppState();
+      this.rebuildMatchup();
+    },
+
+    profileModelSections(unit){
+      const models = Array.isArray(unit?._children) && unit._children.length ? unit._children : (unit ? [unit] : []);
+      const sections = [];
+      const bySignature = new Map();
+      models.forEach((model, index) => {
+        const weapons = (model?.weapons || []).map(w => ({ name:w.name || '', range:w.range ?? '', A:w.A ?? '', skill:w.skill ?? '', S:w.S ?? '', AP:w.AP ?? '', D:w.D ?? '', modifiers:w.modifiers || '', mode:w.mode || '' }));
+        const defense = model?.defense || {};
+        const baseLabel = String(this.unitLabelText(model, `Model ${index + 1}`)).replace(/\s+#?\d+$/i, '').trim();
+        const signature = JSON.stringify({ label:baseLabel.toLowerCase(), defense:{ M:defense.M ?? defense.Move ?? '', T:defense.T ?? '', Sv:defense.Sv ?? '', Inv:defense.Inv ?? '', W:defense.W ?? '', Fnp:defense.Fnp ?? '', OC:defense.OC ?? defense.Oc ?? '' }, weapons });
+        const countValue = parseFloat(defense.models ?? model?.size ?? 1);
+        const count = Number.isFinite(countValue) && countValue > 0 ? countValue : 1;
+        if(bySignature.has(signature)){
+          bySignature.get(signature).count += count;
+          return;
+        }
+        const section = { model, label:baseLabel, count };
+        bySignature.set(signature, section);
+        sections.push(section);
+      });
+      return sections;
+    },
+
+    profileWeaponsByMode(model, mode){
+      return (model?.weapons || []).filter(w => mode === 'melee' ? this.isMeleeWeapon(w) : !this.isMeleeWeapon(w));
     },
 
     matchupDefenseLabel(u){
@@ -1607,7 +1667,7 @@ function weaponVsDefenseApp(){
       ].sort().join('|');
       return [
         side,
-        this.matchup.conditionsMet ? 1 : 0,
+        this.matchupConditionsSignature(),
         unit._attackMode || 'all',
         this.unitPointValue(unit) || '',
         defense.M ?? defense.Move ?? defense.Movement ?? '',
@@ -1877,7 +1937,7 @@ function weaponVsDefenseApp(){
       if(!Object.keys(overrides || {}).length) return this.cachedMatchupCell(attackerUnit, defenderUnit);
       return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
         combineShootingProfiles: true,
-        conditionsMet: !!this.matchup.conditionsMet,
+        conditionsMet: this.matchupConditionsMet('attacker'),
         isWeaponEnabled: () => true,
         isMeleeEnabled: () => true,
         effectiveWeaponModifiers: (w, unit, defender) => this.effectiveWeaponModifiers(w, unit, defender),
@@ -2740,7 +2800,8 @@ function weaponVsDefenseApp(){
         attackerForceIdx: Number(this.matchup.attackerForceIdx) || 0,
         defenderRosterIdx: Number(this.matchup.defenderRosterIdx) || 0,
         defenderForceIdx: Number(this.matchup.defenderForceIdx) || 0,
-        conditionsMet: !!this.matchup.conditionsMet,
+        conditionsMet: this.matchupConditionsMet('attacker'),
+        defenderConditionsMet: this.matchupConditionsMet('defender'),
         metric: this.matchup.metric || 'damage',
       };
       const buildIsCurrent = () => {
@@ -2749,7 +2810,8 @@ function weaponVsDefenseApp(){
           && (Number(this.matchup.attackerForceIdx) || 0) === buildState.attackerForceIdx
           && (Number(this.matchup.defenderRosterIdx) || 0) === buildState.defenderRosterIdx
           && (Number(this.matchup.defenderForceIdx) || 0) === buildState.defenderForceIdx
-          && !!this.matchup.conditionsMet === buildState.conditionsMet
+          && this.matchupConditionsMet('attacker') === buildState.conditionsMet
+          && this.matchupConditionsMet('defender') === buildState.defenderConditionsMet
           && (this.matchup.metric || 'damage') === buildState.metric;
       };
       this.matchup.rows = [];
@@ -3112,7 +3174,7 @@ function weaponVsDefenseApp(){
       const modifierCache = calculationCache?.modifiers || new Map();
       const defenseCache = calculationCache?.defenses || new Map();
       const modifierKeyFor = (w, unit, defender) => [
-        this.matchup.conditionsMet ? 1 : 0,
+        this.matchupConditionsSignature(),
         this.unitStateKey(unit),
         w?._weaponKey || w?.name || '',
         w?._profileCount ?? w?._count ?? '',
@@ -3124,12 +3186,12 @@ function weaponVsDefenseApp(){
         w?.modifiers || '',
         this.unitStateKey(defender),
       ].join('~');
-      const defenseKeyFor = (unit, opposingUnit) => `${this.matchup.conditionsMet ? 1 : 0}|${this.unitStateKey(unit)}|${this.unitStateKey(opposingUnit)}`;
+      const defenseKeyFor = (unit, opposingUnit) => `${this.matchupConditionsSignature()}|${this.unitStateKey(unit)}|${this.unitStateKey(opposingUnit)}`;
       return window.MatchupEngine.computeCell(attackerUnit, defenderUnit, {
         includeFormula: !!options.includeFormula,
         metric: options.metric || this.matchup.metric || 'damage',
         combineShootingProfiles: true,
-        conditionsMet: !!this.matchup.conditionsMet,
+        conditionsMet: this.matchupConditionsMet('attacker'),
         isWeaponEnabled: () => true,
         isMeleeEnabled: () => true,
         effectiveWeaponModifiers: (w, unit, defender) => {
@@ -3622,7 +3684,8 @@ function weaponVsDefenseApp(){
         gridUnits: payload.gridUnits,
         options: {
           combineShootingProfiles: !!this.matchup.combineShootingProfiles,
-          conditionsMet: !!this.matchup.conditionsMet,
+          conditionsMet: this.matchupConditionsMet('attacker'),
+          defenderConditionsMet: this.matchupConditionsMet('defender'),
           showShooting: !!this.matchup.showShooting,
           showMelee: !!this.matchup.showMelee,
         },
@@ -3643,7 +3706,8 @@ function weaponVsDefenseApp(){
         metricLabel: this.matchupMetricLabel(),
         options: {
           combineShootingProfiles: !!this.matchup.combineShootingProfiles,
-          conditionsMet: !!this.matchup.conditionsMet,
+          conditionsMet: this.matchupConditionsMet('attacker'),
+          defenderConditionsMet: this.matchupConditionsMet('defender'),
           showShooting: !!this.matchup.showShooting,
           showMelee: !!this.matchup.showMelee,
         },
@@ -4647,13 +4711,14 @@ function weaponVsDefenseApp(){
 
     modifierSpecApplies(parsed, context={}){
       const meta = parsed?.meta || {};
-      if(meta.conditional && !this.matchup.conditionsMet) return false;
+      const owner = (meta.kind === 'defenseProfile' || meta.kind === 'defenseAttack') ? context.defender : context.attacker;
+      if(meta.conditional && !this.matchupConditionsMet(owner)) return false;
       if(meta.bearer && Array.isArray(context.attacker?._children) && context.attacker._children.length) return false;
       if(!this.modifierSpecBenefitsOwner(parsed)) return false;
       if(meta.weapons?.length && !meta.weapons.some(scope => this.weaponNameMatchesScope(context.weapon, scope))) return false;
       if(meta.weaponKeywords?.length && !meta.weaponKeywords.some(keyword => this.weaponHasKeyword(context.weapon, keyword))) return false;
       if(meta.targets?.length && !meta.targets.some(keyword => this.unitHasKeyword(context.defender, keyword))) return false;
-      if(meta.targetOnObjective && !this.matchup.conditionsMet) return false;
+      if(meta.targetOnObjective && !this.matchupConditionsMet(owner)) return false;
       if(meta.strengthGreaterThanToughness){
         const strength = parseFloat(context.weapon?.S);
         const toughness = parseFloat(this.effectiveDefense(context.defender, null, { includeTargetDebuffs: false })?.T);
@@ -4710,7 +4775,7 @@ function weaponVsDefenseApp(){
       const matchingRuleNames = this.modifierRuleNamesForKind(ruleNames, kind);
       if(!matchingRuleNames.length) return [];
       const cacheKey = [
-        this.matchup.conditionsMet ? 1 : 0,
+        this.matchupConditionsSignature(),
         kind,
         matchingRuleNames.join('~'),
         context.weapon ? this.weaponStateKey(context.weapon) : '',
@@ -4921,7 +4986,7 @@ function weaponVsDefenseApp(){
     effectiveDefense(unit, opposingUnit=null, options={}){
       const cacheAllowed = options.includeOwnModifiers !== false && options.includeTargetDebuffs !== false;
       const cacheKey = cacheAllowed
-        ? `${this.matchup.conditionsMet ? 1 : 0}|${this.unitKey(unit)}|${opposingUnit ? this.unitKey(opposingUnit) : ''}`
+        ? `${this.matchupConditionsSignature()}|${this.unitKey(unit)}|${opposingUnit ? this.unitKey(opposingUnit) : ''}`
         : '';
       if(cacheKey && this.matchupComputationCache.defenses?.[cacheKey]){
         return this.matchupComputationCache.defenses[cacheKey];
@@ -4929,7 +4994,7 @@ function weaponVsDefenseApp(){
       const defense = { ...(unit?.defense || {}) };
       const ownCacheKey = options.includeOwnModifiers === false
         ? ''
-        : `${this.matchup.conditionsMet ? 1 : 0}|${this.unitKey(unit)}|own`;
+        : `${this.matchupConditionsSignature()}|${this.unitKey(unit)}|own`;
       let ownDefense = ownCacheKey && this.matchupComputationCache.defenses?.[ownCacheKey]
         ? this.matchupComputationCache.defenses[ownCacheKey]
         : null;
@@ -4945,7 +5010,7 @@ function weaponVsDefenseApp(){
     },
 
     effectiveWeaponModifiers(w, unit=null, defender=null){
-      const cacheKey = `${this.matchup.conditionsMet ? 1 : 0}|${this.unitKey(unit)}|${this.weaponStateKey(w)}|${this.unitKey(defender)}|${w?.modifiers || ''}`;
+      const cacheKey = `${this.matchupConditionsSignature()}|${this.unitKey(unit)}|${this.weaponStateKey(w)}|${this.unitKey(defender)}|${w?.modifiers || ''}`;
       if(this.matchupComputationCache.weaponModifiers?.[cacheKey] != null){
         return this.matchupComputationCache.weaponModifiers[cacheKey];
       }

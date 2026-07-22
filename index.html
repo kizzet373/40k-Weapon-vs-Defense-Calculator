@@ -105,6 +105,10 @@
           <details class="matchupSideOptions">
             <summary>Options</summary>
             <div class="matchupSideOptionsBody">
+              <label class="toggleLine compactToggleLine matchupSideConditionsToggle">
+                <input type="checkbox" :checked="matchupConditionsMet('attacker')" @change="setMatchupSideConditions('attacker', $event.target.checked)" />
+                <span>Conditions Met</span>
+              </label>
               <div class="matchupModifierActionRow" @keydown.escape.window="matchupActionMenu = ''">
                 <div class="matchupActions inlineMatchupActions matchupModifierExportActions">
                   <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'copy-attacker' ? '' : matchupActionMenu">
@@ -185,6 +189,10 @@
           <details class="matchupSideOptions">
             <summary>Options</summary>
             <div class="matchupSideOptionsBody">
+              <label class="toggleLine compactToggleLine matchupSideConditionsToggle">
+                <input type="checkbox" :checked="matchupConditionsMet('defender')" @change="setMatchupSideConditions('defender', $event.target.checked)" />
+                <span>Conditions Met</span>
+              </label>
               <div class="matchupModifierActionRow" @keydown.escape.window="matchupActionMenu = ''">
                 <div class="matchupActions inlineMatchupActions matchupModifierExportActions">
                   <div class="actionMenuWrap" @click.outside="matchupActionMenu = matchupActionMenu === 'copy-defender' ? '' : matchupActionMenu">
@@ -275,11 +283,6 @@
                 <option value="modelWounds">Damage %</option>
                 <option value="unitKill">Chance to Destroy</option>
               </select>
-            </label>
-
-            <label class="toggleLine compactToggleLine">
-              <input type="checkbox" :checked="matchup.conditionsMet" @change="setMatchupRecomputeOption('conditionsMet', $event.target.checked)" />
-              <span>Conditions Met</span>
             </label>
 
             <div class="attackModeButtonRow">
@@ -729,11 +732,6 @@
               </select>
             </label>
 
-            <label class="toggleLine compactToggleLine">
-              <input type="checkbox" :checked="matchup.conditionsMet" @change="setMatchupRecomputeOption('conditionsMet', $event.target.checked)" />
-              <span>Conditions Met</span>
-            </label>
-
             <button type="button" class="seg" :class="matchup.showShooting ? 'active' : ''" @click="toggleMatchupRecomputeOption('showShooting')">
               Shooting
             </button>
@@ -1009,11 +1007,15 @@
           Name
           <input type="text" x-ref="renameInput" x-model="renameDraft" />
         </label>
+        <label x-show="renameModalContext !== 'mergeManager'">
+          Points
+          <input type="number" min="0" step="0.1" inputmode="decimal" x-model="renamePointsDraft" placeholder="0" />
+        </label>
         <div class="renameModalActions">
           <button type="button" class="danger symbolButton" x-show="isModelRenameTarget()" aria-label="Delete model" title="Delete model" @click="deleteRenameTargetModel()">&times;</button>
           <div class="renameModalActionRight">
             <button type="button" class="secondary" @click="closeRenameUnitModal()">Cancel</button>
-            <button type="submit" class="primary" :disabled="!String(renameDraft || '').trim()">Save</button>
+            <button type="submit" class="primary" :disabled="!String(renameDraft || '').trim() || (renameModalContext !== 'mergeManager' && (String(renamePointsDraft ?? '').trim() === '' || !Number.isFinite(Number(renamePointsDraft)) || Number(renamePointsDraft) < 0))">Save</button>
           </div>
         </div>
       </form>
@@ -1188,41 +1190,50 @@
 
       <div class="modalBody profileBody">
         <div>
-          <h2>Weapons</h2>
-          <template x-if="!(profileUnit?.weapons || []).length">
-            <div class="muted">No weapons found.</div>
-          </template>
-          <template x-for="(w, wi) in (profileUnit?.weapons || [])" :key="`profile-w-${wi}`">
+          <h2>Weapon Profiles</h2>
+          <template x-for="(section, si) in profileModelSections(profileUnit)" :key="`profile-model-weapons-${si}`">
+            <section class="profileModelWeaponSection">
+              <div class="profileModelWeaponHead">
+                <strong x-text="`${section.count}× ${section.label}`"></strong>
+                <div class="muted" x-html="defenseProfileTextHtml(profileDefenseProfileLineForUnit(section.model, section.count))"></div>
+              </div>
+              <template x-for="mode in ['ranged', 'melee']" :key="`profile-model-${si}-${mode}`">
+                <div class="profileWeaponModeSection">
+                  <h3 x-text="mode === 'ranged' ? 'Ranged Weapons' : 'Melee Weapons'"></h3>
+                  <template x-if="profileWeaponsByMode(section.model, mode).length === 0">
+                    <div class="muted profileNoWeapons" x-text="`No ${mode} weapons.`"></div>
+                  </template>
+                  <template x-for="(w, wi) in profileWeaponsByMode(section.model, mode)" :key="`profile-w-${si}-${mode}-${wi}`">
             <div class="profileWeapon">
               <div class="profileWeaponHead">
                 <div>
                   <strong x-text="w.name || `Weapon ${wi+1}`"></strong>
                   <div class="muted profileWeaponStats">
-                    <span x-text="weaponEffectiveStat(w, 'range', profileUnit).text"></span>
-                    <span :class="weaponEffectiveStat(w, 'A', profileUnit).changed ? 'effectiveStatChanged' : ''">
-                      A:<span x-text="weaponEffectiveStat(w, 'A', profileUnit).text"></span>
-                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'A', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'A', profileUnit).base}`"></span>
+                    <span x-text="weaponEffectiveStat(w, 'range', section.model).text"></span>
+                    <span :class="weaponEffectiveStat(w, 'A', section.model).changed ? 'effectiveStatChanged' : ''">
+                      A:<span x-text="weaponEffectiveStat(w, 'A', section.model).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'A', section.model).changed" x-text="`from ${weaponEffectiveStat(w, 'A', section.model).base}`"></span>
                     </span>
-                    <span :class="weaponEffectiveStat(w, 'skill', profileUnit).changed ? 'effectiveStatChanged' : ''">
-                      Skill:<span x-text="weaponEffectiveStat(w, 'skill', profileUnit).text"></span>
-                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'skill', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'skill', profileUnit).base}`"></span>
+                    <span :class="weaponEffectiveStat(w, 'skill', section.model).changed ? 'effectiveStatChanged' : ''">
+                      Skill:<span x-text="weaponEffectiveStat(w, 'skill', section.model).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'skill', section.model).changed" x-text="`from ${weaponEffectiveStat(w, 'skill', section.model).base}`"></span>
                     </span>
-                    <span :class="weaponEffectiveStat(w, 'S', profileUnit).changed ? 'effectiveStatChanged' : ''">
-                      S:<span x-text="weaponEffectiveStat(w, 'S', profileUnit).text"></span>
-                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'S', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'S', profileUnit).base}`"></span>
+                    <span :class="weaponEffectiveStat(w, 'S', section.model).changed ? 'effectiveStatChanged' : ''">
+                      S:<span x-text="weaponEffectiveStat(w, 'S', section.model).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'S', section.model).changed" x-text="`from ${weaponEffectiveStat(w, 'S', section.model).base}`"></span>
                     </span>
-                    <span :class="weaponEffectiveStat(w, 'AP', profileUnit).changed ? 'effectiveStatChanged' : ''">
-                      AP:<span x-text="weaponEffectiveStat(w, 'AP', profileUnit).text"></span>
-                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'AP', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'AP', profileUnit).base}`"></span>
+                    <span :class="weaponEffectiveStat(w, 'AP', section.model).changed ? 'effectiveStatChanged' : ''">
+                      AP:<span x-text="weaponEffectiveStat(w, 'AP', section.model).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'AP', section.model).changed" x-text="`from ${weaponEffectiveStat(w, 'AP', section.model).base}`"></span>
                     </span>
-                    <span :class="weaponEffectiveStat(w, 'D', profileUnit).changed ? 'effectiveStatChanged' : ''">
-                      D:<span x-text="weaponEffectiveStat(w, 'D', profileUnit).text"></span>
-                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'D', profileUnit).changed" x-text="`from ${weaponEffectiveStat(w, 'D', profileUnit).base}`"></span>
+                    <span :class="weaponEffectiveStat(w, 'D', section.model).changed ? 'effectiveStatChanged' : ''">
+                      D:<span x-text="weaponEffectiveStat(w, 'D', section.model).text"></span>
+                      <span class="effectiveStatBase" x-show="weaponEffectiveStat(w, 'D', section.model).changed" x-text="`from ${weaponEffectiveStat(w, 'D', section.model).base}`"></span>
                     </span>
                   </div>
-                  <template x-if="weaponEffectiveKeywordList(w, profileUnit).length">
+                  <template x-if="weaponEffectiveKeywordList(w, section.model).length">
                     <div class="profileRuleModifiers profileWeaponEffectiveModifiers">
-                      <template x-for="mod in weaponEffectiveKeywordList(w, profileUnit)" :key="`profile-w-effective-${wi}-${mod}`">
+                      <template x-for="mod in weaponEffectiveKeywordList(w, section.model)" :key="`profile-w-effective-${si}-${wi}-${mod}`">
                         <span class="modifier" x-text="mod"></span>
                       </template>
                     </div>
@@ -1235,13 +1246,13 @@
                 </template>
                 <template x-for="mod in weaponModifierNames(w)" :key="`profile-w-${wi}-${mod}`">
                   <div class="toggleLine">
-                    <input type="checkbox" :checked="isWeaponModifierEnabled(w, mod)" @change="toggleWeaponModifier(w, mod, profileUnit)" />
-                    <button type="button" class="ruleLink" @click="openRuleDescription({ type: 'Keyword', name: mod, title: mod, unit: profileUnit })" x-text="mod"></button>
+                    <input type="checkbox" :checked="isWeaponModifierEnabled(w, mod)" @change="toggleWeaponModifier(w, mod, section.model)" />
+                    <button type="button" class="ruleLink" @click="openRuleDescription({ type: 'Keyword', name: mod, title: mod, unit: section.model })" x-text="mod"></button>
                   </div>
                 </template>
               </div>
               <div class="customModifierRow weaponCustomModifierRow">
-                <select @change="addWeaponCustomModifier(profileUnit, w, $event.target.value); $event.target.value=''">
+                <select @change="addWeaponCustomModifier(section.model, w, $event.target.value); $event.target.value=''">
                   <option value="">Add weapon profile modifier...</option>
                   <template x-for="option in weaponCustomModifierOptions(w)" :key="`weapon-custom-${wi}-${option.value}`">
                     <option :value="option.value" x-text="option.label"></option>
@@ -1249,6 +1260,10 @@
                 </select>
               </div>
             </div>
+                  </template>
+                </div>
+              </template>
+            </section>
           </template>
         </div>
 

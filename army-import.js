@@ -1811,6 +1811,37 @@
 
       return changed;
     },
+    setUnitPoints(force, unit, newPoints){
+      if(!force || !unit) return false;
+      const points = Number(newPoints);
+      if(!Number.isFinite(points) || points < 0) return false;
+      const unitKey = String(unit?._baseUnit?._unitKey || unit?._unitKey || '');
+      const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
+      let changed = false;
+
+      if(Array.isArray(force._importedUnits)){
+        const target = findUnitByIdentity(force._importedUnits, unitKey, groupId);
+        if(target){
+          const oldPoints = Number(target._points);
+          target._points = points;
+          const adjustParent = nodes => {
+            for(const parent of nodes || []){
+              if((parent?._children || []).includes(target)){
+                const parentPoints = Number(parent._points);
+                if(Number.isFinite(parentPoints) && Number.isFinite(oldPoints)) parent._points = Math.max(0, parentPoints + points - oldPoints);
+                return true;
+              }
+              if(adjustParent(parent?._children || [])) return true;
+            }
+            return false;
+          };
+          adjustParent(force._importedUnits);
+          changed = true;
+        }
+      }
+
+      return changed;
+    },
     getAllSelections,
     extractWeaponsFromNode,
     mergeUnits(force, fromKey, toKey){
