@@ -1360,6 +1360,10 @@ function weaponVsDefenseApp(){
       const key = side === 'defender' ? 'defenderConditionsMet' : 'attackerConditionsMet';
       this.matchup[key] = !!value;
       this.saveCachedAppState();
+      // The matchup view is the grid itself, even though older code still uses
+      // matchupModalOpen as the calculation-active flag. Ensure a checkbox
+      // change cannot be ignored just because that legacy flag drifted false.
+      if(this.activeView === 'matchups') this.matchupModalOpen = true;
       this.rebuildMatchup();
     },
 

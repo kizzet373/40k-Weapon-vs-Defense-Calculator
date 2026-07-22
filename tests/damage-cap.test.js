@@ -1836,6 +1836,20 @@ assert.ok(conditionsToggleRebuilt, 'setting Conditions Met triggers a matchup re
 assert.ok(conditionalOn > conditionalOff, 'setting Conditions Met recalculates visible cells with conditional modifiers');
 app.rebuildMatchup = originalRebuildMatchup;
 
+const sideConditionsApp = context.weaponVsDefenseApp();
+sideConditionsApp.activeView = 'matchups';
+sideConditionsApp.matchupModalOpen = false;
+let sideConditionsRebuilds = 0;
+sideConditionsApp.rebuildMatchup = function(){
+  if(this.matchupModalOpen) sideConditionsRebuilds += 1;
+};
+sideConditionsApp.setMatchupSideConditions('attacker', true);
+assert.strictEqual(sideConditionsApp.matchup.attackerConditionsMet, true, 'attacker Conditions Met checkbox updates attacker state');
+assert.strictEqual(sideConditionsRebuilds, 1, 'attacker Conditions Met checkbox rebuilds the active matchup grid');
+sideConditionsApp.setMatchupSideConditions('defender', true);
+assert.strictEqual(sideConditionsApp.matchup.defenderConditionsMet, true, 'defender Conditions Met checkbox updates defender state');
+assert.strictEqual(sideConditionsRebuilds, 2, 'defender Conditions Met checkbox rebuilds the active matchup grid');
+
 const championSlayer = { label: 'Champion', abilities: ['Champion Slayer'], weapons: [], defense: { T: 4, Sv: 3, W: 3, models: 1 }, _unitKey: 'champion' };
 const champSword = { name: 'Sword', range: 'Melee', A: '4', skill: '3', S: '5', AP: '2', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'champ-sword' };
 assert.ok(/Reroll Wounds/i.test(app.effectiveWeaponModifiers(champSword, championSlayer, { label: 'Monster', _keywords: ['Monster'], defense: { T: 8, Sv: 3, W: 10, models: 1 } })), 'target-scoped modifiers apply into matching keywords');
