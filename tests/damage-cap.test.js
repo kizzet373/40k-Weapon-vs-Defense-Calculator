@@ -2272,6 +2272,13 @@ assert.ok(staleBuildApp.matchupVisibleRows()[0].unit.label !== 'Daemon Race Unit
 scheduledBuilds[0]();
 assert.ok(staleBuildApp.matchupVisibleRows()[0].unit.label !== 'Daemon Race Unit', 'stale Daemon rebuild cannot overwrite rows after dropdown state changes');
 assert.strictEqual(staleBuildApp.rosters[staleBuildApp.matchup.attackerRosterIdx].label, 'Base Profiles', 'attacker dropdown state remains aligned with the accepted rebuild');
+const buildTokenBeforeNavigation = staleBuildApp.matchup.buildToken;
+staleBuildApp.matchup.loading = true;
+staleBuildApp.switchToCalcView();
+assert.ok(staleBuildApp.matchup.buildToken > buildTokenBeforeNavigation, 'leaving the matchup grid cancels any in-flight grid build');
+assert.strictEqual(staleBuildApp.matchup.loading, false, 'leaving the matchup grid immediately clears its loading state');
+assert.ok(/now - lastYield > 12/.test(fs.readFileSync(path.join(root, 'utilities.js'), 'utf8')), 'browser grid calculation yields within a frame-sized work budget');
+assert.ok(/requestAnimationFrame\(\(\) => setTimeout\(resolve, 0\)\)/.test(fs.readFileSync(path.join(root, 'utilities.js'), 'utf8')), 'grid calculation resumes after a browser paint so navigation remains responsive');
 
 const profileScoreAttacker = {
   label: 'Profile score attacker',

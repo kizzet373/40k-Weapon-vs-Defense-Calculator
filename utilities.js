@@ -1214,6 +1214,9 @@ function weaponVsDefenseApp(){
     switchToCalcView(){
       this.activeView = 'calc';
       this.matchupModalOpen = false;
+      this.matchup.buildToken = (this.matchup.buildToken || 0) + 1;
+      this.matchup.loading = false;
+      this.matchup.loadingMessage = '';
       this.closeMatchupFormula();
       this.saveCachedAppState();
     },
@@ -1245,6 +1248,9 @@ function weaponVsDefenseApp(){
     closeMatchupModal(){
       this.matchupModalOpen = false;
       this.activeView = 'calc';
+      this.matchup.buildToken = (this.matchup.buildToken || 0) + 1;
+      this.matchup.loading = false;
+      this.matchup.loadingMessage = '';
       this.closeMatchupFormula();
     },
 
@@ -1886,6 +1892,70 @@ function weaponVsDefenseApp(){
         ...this.flattenMatchupUnits(defenderCols),
       ].forEach(addDefenderSummary);
 
+      this.matchup.sortSummaries = { attackers: attackerSummaries, defenders: defenderSummaries };
+      this.matchup.scoreMaps = scoreMaps;
+      return this.matchup.sortSummaries;
+    },
+
+    async updateMatchupSortSummariesAsync(attackers=this.matchupAttackerUnits || [], defenders=this.matchupDefenderUnits || [], buildIsCurrent=()=>true){
+      const attackerRows = (attackers || []).filter(unit => this.hasMatchupWeaponProfiles(unit));
+      const defenderCols = [...(defenders || [])];
+      const attackerBases = (this.matchupAttackerBaseUnits || []).length ? this.matchupAttackerBaseUnits : attackerRows;
+      const defenderAttackers = defenderCols.flatMap(unit => this.attackModeVariants(unit)).filter(unit => this.hasMatchupWeaponProfiles(unit));
+      const calculationCache = this.createMatchupCalculationCache();
+      const attackerSummaries = {};
+      const defenderSummaries = {};
+      const scoreMaps = { attackers: {}, defenders: {} };
+      const summaryCache = { attacker: new Map(), defender: new Map() };
+      const seen = { attacker: new Set(), defender: new Set() };
+      let lastYield = performance.now();
+
+      const addScore = (side, unit, summary) => {
+        if(!Number.isFinite(summary?.score)) return;
+        const map = side === 'defender' ? scoreMaps.defenders : scoreMaps.attackers;
+        map[this.unitKey(unit)] = summary.score;
+        if(unit?._unitKey) map[String(unit._unitKey)] = summary.score;
+      };
+      const summaryFor = (unit, side, compute) => {
+        const signature = this.matchupScoreSignature(unit, side);
+        const cache = summaryCache[side];
+        if(signature && cache.has(signature)) return cache.get(signature);
+        const summary = compute();
+        if(signature) cache.set(signature, summary);
+        return summary;
+      };
+      const work = [
+        ...[
+          ...attackerRows,
+          ...attackerBases,
+          ...this.flattenMatchupUnits(attackerBases),
+          ...this.flattenMatchupAttackers(attackerBases),
+        ].map(unit => ({ side:'attacker', unit })),
+        ...[
+          ...defenderCols,
+          ...this.flattenMatchupUnits(defenderCols),
+        ].map(unit => ({ side:'defender', unit })),
+      ];
+
+      for(let index = 0; index < work.length; index++){
+        if(!buildIsCurrent()) return null;
+        const { side, unit } = work[index];
+        const key = this.unitKey(unit);
+        if(unit && key && !seen[side].has(key)){
+          seen[side].add(key);
+          const summary = side === 'attacker'
+            ? summaryFor(unit, side, () => this.composeMatchupScoreSummary(unit, defenderCols, defenderAttackers, side, calculationCache))
+            : summaryFor(unit, side, () => this.composeMatchupScoreSummary(unit, attackerBases, attackerRows, side, calculationCache));
+          this.matchupSummaryMapSet(side === 'attacker' ? attackerSummaries : defenderSummaries, unit, summary);
+          addScore(side, unit, summary);
+        }
+        if(performance.now() - lastYield > 12){
+          this.matchup.loadingMessage = `Preparing grid ${index + 1}/${work.length}`;
+          await this.yieldMatchupBuild();
+          lastYield = performance.now();
+        }
+      }
+      if(!buildIsCurrent()) return null;
       this.matchup.sortSummaries = { attackers: attackerSummaries, defenders: defenderSummaries };
       this.matchup.scoreMaps = scoreMaps;
       return this.matchup.sortSummaries;
@@ -2742,7 +2812,9 @@ function weaponVsDefenseApp(){
     yieldMatchupBuild(){
       return new Promise(resolve => {
         if(typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function'){
-          window.requestAnimationFrame(() => resolve());
+          // Resume in a new task after the next paint. Resolving directly in
+          // rAF resumes promise work as a microtask before the browser paints.
+          window.requestAnimationFrame(() => setTimeout(resolve, 0));
         }else{
           setTimeout(resolve, 0);
         }
@@ -2782,7 +2854,7 @@ function weaponVsDefenseApp(){
           if(!buildIsCurrent()) return null;
           cells.push(this.computeMatchupCell(au, dUnits[colIndex], { calculationCache }));
           const now = performance.now();
-          if(now - lastYield > 300){
+          if(now - lastYield > 12){
             this.matchup.loadingMessage = `Calculating ${rowIndex + 1}/${aRows.length} attackers`;
             await this.yieldMatchupBuild();
             lastYield = performance.now();
@@ -2809,7 +2881,9 @@ function weaponVsDefenseApp(){
         metric: this.matchup.metric || 'damage',
       };
       const buildIsCurrent = () => {
-        return buildToken === this.matchup.buildToken
+        return this.matchupModalOpen
+          && this.activeView === 'matchups'
+          && buildToken === this.matchup.buildToken
           && (Number(this.matchup.attackerRosterIdx) || 0) === buildState.attackerRosterIdx
           && (Number(this.matchup.attackerForceIdx) || 0) === buildState.attackerForceIdx
           && (Number(this.matchup.defenderRosterIdx) || 0) === buildState.defenderRosterIdx
@@ -2851,11 +2925,21 @@ function weaponVsDefenseApp(){
           if(!rows || !buildIsCurrent()) return;
           this.matchup.rows = rows;
           this.seedAggregateCellCache();
-          this.updateMatchupSortSummaries(sourceRows, sourceDefenders);
-          this.applyMatchupSorting(false);
-          this.refreshVisibleMatchup();
-          this.syncMatchupMergeSelections();
-          if(buildIsCurrent()) this.saveCachedAppState();
+          const finishPresentation = summaries => {
+            if(!summaries || !buildIsCurrent()) return;
+            this.applyMatchupSorting(false);
+            this.refreshVisibleMatchup();
+            this.syncMatchupMergeSelections();
+            if(buildIsCurrent()) this.saveCachedAppState();
+          };
+          if(!this.shouldChunkMatchupBuild()){
+            finishPresentation(this.updateMatchupSortSummaries(sourceRows, sourceDefenders));
+            return;
+          }
+          return (async () => {
+            await this.yieldMatchupBuild();
+            finishPresentation(await this.updateMatchupSortSummariesAsync(sourceRows, sourceDefenders, buildIsCurrent));
+          })();
         };
         try{
           const aUnits = this.prepareMatchupUnits(aForce ? this.collectUnits(aForce) : [], 'attacker');
@@ -2876,9 +2960,9 @@ function weaponVsDefenseApp(){
           const rowsResult = this.buildMatchupRows(aRows, dUnits, buildIsCurrent);
           if(rowsResult && typeof rowsResult.then === 'function'){
             rowsResult
-              .then(rows => {
+              .then(async rows => {
                 try{
-                  finishRows(rows, aRows, dUnits);
+                  await finishRows(rows, aRows, dUnits);
                 }catch(err){
                   console.error(err);
                 }finally{
@@ -2891,8 +2975,9 @@ function weaponVsDefenseApp(){
               });
             return;
           }
-          finishRows(rowsResult, aRows, dUnits);
-          finishBuild();
+          const finished = finishRows(rowsResult, aRows, dUnits);
+          if(finished && typeof finished.then === 'function') finished.finally(finishBuild);
+          else finishBuild();
         }catch(err){
           finishBuild();
           throw err;
