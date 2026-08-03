@@ -6,6 +6,8 @@
   const darkPactTokenCache = new Map();
   const darkPactTextCache = new Map();
   const unitPhaseChoiceCache = new WeakMap();
+  const exactSequenceCache = new Map();
+  const binomialCache = new Map();
 
   function parsedWeaponKeywords(modifierText='', weapon=null){
     const key = [
@@ -1568,6 +1570,219 @@
     return Math.max(0, Math.min(0.999, 1 - cumulative));
   }
 
+  function exactStateKey(models, wounds){
+    return `${models}|${wounds}`;
+  }
+
+  function addExactState(map, models, wounds, probability, spillMass=0, overkillMass=0){
+    if(probability <= 0) return;
+    const key = exactStateKey(models, wounds);
+    const current = map.get(key) || { models, wounds, probability:0, spillMass:0, overkillMass:0 };
+    current.probability += probability;
+    current.spillMass += spillMass;
+    current.overkillMass += overkillMass;
+    map.set(key, current);
+  }
+
+  function binomialDistribution(trials, successProbability){
+    const n = Math.max(0, Math.round(Number(trials) || 0));
+    const p = Math.max(0, Math.min(1, Number(successProbability) || 0));
+    const cacheKey = `${n}|${p}`;
+    if(binomialCache.has(cacheKey)) return binomialCache.get(cacheKey);
+    let dist = [1];
+    for(let i = 0; i < n; i++){
+      const next = Array(dist.length + 1).fill(0);
+      dist.forEach((probability, successes) => {
+        next[successes] += probability * (1 - p);
+        next[successes + 1] += probability * p;
+      });
+      dist = next;
+    }
+    const result = dist.map((probability, value) => ({ value, probability }));
+    binomialCache.set(cacheKey, result);
+    return result;
+  }
+
+  function exactDamageDistribution(weapon, kw){
+    return (window.WeaponCalc.diceDistribution?.(weapon?.D, kw.damageAdd || 0) || [{ value:window.WeaponCalc.parseNdX(weapon?.D).mean, probability:1 }])
+      .map(entry => ({
+        value: Math.ceil(Math.max(0, Number(entry.value) || 0) / Math.max(1, Number(kw.damageDivisor) || 1)),
+        probability: Number(entry.probability) || 0,
+      }))
+      .filter(entry => entry.probability > 0);
+  }
+
+  function applyExactDamageEvent(states, eventProbability, damageDistribution, modelWounds, pFnp){
+    const next = new Map();
+    states.forEach(state => {
+      addExactState(next, state.models, state.wounds, state.probability * (1 - eventProbability), state.spillMass * (1 - eventProbability), state.overkillMass * (1 - eventProbability));
+      damageDistribution.forEach(damageEntry => {
+        const branchProbability = eventProbability * damageEntry.probability;
+        if(branchProbability <= 0) return;
+        if(state.models <= 0){
+          const allocatedDamage = Math.min(damageEntry.value, modelWounds);
+          const spill = Math.max(0, damageEntry.value - allocatedDamage);
+          binomialDistribution(allocatedDamage, 1 - pFnp).forEach(fnpEntry => {
+            const probability = state.probability * branchProbability * fnpEntry.probability;
+            addExactState(
+              next,
+              0,
+              0,
+              probability,
+              (state.spillMass * branchProbability * fnpEntry.probability) + (probability * spill),
+              (state.overkillMass * branchProbability * fnpEntry.probability) + (probability * fnpEntry.value)
+            );
+          });
+          return;
+        }
+        const allocatedDamage = Math.min(damageEntry.value, state.wounds);
+        const spill = Math.max(0, damageEntry.value - allocatedDamage);
+        binomialDistribution(allocatedDamage, 1 - pFnp).forEach(fnpEntry => {
+          const probability = state.probability * branchProbability * fnpEntry.probability;
+          let models = state.models;
+          let wounds = state.wounds - fnpEntry.value;
+          if(wounds <= 0){
+            models -= 1;
+            wounds = models > 0 ? modelWounds : 0;
+          }
+          addExactState(
+            next,
+            models,
+            wounds,
+            probability,
+            (state.spillMass * branchProbability * fnpEntry.probability) + (probability * spill),
+            state.overkillMass * branchProbability * fnpEntry.probability
+          );
+        });
+      });
+    });
+    return next;
+  }
+
+  function applyExactWoundHits(states, count, damageProbability, damageDistribution, modelWounds, pFnp){
+    let next = states;
+    for(let i = 0; i < count; i++){
+      next = applyExactDamageEvent(next, damageProbability, damageDistribution, modelWounds, pFnp);
+    }
+    return next;
+  }
+
+  function applyExactBaseAttack(states, formula, weapon, kw, modelWounds){
+    const probs = formula.probabilities || {};
+    const pHit = Math.max(0, Math.min(1, Number(probs.pHit) || 0));
+    const pCrit = Math.max(0, Math.min(pHit, Number(probs.pCrit) || 0));
+    const pSave = Math.max(0, Math.min(1, Number(probs.pSave) || 0));
+    const pWound = Math.max(0, Math.min(1, Number(probs.pWound) || 0));
+    const pCriticalWound = kw.devw ? Math.max(0, Math.min(pWound, Number(probs.pCriticalWound) || 0)) : 0;
+    const normalDamageProbability = Math.max(0, pWound - pCriticalWound) * (1 - pSave);
+    const woundDamageProbability = Math.min(1, normalDamageProbability + pCriticalWound);
+    const lethalDamageProbability = 1 - pSave;
+    const sustained = Math.max(0, Math.round(Number(probs.sustained) || 0));
+    const damageDistribution = exactDamageDistribution(weapon, kw);
+    const pFnp = Math.max(0, Math.min(1, Number(probs.pFnp) || 0));
+    const output = new Map();
+    const runBranch = (branchProbability, normalHits, lethalHits=0) => {
+      if(branchProbability <= 0) return;
+      const seeded = new Map();
+      states.forEach(state => addExactState(seeded, state.models, state.wounds, state.probability * branchProbability, state.spillMass * branchProbability, state.overkillMass * branchProbability));
+      let branch = applyExactWoundHits(seeded, lethalHits, lethalDamageProbability, damageDistribution, modelWounds, pFnp);
+      branch = applyExactWoundHits(branch, normalHits, woundDamageProbability, damageDistribution, modelWounds, pFnp);
+      branch.forEach(state => addExactState(output, state.models, state.wounds, state.probability, state.spillMass, state.overkillMass));
+    };
+    runBranch(1 - pHit, 0);
+    runBranch(pHit - pCrit, 1);
+    if(kw.lethal) runBranch(pCrit, sustained, 1);
+    else runBranch(pCrit, 1 + sustained);
+    return output;
+  }
+
+  function exactProfileSequence(initialLine, choices){
+    const cacheKey = JSON.stringify({
+      defense: {
+        T:initialLine?.def?.T, Sv:initialLine?.def?.Sv, Inv:initialLine?.def?.Inv,
+        W:initialLine?.def?.W, Fnp:initialLine?.def?.Fnp, models:initialLine?.models,
+        cover:!!initialLine?.def?.cover,
+        keywords:[...(initialLine?.unit?._keywords || []), ...(initialLine?.def?.keywords || []), ...(initialLine?.def?._keywords || [])].map(String).sort(),
+      },
+      choices: choices.map(choice => ({
+        A:choice.weapon?.A, skill:choice.weapon?.skill, S:choice.weapon?.S,
+        AP:choice.weapon?.AP, D:choice.weapon?.D, text:choice.text,
+      })),
+    });
+    if(exactSequenceCache.has(cacheKey)) return exactSequenceCache.get(cacheKey);
+    const modelWounds = Math.max(1, Math.round(parseFloat(initialLine?.def?.W) || 0));
+    const initialModels = Math.max(1, Math.round(Number(initialLine?.models) || (Number(initialLine?.pool) / modelWounds) || 1));
+    let states = new Map([[exactStateKey(initialModels, modelWounds), {
+      models:initialModels,
+      wounds:modelWounds,
+      probability:1,
+      spillMass:0,
+      overkillMass:0,
+    }]]);
+    let previousDamage = 0;
+    let previousKills = 0;
+    let previousSpill = 0;
+    let previousOverkill = 0;
+    const profiles = [];
+    const expectedDamage = current => [...current.values()].reduce((sum, state) => {
+      const remaining = state.models > 0 ? ((state.models - 1) * modelWounds) + state.wounds : 0;
+      return sum + state.probability * ((initialModels * modelWounds) - remaining);
+    }, 0);
+    const expectedKills = current => [...current.values()].reduce((sum, state) => sum + state.probability * (initialModels - state.models), 0);
+    const expectedSpill = current => [...current.values()].reduce((sum, state) => sum + state.spillMass, 0);
+    const expectedOverkill = current => [...current.values()].reduce((sum, state) => sum + state.overkillMass, 0);
+
+    for(const choice of choices){
+      const formula = calcOneWeaponCached(choice.weapon, defensePayloadForLine(initialLine), choice.text, {}, 'formula').formula;
+      const kw = parsedWeaponKeywords(choice.text || choice.weapon?.modifiers || '', choice.weapon);
+      const attackMean = window.WeaponCalc.parseNdX(choice.weapon?.A).mean || 0;
+      const attackAdd = Math.max(0, (Number(formula.attacks) || 0) - attackMean);
+      const attackDistribution = window.WeaponCalc.diceDistribution?.(choice.weapon?.A, attackAdd) || [{ value:formula.attacks, probability:1 }];
+      const combined = new Map();
+      attackDistribution.forEach(attackEntry => {
+        let branch = new Map();
+        states.forEach(state => addExactState(branch, state.models, state.wounds, state.probability * attackEntry.probability, state.spillMass * attackEntry.probability, state.overkillMass * attackEntry.probability));
+        const attackCount = Math.max(0, Math.round(Number(attackEntry.value) || 0));
+        for(let attack = 0; attack < attackCount; attack++) branch = applyExactBaseAttack(branch, formula, choice.weapon, kw, modelWounds);
+        branch.forEach(state => addExactState(combined, state.models, state.wounds, state.probability, state.spillMass, state.overkillMass));
+      });
+      states = combined;
+      const damage = expectedDamage(states);
+      const kills = expectedKills(states);
+      const spill = expectedSpill(states);
+      const overkill = expectedOverkill(states);
+      const meanDamage = exactDamageDistribution(choice.weapon, kw)
+        .reduce((sum, entry) => sum + entry.value * entry.probability, 0);
+      const rawDamage = (Number(formula?.totals?.unsavedNormal) + Number(formula?.totals?.mortals))
+        * meanDamage
+        * (1 - (Number(formula?.probabilities?.pFnp) || 0));
+      profiles.push({
+        damage:damage - previousDamage,
+        overkill:overkill - previousOverkill,
+        totalDamage:(damage - previousDamage) + (overkill - previousOverkill),
+        kills:kills - previousKills,
+        spill:spill - previousSpill,
+        rawDamage,
+        expectedModelsBefore:initialModels - previousKills,
+        expectedModelsRemaining:initialModels - kills,
+      });
+      previousDamage = damage;
+      previousKills = kills;
+      previousSpill = spill;
+      previousOverkill = overkill;
+    }
+    const result = {
+      damage:previousDamage + previousOverkill,
+      appliedDamage:previousDamage,
+      kills:previousKills,
+      destroyChance:[...states.values()].filter(state => state.models === 0).reduce((sum, state) => sum + state.probability, 0),
+      profiles,
+    };
+    exactSequenceCache.set(cacheKey, result);
+    if(exactSequenceCache.size > 5000) exactSequenceCache.delete(exactSequenceCache.keys().next().value);
+    return result;
+  }
+
   function computeCell(attackerUnit, defenderUnit, options){
     if(options && !options._weaponCalcCache) options._weaponCalcCache = new Map();
     if(options && !options._targetLinesCache) options._targetLinesCache = new Map();
@@ -1577,6 +1792,7 @@
     const def = effectiveDefense(defenderUnit, options, attackerUnit);
     const attackMode = attackerUnit?._attackMode || 'all';
     const state = defenderState(defenderUnit, options, attackerUnit);
+    const exactInitialLine = state.length === 1 ? cloneTargetLine(state[0]) : null;
     const unitWoundPool = totalStateWounds(state) || defenderWoundPool(def, defenderUnit);
     const groups = attackGroupsForUnit(attackerUnit, defenderUnit, attackMode, options);
     if(groups.length === 0) return emptyCell();
@@ -1586,8 +1802,11 @@
     const selectedProfiles = [];
     const selectedFormulaItems = [];
     const selectedProfileModifiers = [];
+    const exactChoices = [];
+    const exactFormulaItems = [];
     const preDamageGroups = groups.filter(group => group.type === 'mortal' && (group.item?.phase || group.phase) === 'preDamage');
     const postDamageGroups = groups.filter(group => group.type === 'mortal' && (group.item?.phase || group.phase) === 'postDamage');
+    const hasInlineMortalGroups = groups.some(group => group.type === 'mortal' && !['preDamage', 'postDamage'].includes(group.item?.phase || group.phase));
     const remainingGroups = groups
       .filter(group => !(group.type === 'mortal' && ['preDamage', 'postDamage'].includes(group.item?.phase || group.phase)))
       .map((group, index) => ({ ...group, index }));
@@ -1665,16 +1884,55 @@
         selected.choice.text,
         selected.choice.firstLine?.def ? { ...selected.choice.firstLine.def, models: selected.choice.firstLine.models } : null
       ));
-      if(options.includeFormula && applied.formula) selectedFormulaItems.push(applied.formula);
+      exactChoices.push(selected.choice);
+      if(options.includeFormula && applied.formula){
+        selectedFormulaItems.push(applied.formula);
+        exactFormulaItems.push(applied.formula);
+      }
     }
 
     postDamageGroups.forEach(group => applyMortalGroup(group, 'postDamage'));
 
+    let exactDestroyChance = null;
+    let exactAppliedDamage = null;
+    const canUseExactDistribution = exactInitialLine
+      && preDamageGroups.length === 0
+      && postDamageGroups.length === 0
+      && !hasInlineMortalGroups
+      && exactChoices.length > 0;
+    if(canUseExactDistribution){
+      const exact = exactProfileSequence(exactInitialLine, exactChoices);
+      dmg = exact.damage;
+      kills = exact.kills;
+      exactAppliedDamage = exact.appliedDamage;
+      exact.profiles.forEach((profile, index) => {
+        const item = exactFormulaItems[index];
+        const line = item?.lines?.[0];
+        if(!item || !line) return;
+        const allocation = line.allocation || (line.allocation = {});
+        allocation.overkill = false;
+        line.modelsLeft = profile.expectedModelsBefore;
+        line.appliedDamage = profile.damage;
+        allocation.appliedDamage = profile.damage;
+        allocation.normalApplied = profile.damage;
+        allocation.rawDamageTotal = profile.rawDamage;
+        allocation.rawSpillLoss = profile.spill;
+        allocation.overkillDamage = profile.overkill;
+        allocation.rawDamageRemaining = 0;
+        allocation.remainingFraction = 0;
+        allocation.killedModels = profile.kills;
+        allocation.expectedDestroyedModels = profile.kills;
+        item.totalDamage = profile.totalDamage;
+        item.totalKills = profile.kills;
+      });
+      exactDestroyChance = exact.destroyChance;
+    }
+
     return {
       dmg,
       kills,
-      pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
-      pctUnitKilled: unitWoundPool ? killChanceFromExpectedDamage(dmg, unitWoundPool) : null,
+      pctModelWounds: unitWoundPool ? (Number.isFinite(exactAppliedDamage) ? exactAppliedDamage : dmg) / unitWoundPool : null,
+      pctUnitKilled: unitWoundPool ? (Number.isFinite(exactDestroyChance) ? exactDestroyChance : killChanceFromExpectedDamage(dmg, unitWoundPool)) : null,
       weaponName: formatProfiles(selectedProfiles),
       profileModifierText: formatProfileModifiers(selectedProfileModifiers),
       profilesUsed: aggregateProfiles(selectedProfiles),

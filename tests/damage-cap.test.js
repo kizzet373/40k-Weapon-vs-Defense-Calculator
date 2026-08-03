@@ -451,7 +451,7 @@ const hammerIntoOneWoundModels = app.computeMatchupCell(
 app.formulaCell = hammerIntoOneWoundModels;
 const hammerLines = app.matchupFormulaLines();
 assert.ok(hammerIntoOneWoundModels.dmg <= 6 + 1e-9, 'six attacks into one-wound models cannot apply more than six damage after allocation spill loss');
-assert.ok(Math.abs(hammerIntoOneWoundModels.dmg - (155 / 36)) < 1e-9, 'high damage hammer into W1 models applies one wound per damaging instance and loses the rest to spill');
+assert.ok(Math.abs(hammerIntoOneWoundModels.dmg - (155 / 36)) < 1e-9, 'high damage hammer into W1 models applies one wound per damaging instance and reports any post-unit damage as overkill');
 assert.ok(hammerLines.some(line => /^Spill Loss: 4\.306 instances x 3 damage vs 1 wounds \* 10 models = 8\.611 spill loss$/i.test(line)), 'spill loss is based on expected damage instances instead of whole killed models');
 const movementProfileUnit = { label: 'Movement profile', defense: { M: '6"', T: 4, Sv: 3, Inv: 5, W: 2, models: 5 } };
 assert.ok(/^M6" \| T4 \| 3\+ 5\+\+ \| W2 \| 5 models$/.test(app.profileDefenseHeaderLabel(movementProfileUnit)), 'unit profile modal defense line shows movement before toughness');
@@ -1270,6 +1270,33 @@ const damageOneFinisherLines = app.matchupFormulaSections()[1].lines.map(line =>
 assert.ok(!damageOneFinisherLines.some(line => /^Spill Loss:/i.test(line)), 'damage-1 profiles never lose damage to spill against a fractionally wounded model');
 assert.ok(damageOneFinisherLines.some(line => /^Profile Total: 1\.667 damage /i.test(line)), 'damage-1 profiles deal all expected post-FNP damage even when the target has fractional wounds remaining');
 
+const belakorTerminatorCell = app.computeMatchupCell(
+  {
+    label: "Be'lakor",
+    weapons: [
+      { name: 'The Blade of Shadows - strike', range: 'Melee', A: '7', skill: '2', S: '14', AP: '4', D: '1d6+1', modifiers: 'Devastating Wounds, Reroll Hits 1, Sustained Hits 1, Wound Rolls -1', mode: 'melee' },
+      { name: 'Betraying Shades - focused witchfire', range: '18', A: '12', skill: '2', S: '6', AP: '3', D: '1', modifiers: 'Devastating Wounds, Hazardous, Ignores Cover, Psychic, Reroll Hits 1, Sustained Hits 1, Wound Rolls -1', mode: 'ranged' },
+    ],
+    defense: { T: 10, Sv: 2, W: 18, models: 1 },
+  },
+  { label: 'Wolf Guard Terminators', defense: { T: 5, Sv: 2, Inv: 4, W: 4, models: 4, totalWounds: 16 } },
+  { includeFormula: true, combineShootingProfiles: true }
+);
+app.formulaCell = belakorTerminatorCell;
+const belakorTerminatorSections = app.matchupFormulaSections();
+const belakorBladeLines = belakorTerminatorSections[0].lines.map(line => line.text || line);
+const belakorShadesLines = belakorTerminatorSections[1].lines.map(line => line.text || line);
+assert.ok(Math.abs(belakorTerminatorCell.dmg - 15.270276189378974) < 1e-9, "Be'lakor exact sequence reports post-spill damage including probability-weighted overkill");
+assert.ok(Math.abs(belakorTerminatorCell.pctModelWounds - (13.467045915098677 / 16)) < 1e-9, "Be'lakor Damage % uses wounds actually applied to the four terminators rather than overkill");
+assert.ok(Math.abs(belakorTerminatorCell.kills - 3.140724917757548) < 1e-9, "Be'lakor reports probability-weighted models destroyed across both profiles");
+assert.ok(Math.abs(belakorTerminatorCell.pctUnitKilled - 0.4590320577627054) < 1e-9, "Be'lakor uses the exact probability of destroying all four terminators");
+assert.ok(belakorBladeLines.some(line => /^Spill Loss: .* = 4\.709 spill loss$/i.test(line)), 'variable Blade damage uses the full dice distribution for spill loss');
+assert.ok(belakorBladeLines.some(line => /^Total: 10\.604 damage \(10\.191 wounds \+ 0\.413 overkill\)$/i.test(line)), 'Blade total separates applied wounds from probability-weighted overkill');
+assert.ok(belakorBladeLines.some(line => /Models destroyed: 2\.408$/i.test(line)), 'Blade profile reports expected models destroyed');
+assert.ok(belakorShadesLines.some(line => /^~ .*1\.592 models left ~$/.test(line)), 'the second profile starts from the expected model state left by the Blade distribution');
+assert.ok(belakorShadesLines.some(line => /^Total: 4\.667 damage \(3\.276 wounds \+ 1\.391 overkill\)$/i.test(line)), 'D1 follow-up damage is allocated across every state left by the Blade');
+assert.strictEqual(app.formulaDestroyedSummaryText(), 'Models destroyed: 3.141 (T5 | 2+ 4++ | W4)', 'total result reports probability-weighted destroyed terminators');
+
 const halvedFlatFormulaCell = app.computeMatchupCell(
   {
     label: 'Halved flat attacker',
@@ -1497,8 +1524,8 @@ const overkillLines = app.matchupFormulaLines();
 assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
-assert.ok(overkillLines.some(line => /0 models left/i.test(line)), 'formula shows zero models left for weapon profiles calculated after the defender is destroyed');
-assert.ok(overkillLines.some((line, index) => /0 models left/i.test(line) && overkillLines.slice(index, index + 8).some(next => /^Spill Loss:/i.test(next))), 'post-destroy weapon profile calculations still apply no-spill damage loss');
+assert.ok(app.matchupFormulaSections()[1].lines.some(line => /models left/i.test(line.text || line)), 'later weapon profiles show the probability-weighted model state left by earlier profiles');
+assert.ok(app.matchupFormulaSections()[1].lines.some(line => /^Spill Loss:/i.test(line.text || line)), 'later weapon profiles retain probability-weighted spill damage');
 assert.ok(overkillLines.some(line => /^Total: .* damage \(.*overkill\)$/i.test(line)), 'target totals summarize overkill damage instead of models destroyed');
 assert.ok(overkillLines.some(line => /^Profile Total: .* damage \(.*overkill\) - Models destroyed: /i.test(line)), 'profile totals summarize overkill damage and destroyed models');
 assert.ok(!overkillLines.some(line => /^Remaining allocation:/i.test(line)), 'formula does not render remaining allocation as a standalone row');
@@ -1519,8 +1546,8 @@ assert.ok(Math.abs(finalProfileOverkillCell.dmg - (10 / 3)) < 1e-9, 'the profile
 assert.ok(Math.abs(finalProfileOverkillCell.formulaItems[0].totalDamage - finalProfileOverkillCell.dmg) < 1e-9, 'the killing profile formula item includes its own overkill in total damage');
 assert.ok(/3\.33 \(Damage two claws\)[\s\S]*Total damage: 3\.33/i.test(app.formulaTotalEquation()), 'the final total includes overkill from the profile that killed the unit');
 assert.ok(finalProfileOverkillLines.some(line => /^Spill Loss: .* = 3\.333 spill loss$/i.test(line)), 'last-profile overkill shows spill loss from the repeated final defensive profile');
-assert.ok(finalProfileOverkillLines.some(line => /^Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\)$/i.test(line)), 'last-profile overkill total reports post-spill overkill damage');
-assert.ok(finalProfileOverkillLines.some(line => /^Profile Total: 3\.333 damage \(1 wounds \+ 2\.333 overkill\) - Models destroyed: 1$/i.test(line)), 'killing profile total reports its own destroyed models');
+assert.ok(finalProfileOverkillLines.some(line => /^Total: 3\.333 damage \(0\.999 wounds \+ 2\.334 overkill\)$/i.test(line)), 'last-profile overkill total probability-weights damage to the final model and subsequent overkill');
+assert.ok(finalProfileOverkillLines.some(line => /^Profile Total: 3\.333 damage \(0\.999 wounds \+ 2\.334 overkill\) - Models destroyed: /i.test(line)), 'killing profile total reports its probability-weighted destroyed models');
 
 const groupedFinalProfileOverkillCell = app.computeMatchupCell(
   {
@@ -1538,8 +1565,8 @@ app.formulaCell = groupedFinalProfileOverkillCell;
 const groupedFinalProfileOverkillLines = app.matchupFormulaLines();
 assert.ok(Math.abs(groupedFinalProfileOverkillCell.dmg - (5 / 3)) < 1e-9, 'grouped duplicate profiles keep overkill from the profile that killed the unit');
 assert.ok(/1\.67 \(Matched claws\)[\s\S]*Total damage: 1\.67/i.test(app.formulaTotalEquation()), 'grouped killing profile overkill reaches the final total equation');
-assert.ok(groupedFinalProfileOverkillLines.some(line => /^Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\)$/i.test(line)), 'grouped killing profile reports wounds plus overkill after spill loss');
-assert.ok(groupedFinalProfileOverkillLines.some(line => /^Profile Total: 1\.667 damage \(1 wounds \+ 0\.667 overkill\) - Models destroyed: 1$/i.test(line)), 'grouped profile total reports destroyed models');
+assert.ok(groupedFinalProfileOverkillLines.some(line => /^Total: 1\.667 damage \(0\.972 wounds \+ 0\.694 overkill\)$/i.test(line)), 'grouped killing profile probability-weights wounds plus overkill after spill loss');
+assert.ok(groupedFinalProfileOverkillLines.some(line => /^Profile Total: 1\.667 damage \(0\.972 wounds \+ 0\.694 overkill\) - Models destroyed: /i.test(line)), 'grouped profile total reports probability-weighted destroyed models');
 assert.ok(app.matchupFormulaSections()[0].lines.some(line => /^Profile Total:/i.test(line.text || '') && /formulaProfileTotalMeta/.test(line.html || '')), 'profile total suffix uses white meta styling');
 
 const remainingAllocationFormulaCell = app.computeMatchupCell(

@@ -4110,6 +4110,7 @@ function weaponVsDefenseApp(){
     },
 
     formulaDefenseText(defense={}, modelsLeft=null){
+      const displayModels = this.formulaNumber(modelsLeft ?? defense.models ?? 1);
       const text = this.matchupDefenseProfileLine({
         T: defense.T,
         Sv: defense.sv,
@@ -4117,8 +4118,8 @@ function weaponVsDefenseApp(){
         W: defense.W,
         Fnp: defense.Fnp,
         cover: defense.cover,
-        models: modelsLeft ?? defense.models ?? 1,
-      }, modelsLeft ?? defense.models ?? 1);
+        models: displayModels,
+      }, displayModels);
       return text.replace(/\|\s*([^|]+?)\s+models$/, '| $1 models left');
     },
 
@@ -4343,6 +4344,9 @@ function weaponVsDefenseApp(){
     formulaActualDestroyedModels(line){
       const allocation = line?.allocation || {};
       if(allocation.overkill) return 0;
+      if(Number.isFinite(Number(allocation.expectedDestroyedModels))){
+        return Math.max(0, Number(allocation.expectedDestroyedModels));
+      }
       const modelWounds = Math.max(0, Number(line?.formula?.defense?.W) || 0);
       if(modelWounds <= 0) return 0;
       const beforePool = Math.max(0, Number(line?.woundPool) || 0);

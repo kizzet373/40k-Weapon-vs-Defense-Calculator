@@ -676,6 +676,7 @@
     modifiedDiceText,
     multiplyDiceText,
     addDiceTexts,
+    diceDistribution,
     expectedCappedDamage,
     probAtLeast,
     applyRerolls,
