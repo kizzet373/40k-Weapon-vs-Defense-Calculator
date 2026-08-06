@@ -1894,7 +1894,6 @@
     postDamageGroups.forEach(group => applyMortalGroup(group, 'postDamage'));
 
     let exactDestroyChance = null;
-    let exactAppliedDamage = null;
     const canUseExactDistribution = exactInitialLine
       && preDamageGroups.length === 0
       && postDamageGroups.length === 0
@@ -1904,7 +1903,6 @@
       const exact = exactProfileSequence(exactInitialLine, exactChoices);
       dmg = exact.damage;
       kills = exact.kills;
-      exactAppliedDamage = exact.appliedDamage;
       exact.profiles.forEach((profile, index) => {
         const item = exactFormulaItems[index];
         const line = item?.lines?.[0];
@@ -1931,7 +1929,7 @@
     return {
       dmg,
       kills,
-      pctModelWounds: unitWoundPool ? (Number.isFinite(exactAppliedDamage) ? exactAppliedDamage : dmg) / unitWoundPool : null,
+      pctModelWounds: unitWoundPool ? dmg / unitWoundPool : null,
       pctUnitKilled: unitWoundPool ? (Number.isFinite(exactDestroyChance) ? exactDestroyChance : killChanceFromExpectedDamage(dmg, unitWoundPool)) : null,
       weaponName: formatProfiles(selectedProfiles),
       profileModifierText: formatProfileModifiers(selectedProfileModifiers),

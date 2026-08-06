@@ -1287,7 +1287,7 @@ const belakorTerminatorSections = app.matchupFormulaSections();
 const belakorBladeLines = belakorTerminatorSections[0].lines.map(line => line.text || line);
 const belakorShadesLines = belakorTerminatorSections[1].lines.map(line => line.text || line);
 assert.ok(Math.abs(belakorTerminatorCell.dmg - 15.270276189378974) < 1e-9, "Be'lakor exact sequence reports post-spill damage including probability-weighted overkill");
-assert.ok(Math.abs(belakorTerminatorCell.pctModelWounds - (13.467045915098677 / 16)) < 1e-9, "Be'lakor Damage % uses wounds actually applied to the four terminators rather than overkill");
+assert.ok(Math.abs(belakorTerminatorCell.pctModelWounds - (15.270276189378974 / 16)) < 1e-9, "Be'lakor Damage % includes probability-weighted overkill damage");
 assert.ok(Math.abs(belakorTerminatorCell.kills - 3.140724917757548) < 1e-9, "Be'lakor reports probability-weighted models destroyed across both profiles");
 assert.ok(Math.abs(belakorTerminatorCell.pctUnitKilled - 0.4590320577627054) < 1e-9, "Be'lakor uses the exact probability of destroying all four terminators");
 assert.ok(belakorBladeLines.some(line => /^Spill Loss: .* = 4\.709 spill loss$/i.test(line)), 'variable Blade damage uses the full dice distribution for spill loss');
@@ -1522,6 +1522,7 @@ const overkillFormulaCell = app.computeMatchupCell(
 app.formulaCell = overkillFormulaCell;
 const overkillLines = app.matchupFormulaLines();
 assert.ok(overkillFormulaCell.dmg > 2, 'matchup damage keeps counting weapon output after the defender is killed');
+assert.ok(overkillFormulaCell.pctModelWounds > 1, 'Damage % can exceed 100% by including overkill output');
 assert.ok(/First cannon/.test(overkillFormulaCell.weaponName) && /Second cannon/.test(overkillFormulaCell.weaponName), 'overkill calculations still include later weapons');
 assert.ok(!overkillLines.some(line => /Overkill - ~/i.test(line)), 'formula does not prefix defensive profile lines with Overkill');
 assert.ok(app.matchupFormulaSections()[1].lines.some(line => /models left/i.test(line.text || line)), 'later weapon profiles show the probability-weighted model state left by earlier profiles');
