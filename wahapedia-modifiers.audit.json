@@ -1,0 +1,5534 @@
+{
+  "generatedAt": "2026-08-12T00:37:31.573Z",
+  "source": "https://wahapedia.ru/wh40k11ed/SiteMap.xml",
+  "factions": 25,
+  "extracted": 1180,
+  "mapped": 394,
+  "unmapped": [
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Hallowed Martyrs",
+      "kind": "enhancement",
+      "name": "Saintly Example",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Hallowed Martyrs",
+      "kind": "enhancement",
+      "name": "Chaplet of Sacrifice",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Hallowed Martyrs",
+      "kind": "enhancement",
+      "name": "Mantle of Ophelia",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Penitent Host",
+      "kind": "enhancement",
+      "name": "Psalm of Righteous Judgement",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Penitent Host",
+      "kind": "enhancement",
+      "name": "Verse of Holy Piety",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Penitent Host",
+      "kind": "enhancement",
+      "name": "Catechism of Divine Penitence",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Bringers of Flame",
+      "kind": "enhancement",
+      "name": "Manual of Saint Griselda",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Bringers of Flame",
+      "kind": "enhancement",
+      "name": "Iron Surplice of Saint Istalela",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Army of Faith",
+      "kind": "rule",
+      "name": "Sacred Rites",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Army of Faith",
+      "kind": "enhancement",
+      "name": "Litanies of Faith",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Army of Faith",
+      "kind": "enhancement",
+      "name": "Divine Aspect",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Army of Faith",
+      "kind": "enhancement",
+      "name": "Triptych of the Macharian Crusade",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Champions of Faith",
+      "kind": "rule",
+      "name": "Righteous Purpose",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Champions of Faith",
+      "kind": "enhancement",
+      "name": "Triptych of Judgement",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Champions of Faith",
+      "kind": "enhancement",
+      "name": "Sanctified Amulet",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Chorus of Condemnation",
+      "kind": "rule",
+      "name": "Angelic Judgement",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Chorus of Condemnation",
+      "kind": "enhancement",
+      "name": "Clarion of Urgency",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Chorus of Condemnation",
+      "kind": "enhancement",
+      "name": "Symphonic Payload UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Sacred Champions",
+      "kind": "rule",
+      "name": "Holy Quest",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Sacred Champions",
+      "kind": "enhancement",
+      "name": "Writ of Compunction UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Sacred Champions",
+      "kind": "enhancement",
+      "name": "Perfervid Haste",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adepta-sororitas",
+      "detachment": "Sanctified Orators",
+      "kind": "rule",
+      "name": "Hymns of Battle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adepta-sororitas"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Talons Of The Emperor",
+      "kind": "enhancement",
+      "name": "Aegis Projector",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Talons Of The Emperor",
+      "kind": "enhancement",
+      "name": "Champion of the Imperium",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Shield Host",
+      "kind": "enhancement",
+      "name": "Auric Mantle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Shield Host",
+      "kind": "enhancement",
+      "name": "Castellan’s Mark",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Null Maiden Vigil",
+      "kind": "rule",
+      "name": "Creeping Dread (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Null Maiden Vigil",
+      "kind": "rule",
+      "name": "KEYWORDS",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Null Maiden Vigil",
+      "kind": "enhancement",
+      "name": "Huntress’ Eye",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Auric Champions",
+      "kind": "enhancement",
+      "name": "Blade Imperator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Auric Champions",
+      "kind": "enhancement",
+      "name": "Inspirational Exemplar",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Auric Champions",
+      "kind": "enhancement",
+      "name": "Martial Philosopher",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Solar Spearhead",
+      "kind": "enhancement",
+      "name": "Veteran of the Kataphraktoi",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Lions of the Emperor",
+      "kind": "enhancement",
+      "name": "Superior Creation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Lions of the Emperor",
+      "kind": "enhancement",
+      "name": "Praesidius",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Might of the Moritoi",
+      "kind": "rule",
+      "name": "March of the Honoured Dead",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Might of the Moritoi",
+      "kind": "enhancement",
+      "name": "Auramite Sarcophagus UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Silent Hunters",
+      "kind": "rule",
+      "name": "Skin-Crawling Disorientation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Silent Hunters",
+      "kind": "enhancement",
+      "name": "Encircling Hunter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Silent Hunters",
+      "kind": "enhancement",
+      "name": "Psyk-Out Grenades UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Tharanatoi Hammerblow",
+      "kind": "rule",
+      "name": "The Hammer Falls",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Tharanatoi Hammerblow",
+      "kind": "enhancement",
+      "name": "Mnemo-Locked Shrine Cipher",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-custodes",
+      "detachment": "Tharanatoi Hammerblow",
+      "kind": "enhancement",
+      "name": "Efficient Aggression",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-custodes"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Rad-Zone Corps",
+      "kind": "rule",
+      "name": "Rad-bombardment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Rad-Zone Corps",
+      "kind": "enhancement",
+      "name": "Radial Suffusion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Rad-Zone Corps",
+      "kind": "enhancement",
+      "name": "Malphonic Susurrus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Rad-Zone Corps",
+      "kind": "enhancement",
+      "name": "Autoclavic Denunciation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Skitarii Hunter Cohort",
+      "kind": "rule",
+      "name": "Stealth Optimisation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Skitarii Hunter Cohort",
+      "kind": "enhancement",
+      "name": "Cantic Thrallnet",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Skitarii Hunter Cohort",
+      "kind": "enhancement",
+      "name": "Clandestine Infiltrator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Skitarii Hunter Cohort",
+      "kind": "enhancement",
+      "name": "Veiled Hunter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Skitarii Hunter Cohort",
+      "kind": "enhancement",
+      "name": "Battle-sphere Uplink",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Data-Psalm Conclave",
+      "kind": "enhancement",
+      "name": "Mechanicus Locum",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Data-Psalm Conclave",
+      "kind": "enhancement",
+      "name": "Mantle of the Gnosticarch",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Data-Psalm Conclave",
+      "kind": "enhancement",
+      "name": "Data-blessed Autosermon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Data-Psalm Conclave",
+      "kind": "enhancement",
+      "name": "Temporcopia",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Explorator Maniple",
+      "kind": "enhancement",
+      "name": "Magos",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Explorator Maniple",
+      "kind": "enhancement",
+      "name": "Artisan",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Cybernetica",
+      "kind": "rule",
+      "name": "Cyber-Psalm Programming",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Cybernetica",
+      "kind": "enhancement",
+      "name": "Necromechanic",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Cybernetica",
+      "kind": "enhancement",
+      "name": "Emotionless Clarity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Cybernetica",
+      "kind": "enhancement",
+      "name": "Arch-negator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Eradication Cohort",
+      "kind": "enhancement",
+      "name": "Omnicogitator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Eradication Cohort",
+      "kind": "enhancement",
+      "name": "Martial Signatum Amplificator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Haloscreed Battle Clade",
+      "kind": "enhancement",
+      "name": "Transoracular Dyad Wafers",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Haloscreed Battle Clade",
+      "kind": "enhancement",
+      "name": "Cognitive Reinforcement",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Haloscreed Battle Clade",
+      "kind": "enhancement",
+      "name": "Sanctified Ordnance",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Acquisitus",
+      "kind": "rule",
+      "name": "Noospheric Recon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Acquisitus",
+      "kind": "enhancement",
+      "name": "Explorator Dispensation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Cohort Acquisitus",
+      "kind": "enhancement",
+      "name": "Stealth-Screened Cybercanids UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Lords of the Forge",
+      "kind": "rule",
+      "name": "War-Form Mantles",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Lords of the Forge",
+      "kind": "enhancement",
+      "name": "Vingh’s Wafers of Dynamism",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Lords of the Forge",
+      "kind": "enhancement",
+      "name": "TL-4Ø9",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Luminen Auto-choir",
+      "kind": "enhancement",
+      "name": "Voltagheist Reliquary",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "adeptus-mechanicus",
+      "detachment": "Luminen Auto-choir",
+      "kind": "enhancement",
+      "name": "Electromiasmic Brazier",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/adeptus-mechanicus"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Warhost",
+      "kind": "rule",
+      "name": "Martial Grace",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Warhost",
+      "kind": "enhancement",
+      "name": "Phoenix Gem",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Warhost",
+      "kind": "enhancement",
+      "name": "Timeless Strategist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Warhost",
+      "kind": "enhancement",
+      "name": "Gift of Foresight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Windrider Host",
+      "kind": "rule",
+      "name": "Ride the Wind",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Windrider Host",
+      "kind": "enhancement",
+      "name": "Firstdrawn Blade",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Windrider Host",
+      "kind": "enhancement",
+      "name": "Seersight Strike",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Windrider Host",
+      "kind": "enhancement",
+      "name": "Echoes of Ulthanesh",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Spirit Conclave",
+      "kind": "enhancement",
+      "name": "Light of Clarity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Spirit Conclave",
+      "kind": "enhancement",
+      "name": "Rune of Mists",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Spirit Conclave",
+      "kind": "enhancement",
+      "name": "Higher Duty",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Guardian Battlehost",
+      "kind": "enhancement",
+      "name": "Craftworld’s Champion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Guardian Battlehost",
+      "kind": "enhancement",
+      "name": "Ethereal Pathway",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Guardian Battlehost",
+      "kind": "enhancement",
+      "name": "Protector of the Paths",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Guardian Battlehost",
+      "kind": "enhancement",
+      "name": "Breath of Vaul",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Ghosts of the Webway",
+      "kind": "rule",
+      "name": "Acrobatic Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Ghosts of the Webway",
+      "kind": "enhancement",
+      "name": "Cegorach’s Coil",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Ghosts of the Webway",
+      "kind": "enhancement",
+      "name": "Mask of Secrets",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Ghosts of the Webway",
+      "kind": "enhancement",
+      "name": "Murder’s Jest",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Ghosts of the Webway",
+      "kind": "enhancement",
+      "name": "Mistweave",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Devoted of Ynnead",
+      "kind": "rule",
+      "name": "Strength from Death",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Devoted of Ynnead",
+      "kind": "enhancement",
+      "name": "Storm of Whispers",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Seer Council",
+      "kind": "rule",
+      "name": "Strands of Fate",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Seer Council",
+      "kind": "enhancement",
+      "name": "Lucid Eye",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Seer Council",
+      "kind": "enhancement",
+      "name": "Stone of Eldritch Fury",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Seer Council",
+      "kind": "enhancement",
+      "name": "Torc of Morai-Heg",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Aspect Host",
+      "kind": "enhancement",
+      "name": "Mantle of Wisdom",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Aspect Host",
+      "kind": "enhancement",
+      "name": "Strategic Savant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Armoured Warhost",
+      "kind": "rule",
+      "name": "Skilled Crews",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Armoured Warhost",
+      "kind": "enhancement",
+      "name": "Spirit Stone of Raelyth",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Fateful Performance",
+      "kind": "rule",
+      "name": "Acrobatic Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Fateful Performance",
+      "kind": "enhancement",
+      "name": "A Foot in the Future",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Fateful Performance",
+      "kind": "enhancement",
+      "name": "Mistweave",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Path of the Outcast",
+      "kind": "rule",
+      "name": "Far-Reaching Doom",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Path of the Outcast",
+      "kind": "enhancement",
+      "name": "Camouflaged Snipers UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Path of the Outcast",
+      "kind": "enhancement",
+      "name": "Assassins' Eye UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Twilight Flickers",
+      "kind": "rule",
+      "name": "Dance of Distortion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Twilight Flickers",
+      "kind": "enhancement",
+      "name": "Shadowfall Masks UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Twilight Flickers",
+      "kind": "enhancement",
+      "name": "Prelude Performer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Serpent’s Brood",
+      "kind": "enhancement",
+      "name": "Key of Ghosts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Serpent’s Brood",
+      "kind": "enhancement",
+      "name": "Fanged Leer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "aeldari",
+      "detachment": "Serpent’s Brood",
+      "kind": "enhancement",
+      "name": "Shedskin Raiment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/aeldari"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Combined Arms",
+      "kind": "enhancement",
+      "name": "Death Mask of Ollanius",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Combined Arms",
+      "kind": "enhancement",
+      "name": "Grand Strategist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Combined Arms",
+      "kind": "enhancement",
+      "name": "Reactive Command",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Siege Regiment",
+      "kind": "rule",
+      "name": "Artillery Support",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Siege Regiment",
+      "kind": "enhancement",
+      "name": "Eager Advance",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Siege Regiment",
+      "kind": "enhancement",
+      "name": "Flash Grenades",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Siege Regiment",
+      "kind": "enhancement",
+      "name": "Stalwart’s Honours",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Mechanised Assault",
+      "kind": "enhancement",
+      "name": "Bold Leadership",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Mechanised Assault",
+      "kind": "enhancement",
+      "name": "Smoke Grenades",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Mechanised Assault",
+      "kind": "enhancement",
+      "name": "Vanguard Honours",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Hammer of the Emperor",
+      "kind": "rule",
+      "name": "Iron Tread",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Hammer of the Emperor",
+      "kind": "enhancement",
+      "name": "Calm Under Fire",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Hammer of the Emperor",
+      "kind": "enhancement",
+      "name": "Regimental Banner",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Recon Element",
+      "kind": "rule",
+      "name": "Masters of Camouflage",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Recon Element",
+      "kind": "enhancement",
+      "name": "Guerrilla Honours",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Recon Element",
+      "kind": "enhancement",
+      "name": "Scare Gas Grenades",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Recon Element",
+      "kind": "enhancement",
+      "name": "Survival Gear",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Grizzled Company",
+      "kind": "enhancement",
+      "name": "Abhuman Detail",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Grizzled Company",
+      "kind": "enhancement",
+      "name": "Spec Ops Veteran",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Grizzled Company",
+      "kind": "enhancement",
+      "name": "Laud Hailer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Steel Hammer",
+      "kind": "rule",
+      "name": "Ceaseless Cannonade",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Steel Hammer",
+      "kind": "enhancement",
+      "name": "Battalion Commander",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Steel Hammer",
+      "kind": "enhancement",
+      "name": "Titan Killer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Steel Hammer",
+      "kind": "enhancement",
+      "name": "Engine Speaker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Steel Hammer",
+      "kind": "enhancement",
+      "name": "Assault Hatches",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Armoured Infantry",
+      "kind": "rule",
+      "name": "Squadron Command",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Armoured Infantry",
+      "kind": "enhancement",
+      "name": "Exemplary Officer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Armoured Infantry",
+      "kind": "enhancement",
+      "name": "Master Manoeuvrist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Armoured Infantry",
+      "kind": "enhancement",
+      "name": "Grand Strategist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Abhuman Auxiliaries",
+      "kind": "rule",
+      "name": "Absolutist Principles",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Abhuman Auxiliaries",
+      "kind": "enhancement",
+      "name": "Sharp eyes, Light fingers UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Designation Force",
+      "kind": "rule",
+      "name": "Designated Targets",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Designation Force",
+      "kind": "enhancement",
+      "name": "Long-Range Scout UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Designation Force",
+      "kind": "enhancement",
+      "name": "Recon Star UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Bridgehead Strike",
+      "kind": "enhancement",
+      "name": "Bombast-class Vox-array",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "astra-militarum",
+      "detachment": "Bridgehead Strike",
+      "kind": "enhancement",
+      "name": "Priority drop Beacon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/astra-militarum"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Daemonic Incursion",
+      "kind": "enhancement",
+      "name": "Soulstealer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Shadow Legion",
+      "kind": "rule",
+      "name": "Thralls of the First Prince",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Shadow Legion",
+      "kind": "enhancement",
+      "name": "Leaping Shadows",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Shadow Legion",
+      "kind": "enhancement",
+      "name": "Mantle of Gloom (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Shadow Legion",
+      "kind": "enhancement",
+      "name": "Fade to Darkness",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Shadow Legion",
+      "kind": "enhancement",
+      "name": "Malice Made Manifest",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Blood Legion",
+      "kind": "rule",
+      "name": "Murdercall",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Blood Legion",
+      "kind": "rule",
+      "name": "Blood Tainted",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Blood Legion",
+      "kind": "enhancement",
+      "name": "Brazenmaw",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Blood Legion",
+      "kind": "enhancement",
+      "name": "Gateway Unto Damnation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Legion of Excess",
+      "kind": "rule",
+      "name": "Beguiling Aura",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Legion of Excess",
+      "kind": "enhancement",
+      "name": "Avatar of Perfection",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Legion of Excess",
+      "kind": "enhancement",
+      "name": "Soul Glutton",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Plague Legion",
+      "kind": "rule",
+      "name": "Melancholic Miasma",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Plague Legion",
+      "kind": "enhancement",
+      "name": "Cankerblight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Plague Legion",
+      "kind": "enhancement",
+      "name": "Maggot Maws",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Plague Legion",
+      "kind": "enhancement",
+      "name": "Droning Shroud (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Plague Legion",
+      "kind": "enhancement",
+      "name": "Font of Spores (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Scintillating Legion",
+      "kind": "rule",
+      "name": "Fates in Flux",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Scintillating Legion",
+      "kind": "enhancement",
+      "name": "Inescapable Eye",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Scintillating Legion",
+      "kind": "enhancement",
+      "name": "Infernal Puppeteer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Cavalcade of Chaos",
+      "kind": "rule",
+      "name": "Unholy Avalanche",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Cavalcade of Chaos",
+      "kind": "enhancement",
+      "name": "Apocalyptic Steeds UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Cavalcade of Chaos",
+      "kind": "enhancement",
+      "name": "Soul-Shattering Charge UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Lords of the Warp",
+      "kind": "rule",
+      "name": "Loci of Power",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Lords of the Warp",
+      "kind": "enhancement",
+      "name": "Swollen with Power UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Warptide",
+      "kind": "rule",
+      "name": "Shudderblink",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Warptide",
+      "kind": "enhancement",
+      "name": "Bane-Forged Weapons UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-daemons",
+      "detachment": "Warptide",
+      "kind": "enhancement",
+      "name": "Soul-Hungry Slaughterers UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-daemons"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Traitoris Lance",
+      "kind": "rule",
+      "name": "Paragons of Terror",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Traitoris Lance",
+      "kind": "enhancement",
+      "name": "Nightmare’s Master",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Traitoris Lance",
+      "kind": "enhancement",
+      "name": "Tyrant’s Shadow",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Traitoris Lance",
+      "kind": "enhancement",
+      "name": "Malevolent Heraldry",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Infernal Lance",
+      "kind": "enhancement",
+      "name": "Blasphemous Engine",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Infernal Lance",
+      "kind": "enhancement",
+      "name": "Fleshmetal Fusion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Infernal Lance",
+      "kind": "enhancement",
+      "name": "Bestial Aspect",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Lords of Dread",
+      "kind": "rule",
+      "name": "Tyrannical Court",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Lords of Dread",
+      "kind": "enhancement",
+      "name": "Throne Mechanicum of Skulls",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Lords of Dread",
+      "kind": "enhancement",
+      "name": "Blade of Celerity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Lords of Dread",
+      "kind": "enhancement",
+      "name": "Warp-borne Stalker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Lords of Dread",
+      "kind": "enhancement",
+      "name": "Putrid Carapace",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Lords of Dread",
+      "kind": "enhancement",
+      "name": "Mirror of Fates",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Houndpack Lance",
+      "kind": "enhancement",
+      "name": "Preyslayer’s Mantle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Houndpack Lance",
+      "kind": "enhancement",
+      "name": "Loping Predator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Helhunt Lance",
+      "kind": "rule",
+      "name": "Masters of the Pack",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Helhunt Lance",
+      "kind": "enhancement",
+      "name": "Aspect of the Beast",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Helhunt Lance",
+      "kind": "enhancement",
+      "name": "Hunter’s Helm",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Helhunt Lance",
+      "kind": "enhancement",
+      "name": "Octagram of Conjuration",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Helhunt Lance",
+      "kind": "enhancement",
+      "name": "Throne Tyrannicus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Bastions of Tyranny",
+      "kind": "rule",
+      "name": "Annihilate the Unworthy",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Bastions of Tyranny",
+      "kind": "enhancement",
+      "name": "Pterrorshade Rookery",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Bastions of Tyranny",
+      "kind": "enhancement",
+      "name": "Hate-Filled Dominion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Hunting Warpack",
+      "kind": "rule",
+      "name": "Scenting Fear",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Hunting Warpack",
+      "kind": "enhancement",
+      "name": "Soul-Spoor Auspicator UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Iconoclast Fiefdom",
+      "kind": "rule",
+      "name": "Wretched Thralls",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Iconoclast Fiefdom",
+      "kind": "enhancement",
+      "name": "Cruel Lashmaster (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-knights",
+      "detachment": "Iconoclast Fiefdom",
+      "kind": "enhancement",
+      "name": "Iconoclast Idol (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-knights"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Veterans of the Long War",
+      "kind": "enhancement",
+      "name": "Eye of Abaddon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Veterans of the Long War",
+      "kind": "enhancement",
+      "name": "Mark of Legend",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Veterans of the Long War",
+      "kind": "enhancement",
+      "name": "Warmaster’s Gift",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Deceptors",
+      "kind": "rule",
+      "name": "Masters of Misdirection",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Deceptors",
+      "kind": "enhancement",
+      "name": "Falsehood",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Deceptors",
+      "kind": "enhancement",
+      "name": "Shroud of Obfuscation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Deceptors",
+      "kind": "enhancement",
+      "name": "Soul Link",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Raiders",
+      "kind": "enhancement",
+      "name": "Despot’s Claim",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Raiders",
+      "kind": "enhancement",
+      "name": "Mark of the Hound",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Raiders",
+      "kind": "enhancement",
+      "name": "Tyrant’s Lash",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Dread Talons",
+      "kind": "rule",
+      "name": "Terror Descends (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Dread Talons",
+      "kind": "enhancement",
+      "name": "Eater of Dread",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Dread Talons",
+      "kind": "enhancement",
+      "name": "Night’s Shroud",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Dread Talons",
+      "kind": "enhancement",
+      "name": "Warp-fuelled Thrusters",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Dread Talons",
+      "kind": "enhancement",
+      "name": "Willbreaker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Fellhammer Siege-host",
+      "kind": "enhancement",
+      "name": "Bastion Plate",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Fellhammer Siege-host",
+      "kind": "enhancement",
+      "name": "Iron Artifice",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Fellhammer Siege-host",
+      "kind": "enhancement",
+      "name": "Warp Tracer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Pactbound Zealots",
+      "kind": "enhancement",
+      "name": "Eye of Tzeentch",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Pactbound Zealots",
+      "kind": "enhancement",
+      "name": "Orbs of Unlife",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Chaos Cult",
+      "kind": "rule",
+      "name": "Desperate Devotion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Chaos Cult",
+      "kind": "rule",
+      "name": "KEYWORDS",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Chaos Cult",
+      "kind": "enhancement",
+      "name": "Amulet of Tainted Vigour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Chaos Cult",
+      "kind": "enhancement",
+      "name": "Cultist’s Brand",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Chaos Cult",
+      "kind": "enhancement",
+      "name": "Warped Foresight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Soulforged Warpack",
+      "kind": "enhancement",
+      "name": "Invigorated Mechatendrils",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Soulforged Warpack",
+      "kind": "enhancement",
+      "name": "Soul Harvester",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Creations of Bile",
+      "kind": "enhancement",
+      "name": "Helm of All-seeing",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Nightmare Hunt",
+      "kind": "enhancement",
+      "name": "Greyveil Hex",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Nightmare Hunt",
+      "kind": "enhancement",
+      "name": "Warp-fuelled Thrusters",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Nightmare Hunt",
+      "kind": "enhancement",
+      "name": "Terrorglut Parasite",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Nightmare Hunt",
+      "kind": "enhancement",
+      "name": "Sorrowscent Vulture",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Huron’s Marauders",
+      "kind": "enhancement",
+      "name": "Voice of the Tyrant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Huron’s Marauders",
+      "kind": "enhancement",
+      "name": "Raid Leader",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Huron’s Marauders",
+      "kind": "enhancement",
+      "name": "Dread Reputation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Huron’s Marauders",
+      "kind": "enhancement",
+      "name": "Eager for Bloodshed",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Warband",
+      "kind": "rule",
+      "name": "Slaves to None",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Warband",
+      "kind": "rule",
+      "name": "Twisted Doctrine",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Warband",
+      "kind": "enhancement",
+      "name": "Weaponised Hatred",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Renegade Warband",
+      "kind": "enhancement",
+      "name": "Empyric Symbiote",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Warpstrike Champions",
+      "kind": "rule",
+      "name": "Warp Portals",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Warpstrike Champions",
+      "kind": "enhancement",
+      "name": "Infernal Fulgurite",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Warpstrike Champions",
+      "kind": "enhancement",
+      "name": "Eye of the Warp",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Warpstrike Champions",
+      "kind": "enhancement",
+      "name": "Akshur’s Binding Runes",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Cult of the Arkifane",
+      "kind": "enhancement",
+      "name": "Wyredjinn",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Cult of the Arkifane",
+      "kind": "enhancement",
+      "name": "Cybinfernal Font",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Cult of the Arkifane",
+      "kind": "enhancement",
+      "name": "Crown of Worms",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Cabal of Chaos",
+      "kind": "rule",
+      "name": "Empyric Wellspring",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Cabal of Chaos",
+      "kind": "enhancement",
+      "name": "Touched by the Warp",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Devotees of Destruction",
+      "kind": "rule",
+      "name": "Rain of Ruin",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Devotees of Destruction",
+      "kind": "enhancement",
+      "name": "Pact of Destruction",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Devotees of Destruction",
+      "kind": "enhancement",
+      "name": "Eye of Oblivion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Murdertalon Raiders",
+      "kind": "enhancement",
+      "name": "Shadowcowl Talisman",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "chaos-space-marines",
+      "detachment": "Murdertalon Raiders",
+      "kind": "enhancement",
+      "name": "Pact of Cursed Pinions",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/chaos-space-marines"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Virulent Vectorium",
+      "kind": "rule",
+      "name": "Worldblight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Mortarion’s Hammer",
+      "kind": "rule",
+      "name": "Miasmic Bombardment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Mortarion’s Hammer",
+      "kind": "enhancement",
+      "name": "Bilemaw Blight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Mortarion’s Hammer",
+      "kind": "enhancement",
+      "name": "Shriekworm Familiar",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Champions of Contagion",
+      "kind": "rule",
+      "name": "Manifold Maladies",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Champions of Contagion",
+      "kind": "enhancement",
+      "name": "Final Ingredient",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Champions of Contagion",
+      "kind": "enhancement",
+      "name": "Visions of Virulence",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Champions of Contagion",
+      "kind": "enhancement",
+      "name": "Needle of Nurgle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Champions of Contagion",
+      "kind": "enhancement",
+      "name": "Cornucophagus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Tallyband Summoners",
+      "kind": "rule",
+      "name": "Reverberant Rancidity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Tallyband Summoners",
+      "kind": "enhancement",
+      "name": "Beckoning Blight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Tallyband Summoners",
+      "kind": "enhancement",
+      "name": "Entropic Knell",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Tallyband Summoners",
+      "kind": "enhancement",
+      "name": "Tome of Bounteous Blessings",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Shamblerot Vectorium",
+      "kind": "rule",
+      "name": "Numberless Horde",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Shamblerot Vectorium",
+      "kind": "enhancement",
+      "name": "Witherbone Pipes",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Shamblerot Vectorium",
+      "kind": "enhancement",
+      "name": "Lord of the Walking Pox",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Death Lord’s Chosen",
+      "kind": "rule",
+      "name": "Deadly Vectors",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Death Lord’s Chosen",
+      "kind": "enhancement",
+      "name": "Face of Death",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Death Lord’s Chosen",
+      "kind": "enhancement",
+      "name": "Vile Vigour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Death Lord’s Chosen",
+      "kind": "enhancement",
+      "name": "Warprot Talisman",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Death Lord’s Chosen",
+      "kind": "enhancement",
+      "name": "Helm of the Fly King",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Contagion Engines",
+      "kind": "rule",
+      "name": "Warped and Rusted Animus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Contagion Engines",
+      "kind": "enhancement",
+      "name": "Parasitic Woe‑Reaper UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Contagion Engines",
+      "kind": "enhancement",
+      "name": "Lancet of the Worldsore UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Flyblown Host",
+      "kind": "rule",
+      "name": "Verminous Haze",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Flyblown Host",
+      "kind": "enhancement",
+      "name": "Plagueveil UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Paragons of Putrescence",
+      "kind": "rule",
+      "name": "Hypervirulent Strains",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "death-guard",
+      "detachment": "Paragons of Putrescence",
+      "kind": "enhancement",
+      "name": "Host of the Hybridised Pox",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/death-guard"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Realspace Raiders",
+      "kind": "rule",
+      "name": "Alliance of Agony",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Realspace Raiders",
+      "kind": "enhancement",
+      "name": "Dark Vitality",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Realspace Raiders",
+      "kind": "enhancement",
+      "name": "Labyrinthine Cunning",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Realspace Raiders",
+      "kind": "enhancement",
+      "name": "Crucible of Malediction",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Skysplinter Assault",
+      "kind": "enhancement",
+      "name": "Phantasmal Smoke",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Skysplinter Assault",
+      "kind": "enhancement",
+      "name": "Spiteful Raider",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Skysplinter Assault",
+      "kind": "enhancement",
+      "name": "Nightmare Shroud",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Spectacle of Spite",
+      "kind": "enhancement",
+      "name": "Pharmacophex",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Spectacle of Spite",
+      "kind": "enhancement",
+      "name": "Chronoshard",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Spectacle of Spite",
+      "kind": "enhancement",
+      "name": "Periapt of Torments",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Covenite Coterie",
+      "kind": "enhancement",
+      "name": "Master Regenesist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Covenite Coterie",
+      "kind": "enhancement",
+      "name": "Master Nemesine",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Covenite Coterie",
+      "kind": "enhancement",
+      "name": "Master Repugnomancer (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Kabalite Cartel",
+      "kind": "enhancement",
+      "name": "Leechbite Plate",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Kabalite Cartel",
+      "kind": "enhancement",
+      "name": "Webway Awl",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Kabalite Cartel",
+      "kind": "enhancement",
+      "name": "Informant Network",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Kabalite Cartel",
+      "kind": "enhancement",
+      "name": "Towering Arrogance",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Reaper’s Wager",
+      "kind": "enhancement",
+      "name": "Archraider",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Reaper’s Wager",
+      "kind": "enhancement",
+      "name": "Webway Walker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Reaper’s Wager",
+      "kind": "enhancement",
+      "name": "Reaper’s Cowl",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Reaper’s Wager",
+      "kind": "enhancement",
+      "name": "Conductor of Torment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Exhibition of Slaughter",
+      "kind": "rule",
+      "name": "Exacting Cruelty",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Exhibition of Slaughter",
+      "kind": "enhancement",
+      "name": "Periapt of Torments",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Exhibition of Slaughter",
+      "kind": "enhancement",
+      "name": "Hyperstimm Trafficker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Kabalite Agonysts",
+      "kind": "enhancement",
+      "name": "Towering Arrogance",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "drukhari",
+      "detachment": "Tools of Torment",
+      "kind": "enhancement",
+      "name": "Elixir of the Corpse Courts UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/drukhari"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Mercurial Host",
+      "kind": "rule",
+      "name": "Quicksilver Grace",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Mercurial Host",
+      "kind": "enhancement",
+      "name": "Tactical Perfection",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Mercurial Host",
+      "kind": "enhancement",
+      "name": "Loathsome Dexterity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Peerless Bladesmen",
+      "kind": "enhancement",
+      "name": "Faultless Opportunist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Peerless Bladesmen",
+      "kind": "enhancement",
+      "name": "Blinding Speed",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Peerless Bladesmen",
+      "kind": "enhancement",
+      "name": "Rise to the Challenge",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Rapid Evisceration",
+      "kind": "enhancement",
+      "name": "Sublime Prescience",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Rapid Evisceration",
+      "kind": "enhancement",
+      "name": "Spearhead Striker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Rapid Evisceration",
+      "kind": "enhancement",
+      "name": "Accomplished Tactician",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Rapid Evisceration",
+      "kind": "enhancement",
+      "name": "Heretek Adept",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Carnival of Excess",
+      "kind": "enhancement",
+      "name": "Empyric Suffusion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Carnival of Excess",
+      "kind": "enhancement",
+      "name": "Warp Walker",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Coterie of the Conceited",
+      "kind": "enhancement",
+      "name": "Pledge of Eternal Servitude",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Coterie of the Conceited",
+      "kind": "enhancement",
+      "name": "Pledge of Dark Glory",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Coterie of the Conceited",
+      "kind": "enhancement",
+      "name": "Pledge of Mortal Pain",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Coterie of the Conceited",
+      "kind": "enhancement",
+      "name": "Pledge of Unholy Fortune",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Slaanesh’s Chosen",
+      "kind": "enhancement",
+      "name": "Eager to Prove",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Slaanesh’s Chosen",
+      "kind": "enhancement",
+      "name": "Repulsed by Weakness",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Slaanesh’s Chosen",
+      "kind": "enhancement",
+      "name": "Proud and Vainglorious",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Court of the Phoenician",
+      "kind": "rule",
+      "name": "Master of the Pageant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Court of the Phoenician",
+      "kind": "enhancement",
+      "name": "Tears of the Phoenix",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Court of the Phoenician",
+      "kind": "enhancement",
+      "name": "Exalted Patron",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Court of the Phoenician",
+      "kind": "enhancement",
+      "name": "Soulstain Made Manifest",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Elegant Brutes",
+      "kind": "rule",
+      "name": "Eager to Kill",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Frenzied Host",
+      "kind": "rule",
+      "name": "Frantic Focus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Frenzied Host",
+      "kind": "enhancement",
+      "name": "Euphoric Crown",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Frenzied Host",
+      "kind": "enhancement",
+      "name": "Howling Plate",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Spectacle of Slaughter",
+      "kind": "rule",
+      "name": "Entitled to Victory",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Spectacle of Slaughter",
+      "kind": "enhancement",
+      "name": "Eager Patrons UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "emperor-s-children",
+      "detachment": "Spectacle of Slaughter",
+      "kind": "enhancement",
+      "name": "Beguiling Grotesquerie UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/emperor-s-children"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Host of Ascension",
+      "kind": "enhancement",
+      "name": "Prowling Agitant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Host of Ascension",
+      "kind": "enhancement",
+      "name": "Our Time Is Nigh",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Xenocreed Congregation",
+      "kind": "enhancement",
+      "name": "Gene-sire’s Reliquant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Xenocreed Congregation",
+      "kind": "enhancement",
+      "name": "Deeds That Speak to the Masses",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Xenocreed Congregation",
+      "kind": "enhancement",
+      "name": "Incendiary Inspiration",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Biosanctic Broodsurge",
+      "kind": "enhancement",
+      "name": "Predatory Instincts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Biosanctic Broodsurge",
+      "kind": "enhancement",
+      "name": "Mutagenic Regeneration",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Biosanctic Broodsurge",
+      "kind": "enhancement",
+      "name": "Alien Majesty",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Outlander Claw",
+      "kind": "rule",
+      "name": "Rapid Takeover",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Outlander Claw",
+      "kind": "enhancement",
+      "name": "Serpentine Tactics",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Outlander Claw",
+      "kind": "enhancement",
+      "name": "Cartographic Data-leech",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Brood Brother Auxilia",
+      "kind": "rule",
+      "name": "BROOD BROTHERS",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Brood Brother Auxilia",
+      "kind": "enhancement",
+      "name": "Martial Espionage",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Brood Brother Auxilia",
+      "kind": "enhancement",
+      "name": "Adaptive Reprisal",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Brood Brother Auxilia",
+      "kind": "enhancement",
+      "name": "The Hero Returned",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Brood Brother Auxilia",
+      "kind": "enhancement",
+      "name": "Firepoint Commander",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Final Day",
+      "kind": "enhancement",
+      "name": "Synaptic Auger",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Final Day",
+      "kind": "enhancement",
+      "name": "Enraptured Damnation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Heroes of the Uprising",
+      "kind": "enhancement",
+      "name": "Gene-Tailored Toxins",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Heroes of the Uprising",
+      "kind": "enhancement",
+      "name": "Contraband Munitions",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Purestrain Broodswarm",
+      "kind": "rule",
+      "name": "Enemy Within",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Purestrain Broodswarm",
+      "kind": "enhancement",
+      "name": "Mark of the Star Children UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Xenocult Masses",
+      "kind": "rule",
+      "name": "Hordes of the Faithful",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Xenocult Masses",
+      "kind": "enhancement",
+      "name": "Inspired to Greatness",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "genestealer-cults",
+      "detachment": "Xenocult Masses",
+      "kind": "enhancement",
+      "name": "Devious Disguises UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/genestealer-cults"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Brotherhood Strike",
+      "kind": "enhancement",
+      "name": "Banishing Wave (Psychic)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Brotherhood Strike",
+      "kind": "enhancement",
+      "name": "Blinding Aura",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Brotherhood Strike",
+      "kind": "enhancement",
+      "name": "Purity of Purpose",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Brotherhood Strike",
+      "kind": "enhancement",
+      "name": "Tome of Forbidden Ways",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Hallowed Conclave",
+      "kind": "rule",
+      "name": "Duty Before All",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Hallowed Conclave",
+      "kind": "enhancement",
+      "name": "Eye of the Augurium",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Hallowed Conclave",
+      "kind": "enhancement",
+      "name": "Inescapable Judgement (Psychic)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Hallowed Conclave",
+      "kind": "enhancement",
+      "name": "Nemesis Rounds",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Banishers",
+      "kind": "enhancement",
+      "name": "The Ephemeral Tome",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Banishers",
+      "kind": "enhancement",
+      "name": "Pyresoul (Psychic)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Sanctic Spearhead",
+      "kind": "rule",
+      "name": "Mailed Fist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Sanctic Spearhead",
+      "kind": "enhancement",
+      "name": "Driven by Duty",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Sanctic Spearhead",
+      "kind": "enhancement",
+      "name": "Quickening Foci",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Sanctic Spearhead",
+      "kind": "enhancement",
+      "name": "Sigil of Exigence",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Augurium Task Force",
+      "kind": "rule",
+      "name": "Prescient Redeployment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Augurium Task Force",
+      "kind": "enhancement",
+      "name": "One Foot in the Future",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Augurium Task Force",
+      "kind": "enhancement",
+      "name": "Doomseer’s Amulet",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Warpbane Task Force",
+      "kind": "enhancement",
+      "name": "Mandulian Reliquary",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Warpbane Task Force",
+      "kind": "enhancement",
+      "name": "Phial of the Abyss",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Warpbane Task Force",
+      "kind": "enhancement",
+      "name": "Paragon of Sanctity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Argent Assault",
+      "kind": "rule",
+      "name": "Dauntless Champions",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Argent Assault",
+      "kind": "enhancement",
+      "name": "Psychic Celerity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Argent Assault",
+      "kind": "enhancement",
+      "name": "Vigilance of Titan",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Fires of Purgation",
+      "kind": "rule",
+      "name": "Searing Soulflame",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Fires of Purgation",
+      "kind": "enhancement",
+      "name": "Precognicient Volleys UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Fires of Purgation",
+      "kind": "enhancement",
+      "name": "Boons of Deimos UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Immaterial Interdiction",
+      "kind": "rule",
+      "name": "Echojump",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Immaterial Interdiction",
+      "kind": "enhancement",
+      "name": "Predestined Coordinates UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "grey-knights",
+      "detachment": "Immaterial Interdiction",
+      "kind": "enhancement",
+      "name": "Astral Overlap UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/grey-knights"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Ordo Xenos Alien Hunters",
+      "kind": "enhancement",
+      "name": "Beacon Angelis",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Ordo Xenos Alien Hunters",
+      "kind": "enhancement",
+      "name": "Universal Anathema",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Ordo Hereticus Purgation Force",
+      "kind": "enhancement",
+      "name": "Liber Heresius",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Ordo Hereticus Purgation Force",
+      "kind": "enhancement",
+      "name": "No Escape (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Ordo Malleus Daemon Hunters",
+      "kind": "enhancement",
+      "name": "Formidable Resolve",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Ordo Malleus Daemon Hunters",
+      "kind": "enhancement",
+      "name": "Gift of the Prescient",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Imperialis Fleet",
+      "kind": "enhancement",
+      "name": "Clandestine Operation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Imperialis Fleet",
+      "kind": "enhancement",
+      "name": "Combat Landers",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-agents",
+      "detachment": "Imperialis Fleet",
+      "kind": "enhancement",
+      "name": "Fleetmaster",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-agents"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Valourstrike Lance",
+      "kind": "rule",
+      "name": "Bold Gallantry",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Valourstrike Lance",
+      "kind": "enhancement",
+      "name": "Bearer of the Iron Chalice",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Valourstrike Lance",
+      "kind": "enhancement",
+      "name": "Bearer of the Lancer’s Sigil",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Gate Warden Lance",
+      "kind": "enhancement",
+      "name": "Acquisitor-at-Arms",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Gate Warden Lance",
+      "kind": "enhancement",
+      "name": "Vengeful Tread",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questoris Companions",
+      "kind": "rule",
+      "name": "Heroes of Legend",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questoris Companions",
+      "kind": "rule",
+      "name": "Valour’s Reward",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questoris Companions",
+      "kind": "enhancement",
+      "name": "Herald of Triumph",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questoris Companions",
+      "kind": "enhancement",
+      "name": "Crushing Condemnation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Spearhead-At-Arms",
+      "kind": "rule",
+      "name": "Knightly Teachings",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Spearhead-At-Arms",
+      "kind": "enhancement",
+      "name": "Tales of Heroism",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Spearhead-At-Arms",
+      "kind": "enhancement",
+      "name": "Martial Tuition",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Freeblade Company",
+      "kind": "enhancement",
+      "name": "Mysterious Guardian",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Dominus Foebreakers",
+      "kind": "enhancement",
+      "name": "Blessed Plate",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Dominus Foebreakers",
+      "kind": "enhancement",
+      "name": "Archeotech Autoloaders",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questor Forgepact",
+      "kind": "rule",
+      "name": "Cogbound Alliance",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questor Forgepact",
+      "kind": "enhancement",
+      "name": "Magos Questoris",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Questor Forgepact",
+      "kind": "enhancement",
+      "name": "Knight of the Opus Machina (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Throne-Bonded Outriders",
+      "kind": "enhancement",
+      "name": "Gyro-Optimised Actuators UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "imperial-knights",
+      "detachment": "Throne-Bonded Outriders",
+      "kind": "enhancement",
+      "name": "Ancestral Overbleed UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Needgaârd Oathband",
+      "kind": "rule",
+      "name": "Martial Leverage",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Needgaârd Oathband",
+      "kind": "enhancement",
+      "name": "Dead Reckoning",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Needgaârd Oathband",
+      "kind": "enhancement",
+      "name": "Iron Ambassador",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Needgaârd Oathband",
+      "kind": "enhancement",
+      "name": "Ancestral Crest",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Persecution Prospect",
+      "kind": "rule",
+      "name": "Assailed From Every Angle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Persecution Prospect",
+      "kind": "enhancement",
+      "name": "Writ of Acquisition",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Persecution Prospect",
+      "kind": "enhancement",
+      "name": "Surgical Saboteur",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Persecution Prospect",
+      "kind": "enhancement",
+      "name": "Nomad Strategist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Dêlve Assault Shift",
+      "kind": "rule",
+      "name": "Fury From The Dêlve",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Dêlve Assault Shift",
+      "kind": "enhancement",
+      "name": "Dêlvwerke Navigator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Dêlve Assault Shift",
+      "kind": "enhancement",
+      "name": "Multiwave System Jammer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Dêlve Assault Shift",
+      "kind": "enhancement",
+      "name": "Piledriver",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Brandfast Oathband",
+      "kind": "enhancement",
+      "name": "Tactical Alchemy",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Brandfast Oathband",
+      "kind": "enhancement",
+      "name": "Precursive Judgement",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Brandfast Oathband",
+      "kind": "enhancement",
+      "name": "Signature Restoration",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthfyre Arsenal",
+      "kind": "enhancement",
+      "name": "Fârstrydr Node",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthfyre Arsenal",
+      "kind": "enhancement",
+      "name": "Calculated Tenacity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthfyre Arsenal",
+      "kind": "enhancement",
+      "name": "Mantle of Elders",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthband",
+      "kind": "enhancement",
+      "name": "Ironskein",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthband",
+      "kind": "enhancement",
+      "name": "High Kâhl",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Mercenary Oathband",
+      "kind": "rule",
+      "name": "Ruthless Reinvestment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Mercenary Oathband",
+      "kind": "enhancement",
+      "name": "Mercenary Prospector",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Mercenary Oathband",
+      "kind": "enhancement",
+      "name": "Metaphysical Brokerage",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Mercenary Oathband",
+      "kind": "enhancement",
+      "name": "Asset Manipulator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Armoured Trailblazers",
+      "kind": "rule",
+      "name": "Sagitaur Spearhead",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Armoured Trailblazers",
+      "kind": "enhancement",
+      "name": "Optimised Attack Lines UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Farseekers",
+      "kind": "enhancement",
+      "name": "Pan-Spectral Lockons UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Farseekers",
+      "kind": "enhancement",
+      "name": "Shroudwërke Talismans UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthguard Covenant",
+      "kind": "enhancement",
+      "name": "High Kâhl",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "leagues-of-votann",
+      "detachment": "Hearthguard Covenant",
+      "kind": "enhancement",
+      "name": "Ironskein",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/leagues-of-votann"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Awakened Dynasty",
+      "kind": "enhancement",
+      "name": "Veil of Darkness",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Awakened Dynasty",
+      "kind": "enhancement",
+      "name": "Nether-realm Casket",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Annihilation Legion",
+      "kind": "enhancement",
+      "name": "Eternal Madness",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Annihilation Legion",
+      "kind": "enhancement",
+      "name": "Soulless Reaper",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Annihilation Legion",
+      "kind": "enhancement",
+      "name": "Eldritch Nightmare",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Canoptek Court",
+      "kind": "enhancement",
+      "name": "Dimensional Sanctum",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Canoptek Court",
+      "kind": "enhancement",
+      "name": "Autodivinator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Canoptek Court",
+      "kind": "enhancement",
+      "name": "Metalodermal Tesla Weave",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Obeisance Phalanx",
+      "kind": "enhancement",
+      "name": "Honourable Combatant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hypercrypt Legion",
+      "kind": "rule",
+      "name": "Hyperphasing",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hypercrypt Legion",
+      "kind": "enhancement",
+      "name": "Dimensional Overseer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hypercrypt Legion",
+      "kind": "enhancement",
+      "name": "Hyperspatial Transfer Node",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hypercrypt Legion",
+      "kind": "enhancement",
+      "name": "Osteoclave Fulcrum",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Starshatter Arsenal",
+      "kind": "enhancement",
+      "name": "Demanding Leader",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Cryptek Conclave",
+      "kind": "enhancement",
+      "name": "Quantum Abacus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Cryptek Conclave",
+      "kind": "enhancement",
+      "name": "Atomic Disintegrators",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Cryptek Conclave",
+      "kind": "enhancement",
+      "name": "Gauntlet of Compression",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Cryptek Conclave",
+      "kind": "enhancement",
+      "name": "Gravitic Bolas",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Cursed Legion",
+      "kind": "enhancement",
+      "name": "Murdermind",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Cursed Legion",
+      "kind": "enhancement",
+      "name": "Cursed Circlet",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hand of the Dynasty",
+      "kind": "rule",
+      "name": "Hypermotility Protocols",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hand of the Dynasty",
+      "kind": "enhancement",
+      "name": "Enlivened Sentinels UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Hand of the Dynasty",
+      "kind": "enhancement",
+      "name": "Tools of Dominion UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Skyshroud Spearhead",
+      "kind": "enhancement",
+      "name": "Recursive Reanimation UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "Skyshroud Spearhead",
+      "kind": "enhancement",
+      "name": "Deepening Madness UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "The Phaeron's Armoury",
+      "kind": "rule",
+      "name": "Empowered Engines",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "necrons",
+      "detachment": "The Phaeron's Armoury",
+      "kind": "enhancement",
+      "name": "Mortality Shroud (Aura) UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/necrons"
+    },
+    {
+      "faction": "orks",
+      "detachment": "War Horde",
+      "kind": "enhancement",
+      "name": "Follow Me Ladz",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "War Horde",
+      "kind": "enhancement",
+      "name": "Kunnin’ But Brutal",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Da Big Hunt",
+      "kind": "enhancement",
+      "name": "Glory Hog",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Da Big Hunt",
+      "kind": "enhancement",
+      "name": "Skrag Every Stash!",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Kult of Speed",
+      "kind": "rule",
+      "name": "Adrenaline Junkies",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Kult of Speed",
+      "kind": "enhancement",
+      "name": "Fasta Than Yooz",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Kult of Speed",
+      "kind": "enhancement",
+      "name": "Speed Makes Right",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Kult of Speed",
+      "kind": "enhancement",
+      "name": "Squig-hide Tyres",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Kult of Speed",
+      "kind": "enhancement",
+      "name": "Wazblasta",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Dread Mob",
+      "kind": "rule",
+      "name": "KEYWORDS",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Dread Mob",
+      "kind": "enhancement",
+      "name": "Press It Fasta!",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Dread Mob",
+      "kind": "enhancement",
+      "name": "Smoky Gubbinz",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Green Tide",
+      "kind": "enhancement",
+      "name": "Bloodthirsty Belligerence",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Green Tide",
+      "kind": "enhancement",
+      "name": "Brutal But Kunnin’",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Green Tide",
+      "kind": "enhancement",
+      "name": "Raucous Warcaller",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Bully Boyz",
+      "kind": "rule",
+      "name": "Da Boss Is Watchin’",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Bully Boyz",
+      "kind": "enhancement",
+      "name": "Big Gob",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Bully Boyz",
+      "kind": "enhancement",
+      "name": "Da Biggest Boss",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Bully Boyz",
+      "kind": "enhancement",
+      "name": "Tellyporta",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Freebooter Krew",
+      "kind": "enhancement",
+      "name": "Da Kaptin",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Freebooter Krew",
+      "kind": "enhancement",
+      "name": "Razgit’s Magik Map",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Speedwaaagh!",
+      "kind": "rule",
+      "name": "Turbo Boostas",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Speedwaaagh!",
+      "kind": "enhancement",
+      "name": "Kustom Shokk Box",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Speedwaaagh!",
+      "kind": "enhancement",
+      "name": "Dakkamek",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Speedwaaagh!",
+      "kind": "enhancement",
+      "name": "Supa-burny Fuel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Speedwaaagh!",
+      "kind": "enhancement",
+      "name": "Master Meknologist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Blitz Brigade",
+      "kind": "rule",
+      "name": "Eager for the Fight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Blitz Brigade",
+      "kind": "enhancement",
+      "name": "Runnin’ Boots",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Blitz Brigade",
+      "kind": "enhancement",
+      "name": "Blitzkaptin",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Blitz Brigade",
+      "kind": "enhancement",
+      "name": "Supercharged Squig Oil",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Blitz Brigade",
+      "kind": "enhancement",
+      "name": "Tuff Git",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "More Dakka!",
+      "kind": "enhancement",
+      "name": "Dead Shiny Shootas UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Rollin’ Deff",
+      "kind": "rule",
+      "name": "Thundering Wagons",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Rollin’ Deff",
+      "kind": "enhancement",
+      "name": "Boarding Ramps UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Taktikal Brigade",
+      "kind": "rule",
+      "name": "Lissen ’Ere",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Taktikal Brigade",
+      "kind": "enhancement",
+      "name": "Mork’s Kunnin’",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Taktikal Brigade",
+      "kind": "enhancement",
+      "name": "Slippery Git",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Equatorial Hordes",
+      "kind": "rule",
+      "name": "Jungle Know-Wotz",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Equatorial Hordes",
+      "kind": "enhancement",
+      "name": "Kunnin’ Hunta",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "orks",
+      "detachment": "Equatorial Hordes",
+      "kind": "enhancement",
+      "name": "Unkillable Scourge",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/orks"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Gladius Task Force",
+      "kind": "rule",
+      "name": "Combat Doctrines",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Gladius Task Force",
+      "kind": "enhancement",
+      "name": "Artificer Armour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Gladius Task Force",
+      "kind": "enhancement",
+      "name": "Adept of the Codex",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Anvil Siege Force",
+      "kind": "enhancement",
+      "name": "Indomitable Fury",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Anvil Siege Force",
+      "kind": "enhancement",
+      "name": "Fleet Commander",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Ironstorm Spearhead",
+      "kind": "rule",
+      "name": "Armoured Wrath",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Ironstorm Spearhead",
+      "kind": "enhancement",
+      "name": "Adept of the Omnissiah",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Ironstorm Spearhead",
+      "kind": "enhancement",
+      "name": "Master of Machine War",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Firestorm Assault Force",
+      "kind": "enhancement",
+      "name": "Champion of Humanity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Firestorm Assault Force",
+      "kind": "enhancement",
+      "name": "Forged in Battle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Stormlance Task Force",
+      "kind": "rule",
+      "name": "Lightning Assault",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Stormlance Task Force",
+      "kind": "enhancement",
+      "name": "Portents of Wisdom",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Stormlance Task Force",
+      "kind": "enhancement",
+      "name": "Feinting Withdrawal",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Stormlance Task Force",
+      "kind": "enhancement",
+      "name": "Hunter’s Instincts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vanguard Spearhead",
+      "kind": "rule",
+      "name": "Shadow Masters",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vanguard Spearhead",
+      "kind": "enhancement",
+      "name": "The Blade Driven Deep",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vanguard Spearhead",
+      "kind": "enhancement",
+      "name": "Ghostweave Cloak",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vanguard Spearhead",
+      "kind": "enhancement",
+      "name": "Execute and Redeploy",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vanguard Spearhead",
+      "kind": "enhancement",
+      "name": "Shadow War Veteran",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "1st Company Task Force",
+      "kind": "enhancement",
+      "name": "Fear Made Manifest (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "1st Company Task Force",
+      "kind": "enhancement",
+      "name": "Rites of War",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Bastion Task Force",
+      "kind": "enhancement",
+      "name": "Hero of the Chapter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Bastion Task Force",
+      "kind": "enhancement",
+      "name": "Blades of Valour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Bastion Task Force",
+      "kind": "enhancement",
+      "name": "Bombast Omnivox",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Orbital Assault Force",
+      "kind": "enhancement",
+      "name": "Laurels of Thunder",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Orbital Assault Force",
+      "kind": "enhancement",
+      "name": "Veteran of the Vanguard",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Orbital Assault Force",
+      "kind": "enhancement",
+      "name": "Orbital Uplink Reliquary",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Orbital Assault Force",
+      "kind": "enhancement",
+      "name": "Dedicated Gunship",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Ceramite Sentinels",
+      "kind": "enhancement",
+      "name": "Honour Indefatigable",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Ceramite Sentinels",
+      "kind": "enhancement",
+      "name": "Castellum Omnivox",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Ceramite Sentinels",
+      "kind": "enhancement",
+      "name": "Defensive Mastery",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Armoured Speartip",
+      "kind": "rule",
+      "name": "Rapid Deployment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Armoured Speartip",
+      "kind": "enhancement",
+      "name": "Liberator",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Armoured Speartip",
+      "kind": "enhancement",
+      "name": "Tip of the Spear",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Armoured Speartip",
+      "kind": "enhancement",
+      "name": "Armoured Commander",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Headhunter Task Force",
+      "kind": "rule",
+      "name": "Target Sighted",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Headhunter Task Force",
+      "kind": "enhancement",
+      "name": "Gunnery Honours",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Headhunter Task Force",
+      "kind": "enhancement",
+      "name": "Astartes Tank Ace (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Emperor’s Shield",
+      "kind": "enhancement",
+      "name": "Disciple of Rhetoricus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Emperor’s Shield",
+      "kind": "enhancement",
+      "name": "Indomitable Champion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Blade of Ultramar",
+      "kind": "rule",
+      "name": "Mastered Doctrines",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Blade of Ultramar",
+      "kind": "enhancement",
+      "name": "Armour of Antoninus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Blade of Ultramar",
+      "kind": "enhancement",
+      "name": "Student of the Codex",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Reclamation Force",
+      "kind": "enhancement",
+      "name": "Avenging Avatar (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Reclamation Force",
+      "kind": "enhancement",
+      "name": "Scroll of Proclamation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "rule",
+      "name": "Masters of Shadow",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "rule",
+      "name": "Unparalleled Tactician",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "enhancement",
+      "name": "Blackwing Shroud",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "enhancement",
+      "name": "Coronal Susurrant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "enhancement",
+      "name": "Umbral Raptor",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "enhancement",
+      "name": "Hunter’s Instincts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Forgefather’s Seekers",
+      "kind": "enhancement",
+      "name": "Forged in Battle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Hammer of Avernii",
+      "kind": "rule",
+      "name": "Recalculating",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Hammer of Avernii",
+      "kind": "rule",
+      "name": "Restrictions",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Hammer of Avernii",
+      "kind": "enhancement",
+      "name": "Medusan Roar (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Hammer of Avernii",
+      "kind": "enhancement",
+      "name": "Iron Laurel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Hammer of Avernii",
+      "kind": "enhancement",
+      "name": "Steel Font",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Spearpoint Task Force",
+      "kind": "rule",
+      "name": "Storm-swift Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Spearpoint Task Force",
+      "kind": "rule",
+      "name": "Wrath of the First Khan",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Spearpoint Task Force",
+      "kind": "enhancement",
+      "name": "Stormseers’ Wisdom",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Spearpoint Task Force",
+      "kind": "enhancement",
+      "name": "Chogorian Huntmaster",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vengeful Hosts",
+      "kind": "enhancement",
+      "name": "Avenging Angel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vengeful Hosts",
+      "kind": "enhancement",
+      "name": "Orksbane",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Fulguris Task Force",
+      "kind": "rule",
+      "name": "Skystrike",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Fulguris Task Force",
+      "kind": "enhancement",
+      "name": "Bellicose Weapon Spirits UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Librarius Conclave",
+      "kind": "enhancement",
+      "name": "Celerity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Librarius Conclave",
+      "kind": "enhancement",
+      "name": "Prescience",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Librarius Conclave",
+      "kind": "enhancement",
+      "name": "Obfuscation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Librarius Conclave",
+      "kind": "enhancement",
+      "name": "Temporal Corridor",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Subversion Assets",
+      "kind": "rule",
+      "name": "Nowhere to Hide",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Subversion Assets",
+      "kind": "enhancement",
+      "name": "Shroud Field",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Companions of Vehemence",
+      "kind": "rule",
+      "name": "Righteous Fervour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Companions of Vehemence",
+      "kind": "enhancement",
+      "name": "Incendiary Animus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Companions of Vehemence",
+      "kind": "enhancement",
+      "name": "Oathbound Exemplar",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Companions of Vehemence",
+      "kind": "enhancement",
+      "name": "Zealous Vanguard",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vindication Task Force",
+      "kind": "enhancement",
+      "name": "Imperialis of the Eternal Crusade",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vindication Task Force",
+      "kind": "enhancement",
+      "name": "Orb of the Emperor’s Aegis",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Vindication Task Force",
+      "kind": "enhancement",
+      "name": "Warden of Honour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Godhammer Assault Force",
+      "kind": "enhancement",
+      "name": "Battle-psalm Precentor",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Godhammer Assault Force",
+      "kind": "enhancement",
+      "name": "Augury Servo-host",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Godhammer Assault Force",
+      "kind": "enhancement",
+      "name": "Herald of Sacred Slaughter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Marshal’s Household",
+      "kind": "rule",
+      "name": "Faith-fuelled Resolve",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Marshal’s Household",
+      "kind": "enhancement",
+      "name": "Fervent Exemplars UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Marshal’s Household",
+      "kind": "enhancement",
+      "name": "Inheritors of Sigismund UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Living Miracle",
+      "kind": "rule",
+      "name": "Anointed Champion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrathful Procession",
+      "kind": "rule",
+      "name": "Chant of Deathless Devotion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Liberator Assault Group",
+      "kind": "enhancement",
+      "name": "Speed of the Primarch",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Liberator Assault Group",
+      "kind": "enhancement",
+      "name": "Icon of the Angel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Liberator Assault Group",
+      "kind": "enhancement",
+      "name": "Gift of Foresight",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Lost Brethren",
+      "kind": "enhancement",
+      "name": "Sanguinius’ Grace",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Lost Brethren",
+      "kind": "enhancement",
+      "name": "Blood Shard",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Lost Brethren",
+      "kind": "enhancement",
+      "name": "To Slay the Warmaster",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Lost Brethren",
+      "kind": "enhancement",
+      "name": "Vengeful Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Angelic Host",
+      "kind": "rule",
+      "name": "Upon Wings of Fire",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Angelic Host",
+      "kind": "enhancement",
+      "name": "Visage of Death",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "The Angelic Host",
+      "kind": "enhancement",
+      "name": "Gleaming Pinions",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Angelic Inheritors",
+      "kind": "enhancement",
+      "name": "Prescient Flash",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Angelic Inheritors",
+      "kind": "enhancement",
+      "name": "Troubling Visions",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Angelic Inheritors",
+      "kind": "enhancement",
+      "name": "Blazing Icon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Angelic Inheritors",
+      "kind": "enhancement",
+      "name": "Ordained Sacrifice",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Rage-cursed Onslaught",
+      "kind": "enhancement",
+      "name": "Carmine Reliquary",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Rage-cursed Onslaught",
+      "kind": "enhancement",
+      "name": "Master of the Red Thirst",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legacy of Grace",
+      "kind": "rule",
+      "name": "Legacy of the Angel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legacy of Grace",
+      "kind": "enhancement",
+      "name": "Blood Boil",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legacy of Grace",
+      "kind": "enhancement",
+      "name": "Aureole of the Angel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Encarmine Speartip",
+      "kind": "rule",
+      "name": "Wrath of Angels",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Encarmine Speartip",
+      "kind": "enhancement",
+      "name": "Shadow of Abomination",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrath of the Doomed",
+      "kind": "rule",
+      "name": "Fanatical Celerity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrath of the Doomed",
+      "kind": "enhancement",
+      "name": "Instinctive Interception",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrath of the Doomed",
+      "kind": "enhancement",
+      "name": "On the Archtraitor's Bridge",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Unforgiven Task Force",
+      "kind": "rule",
+      "name": "Grim Resolve",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Unforgiven Task Force",
+      "kind": "enhancement",
+      "name": "Shroud of Heroes",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Inner Circle Task Force",
+      "kind": "enhancement",
+      "name": "Eye of the Unseen",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Inner Circle Task Force",
+      "kind": "enhancement",
+      "name": "Singular Will",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Inner Circle Task Force",
+      "kind": "enhancement",
+      "name": "Deathwing Assault",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Company of Hunters",
+      "kind": "rule",
+      "name": "Masters of Manoeuvre",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Company of Hunters",
+      "kind": "enhancement",
+      "name": "Mounted Strategist",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Company of Hunters",
+      "kind": "enhancement",
+      "name": "Master of Manoeuvre",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Company of Hunters",
+      "kind": "enhancement",
+      "name": "Recon Hunter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrath of the Rock",
+      "kind": "enhancement",
+      "name": "Tempered in Battle (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrath of the Rock",
+      "kind": "enhancement",
+      "name": "Deathwing Assault",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Wrath of the Rock",
+      "kind": "enhancement",
+      "name": "Lord of the Ravenwing",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Lion’s Blade Task Force",
+      "kind": "rule",
+      "name": "In The Lion’s Claws",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Lion’s Blade Task Force",
+      "kind": "enhancement",
+      "name": "Lord of the Hunt",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Lion’s Blade Task Force",
+      "kind": "enhancement",
+      "name": "Stalwart Champion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Lion’s Blade Task Force",
+      "kind": "enhancement",
+      "name": "Fulgus Magna",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Dark Age Arsenal",
+      "kind": "rule",
+      "name": "Invocations of Ancient Fury",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Dark Age Arsenal",
+      "kind": "enhancement",
+      "name": "Petition of Stability UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Dark Age Arsenal",
+      "kind": "enhancement",
+      "name": "Entreaty of Perpetual Ardour UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Darkflight Pursuit",
+      "kind": "enhancement",
+      "name": "Thundercowl Turbines UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Darkflight Pursuit",
+      "kind": "enhancement",
+      "name": "Nightforged Battery UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Interrogation Conclave",
+      "kind": "rule",
+      "name": "Dread Catechism",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Interrogation Conclave",
+      "kind": "enhancement",
+      "name": "Limitless Zeal",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Black Spear Task Force",
+      "kind": "enhancement",
+      "name": "Beacon Angelis",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Hunter",
+      "kind": "enhancement",
+      "name": "Swift Hunter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Bold",
+      "kind": "rule",
+      "name": "Heroes All",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Bold",
+      "kind": "enhancement",
+      "name": "Skjald",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Bold",
+      "kind": "enhancement",
+      "name": "Thunderwolf’s Fortitude",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Beastslayer",
+      "kind": "enhancement",
+      "name": "Wolf-touched",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Beastslayer",
+      "kind": "enhancement",
+      "name": "Hunter’s Guile",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Beastslayer",
+      "kind": "enhancement",
+      "name": "Elder’s Guidance",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Beastslayer",
+      "kind": "enhancement",
+      "name": "Helm of the Beastslayer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Champions of Fenris",
+      "kind": "rule",
+      "name": "The Great Wolf Watches",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Champions of Fenris",
+      "kind": "enhancement",
+      "name": "A Giant Amongst Giants",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Champions of Fenris",
+      "kind": "enhancement",
+      "name": "Preyslayer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legends of Saga and Song",
+      "kind": "rule",
+      "name": "Loping Charge",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legends of Saga and Song",
+      "kind": "enhancement",
+      "name": "Thirst For Glory UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legends of Saga and Song",
+      "kind": "enhancement",
+      "name": "Fierce Example UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Veterans of the Fang",
+      "kind": "rule",
+      "name": "Old Greymanes",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Veterans of the Fang",
+      "kind": "enhancement",
+      "name": "Weaver of Sagas",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Great Wolf",
+      "kind": "rule",
+      "name": "Howling Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Great Wolf",
+      "kind": "enhancement",
+      "name": "Grimnar’s Mark",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Great Wolf",
+      "kind": "enhancement",
+      "name": "Howlmaw",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Saga of the Great Wolf",
+      "kind": "enhancement",
+      "name": "Chariots of the Storm",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Kauyon",
+      "kind": "enhancement",
+      "name": "Exemplar of the Kauyon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Kauyon",
+      "kind": "enhancement",
+      "name": "Solid-image Projection Unit",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Mont’ka",
+      "kind": "enhancement",
+      "name": "Exemplar of the Mont’ka",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Mont’ka",
+      "kind": "enhancement",
+      "name": "Strategic Conqueror",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Mont’ka",
+      "kind": "enhancement",
+      "name": "Strike Swiftly",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Retaliation Cadre",
+      "kind": "enhancement",
+      "name": "Internal Grenade Racks",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Retaliation Cadre",
+      "kind": "enhancement",
+      "name": "Puretide Engram Neurochip",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Retaliation Cadre",
+      "kind": "enhancement",
+      "name": "Starflare Ignition System",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Kroot Hunting Pack",
+      "kind": "rule",
+      "name": "KEYWORDS",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Kroot Hunting Pack",
+      "kind": "enhancement",
+      "name": "Nomadic Hunter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Advanced Acquisition Cadre",
+      "kind": "rule",
+      "name": "Expert Fieldcraft",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Advanced Acquisition Cadre",
+      "kind": "enhancement",
+      "name": "Negation Emitters UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Advanced Acquisition Cadre",
+      "kind": "enhancement",
+      "name": "Unmasking Suite UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Auxiliary Cadre",
+      "kind": "rule",
+      "name": "Integrated Command Structure",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Auxiliary Cadre",
+      "kind": "enhancement",
+      "name": "Student of Kauyon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Auxiliary Cadre",
+      "kind": "enhancement",
+      "name": "Admired Leader",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Experimental Prototype Cadre",
+      "kind": "rule",
+      "name": "Superior Craftsmanship",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Experimental Prototype Cadre",
+      "kind": "enhancement",
+      "name": "Thermoneutronic Projector",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Experimental Prototype Cadre",
+      "kind": "enhancement",
+      "name": "Plasma Accelerator Rifle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Experimental Prototype Cadre",
+      "kind": "enhancement",
+      "name": "Supernova Launcher",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Grand Coven",
+      "kind": "enhancement",
+      "name": "Lord of Forbidden Lore",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Grand Coven",
+      "kind": "enhancement",
+      "name": "Incandaeum",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Grand Coven",
+      "kind": "enhancement",
+      "name": "Umbralefic Crystal",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Changehost of Deceit",
+      "kind": "enhancement",
+      "name": "Nethershriek Mind-eater",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Changehost of Deceit",
+      "kind": "enhancement",
+      "name": "Diabolic Savant",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Changehost of Deceit",
+      "kind": "enhancement",
+      "name": "Duplicitous Malediction",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpmeld Pact",
+      "kind": "enhancement",
+      "name": "Warpmeld Dagger",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpmeld Pact",
+      "kind": "enhancement",
+      "name": "Bray Lord",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Rubricae Phalanx",
+      "kind": "rule",
+      "name": "All is Dust",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Rubricae Phalanx",
+      "kind": "enhancement",
+      "name": "Risen Rubricae",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Rubricae Phalanx",
+      "kind": "enhancement",
+      "name": "Arcane Thralls (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpforged Cabal",
+      "kind": "rule",
+      "name": "Warpfire Infusion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpforged Cabal",
+      "kind": "enhancement",
+      "name": "Warp Syphon",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpforged Cabal",
+      "kind": "enhancement",
+      "name": "The Perplexing Cloak",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpforged Cabal",
+      "kind": "enhancement",
+      "name": "Biomechanical Mutation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Warpforged Cabal",
+      "kind": "enhancement",
+      "name": "Warp-cursed Runemaster",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Ritual of Regeneration",
+      "kind": "rule",
+      "name": "Sorcerous Invigoration",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Ritual of Regeneration",
+      "kind": "enhancement",
+      "name": "Eruption of Vitality",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Ritual of Regeneration",
+      "kind": "enhancement",
+      "name": "Curse of Life",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Sekhetar Cohort",
+      "kind": "rule",
+      "name": "Ensorcelled Animus",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Sekhetar Cohort",
+      "kind": "enhancement",
+      "name": "Walking Rampart",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Sekhetar Cohort",
+      "kind": "enhancement",
+      "name": "Occulus Infernum",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Servants of Change",
+      "kind": "rule",
+      "name": "All-Seeing Mutant Hordes",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Servants of Change",
+      "kind": "enhancement",
+      "name": "Unravelled Fates",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Servants of Change",
+      "kind": "enhancement",
+      "name": "Thicket of Bladed Bone UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Hexwarp Thrallband",
+      "kind": "enhancement",
+      "name": "Empowered Manifestation",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "thousand-sons",
+      "detachment": "Hexwarp Thrallband",
+      "kind": "enhancement",
+      "name": "Noctilith Mantle",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/thousand-sons"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Invasion Fleet",
+      "kind": "enhancement",
+      "name": "Alien Cunning",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Invasion Fleet",
+      "kind": "enhancement",
+      "name": "Perfectly Adapted",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Invasion Fleet",
+      "kind": "enhancement",
+      "name": "Synaptic Linchpin",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Crusher Stampede",
+      "kind": "enhancement",
+      "name": "Ominous Presence",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Crusher Stampede",
+      "kind": "enhancement",
+      "name": "Enraged Reserves",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Unending Swarm",
+      "kind": "rule",
+      "name": "Insurmountable Odds",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Unending Swarm",
+      "kind": "enhancement",
+      "name": "Relentless Hunger",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Unending Swarm",
+      "kind": "enhancement",
+      "name": "Naturalised Camouflage",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Unending Swarm",
+      "kind": "enhancement",
+      "name": "Adrenalised Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Assimilation Swarm",
+      "kind": "rule",
+      "name": "Feed the Swarm",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Assimilation Swarm",
+      "kind": "enhancement",
+      "name": "Regenerating Monstrosity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Assimilation Swarm",
+      "kind": "enhancement",
+      "name": "Instinctive Defence",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Assimilation Swarm",
+      "kind": "enhancement",
+      "name": "Biophagic Flow (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Vanguard Onslaught",
+      "kind": "rule",
+      "name": "Questing Tendrils",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Vanguard Onslaught",
+      "kind": "rule",
+      "name": "Vanguard Prime",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Vanguard Onslaught",
+      "kind": "enhancement",
+      "name": "Hunting Grounds",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Vanguard Onslaught",
+      "kind": "enhancement",
+      "name": "Chameleonic",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Vanguard Onslaught",
+      "kind": "enhancement",
+      "name": "Neuronode",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Synaptic Nexus",
+      "kind": "enhancement",
+      "name": "Psychostatic Disruption",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Synaptic Nexus",
+      "kind": "enhancement",
+      "name": "The Dirgeheart of Kharis (Aura)",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Subterranean Assault",
+      "kind": "enhancement",
+      "name": "Synaptic Strategy",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Subterranean Assault",
+      "kind": "enhancement",
+      "name": "Tremor Senses",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Subterranean Assault",
+      "kind": "enhancement",
+      "name": "Vanguard Intellect",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Ambush Predators",
+      "kind": "enhancement",
+      "name": "Encircling Horrors UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Ambush Predators",
+      "kind": "enhancement",
+      "name": "Cryptophotaic Camouflage UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Talons of the Norn Queen",
+      "kind": "rule",
+      "name": "Higher Imperatives",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Talons of the Norn Queen",
+      "kind": "enhancement",
+      "name": "Destabilising Predation UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Talons of the Norn Queen",
+      "kind": "enhancement",
+      "name": "Synaptoprescience UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "tyranids",
+      "detachment": "Warrior Bioform Onslaught",
+      "kind": "rule",
+      "name": "Leader-beasts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/tyranids"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Berzerker Warband",
+      "kind": "enhancement",
+      "name": "Favoured of Khorne",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Berzerker Warband",
+      "kind": "enhancement",
+      "name": "Battle-lust",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Cult of Blood",
+      "kind": "enhancement",
+      "name": "Chosen of the Blood God",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Cult of Blood",
+      "kind": "enhancement",
+      "name": "Butcher Lord",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Cult of Blood",
+      "kind": "enhancement",
+      "name": "Strategic Slaughter",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Khorne Daemonkin",
+      "kind": "enhancement",
+      "name": "Icon of War",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Khorne Daemonkin",
+      "kind": "enhancement",
+      "name": "Blood-forged Armour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Khorne Daemonkin",
+      "kind": "enhancement",
+      "name": "Disciple of Khorne",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Possessed Slaughterband",
+      "kind": "rule",
+      "name": "Brazen Fury",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Possessed Slaughterband",
+      "kind": "enhancement",
+      "name": "Malicious Vigour",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Possessed Slaughterband",
+      "kind": "enhancement",
+      "name": "Killing Clarity",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Possessed Slaughterband",
+      "kind": "enhancement",
+      "name": "Violent Demise",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Goretrack Onslaught",
+      "kind": "enhancement",
+      "name": "Murderous Onslaught",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Goretrack Onslaught",
+      "kind": "enhancement",
+      "name": "Aggressive Deployment",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Goretrack Onslaught",
+      "kind": "enhancement",
+      "name": "Infernal Infusion",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Brazen Engines",
+      "kind": "rule",
+      "name": "Rampaging Terrors",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Brazen Engines",
+      "kind": "enhancement",
+      "name": "Talons of Butchery UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Brazen Engines",
+      "kind": "enhancement",
+      "name": "Murder-Forged Entity UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Butchers of Khorne",
+      "kind": "rule",
+      "name": "Adamantine Avalanche",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Butchers of Khorne",
+      "kind": "enhancement",
+      "name": "Sanctified in Slaughter UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Butchers of Khorne",
+      "kind": "enhancement",
+      "name": "Gore-Stained Veterans UPGRADE",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Vessels of Wrath",
+      "kind": "rule",
+      "name": "Wrath of Khorne",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Vessels of Wrath",
+      "kind": "enhancement",
+      "name": "Archslaughterer",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    },
+    {
+      "faction": "world-eaters",
+      "detachment": "Vessels of Wrath",
+      "kind": "enhancement",
+      "name": "Gateways to Glory",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/world-eaters"
+    }
+  ],
+  "ambiguous": [
+    {
+      "faction": "imperial-knights",
+      "detachment": "Freeblade Company",
+      "kind": "enhancement",
+      "name": "Hunter’s Eye",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/imperial-knights"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Spearpoint Task Force",
+      "kind": "enhancement",
+      "name": "Hunter’s Eye",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Stormlance Task Force",
+      "kind": "enhancement",
+      "name": "Hunter’s Instincts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Shadowmark Talon",
+      "kind": "enhancement",
+      "name": "Hunter’s Instincts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "t-au-empire",
+      "detachment": "Kroot Hunting Pack",
+      "kind": "rule",
+      "name": "Hunter’s Instincts",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/t-au-empire"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Angelic Inheritors",
+      "kind": "rule",
+      "name": "Legacy of the Angel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    },
+    {
+      "faction": "space-marines",
+      "detachment": "Legacy of Grace",
+      "kind": "rule",
+      "name": "Legacy of the Angel",
+      "url": "https://wahapedia.ru/wh40k11ed/factions/space-marines"
+    }
+  ]
+}

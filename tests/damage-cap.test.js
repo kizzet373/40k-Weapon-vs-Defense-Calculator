@@ -67,6 +67,7 @@ context.window = context;
 
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, 'calculator-core.js'), 'utf8'), context, { filename: 'calculator-core.js' });
+vm.runInContext(fs.readFileSync(path.join(root, 'wahapedia-modifiers.generated.js'), 'utf8'), context, { filename: 'wahapedia-modifiers.generated.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'ability-modifiers.js'), 'utf8'), context, { filename: 'ability-modifiers.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'keyword-definitions.js'), 'utf8'), context, { filename: 'keyword-definitions.js' });
 vm.runInContext(fs.readFileSync(path.join(root, 'matchup-engine.js'), 'utf8'), context, { filename: 'matchup-engine.js' });
@@ -845,6 +846,11 @@ assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Shadow Lord (Aura, Psychic)')),
   JSON.stringify(['Unit-wide | Reroll Hits 1']),
   'imported Shadow Lord aura maps to an always-on unit-wide hit reroll modifier'
+);
+assert.strictEqual(
+  JSON.stringify(app.unitAbilityModifierNames('Adamantine Talisman')),
+  JSON.stringify(['Bearer | Melee: Attacks +1 | Melee: Strength +1 | Melee: Damage +1']),
+  'generated Wahapedia enhancements are available to the modifier service'
 );
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Oath of Moment')),

@@ -24,7 +24,7 @@ context.global = context;
 context.window = context;
 
 vm.createContext(context);
-['calculator-core.js', 'ability-modifiers.js', 'matchup-engine.js', 'army-import.js', 'utilities.js'].forEach(file => {
+['calculator-core.js', 'wahapedia-modifiers.generated.js', 'ability-modifiers.js', 'matchup-engine.js', 'army-import.js', 'utilities.js'].forEach(file => {
   vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
 });
 

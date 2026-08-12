@@ -1,5 +1,6 @@
 (function(){
   const ABILITY_MODIFIERS = {
+    ...(window.WahapediaModifierMap || {}),
     'Dark Pacts': ['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1'],
     "Disciples of Be'lakor": ['Unit-wide | Choose Best: Lethal Hits; Sustained Hits 1'],
     'Stealth': ['Defense: Cover'],
