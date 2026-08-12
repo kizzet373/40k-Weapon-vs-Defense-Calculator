@@ -961,6 +961,11 @@ const customFnpDamage = app.computeMatchupCell(appGridFnpAttacker, customFnpTarg
 assert.ok(Math.abs(customFnpDamage - (appGridNoFnpDamage * (2 / 3))) < 1e-9, 'ability/custom defensive FNP modifiers reduce matchup grid damage');
 assert.strictEqual(app.effectiveDefense(customFnpTarget).Fnp, 5, 'ability/custom defensive FNP modifiers are reflected in effective defense');
 assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('Collar of Khorne')), JSON.stringify(['Defense Attack: FNP 3+ | Weapon is Psychic']), 'Collar of Khorne maps to a weapon-keyword-scoped defensive FNP');
+assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('Blessed by the Plague God')), JSON.stringify(['Unit-wide | Defense: Invulnerable Save 4+']), 'Epidemius grants his led unit a 4+ invulnerable save');
+assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('Fluxmaster')), JSON.stringify(['Unit-wide | Defense: Cover', 'Unit-wide | Defense Attack: Melee: Hit Rolls -1']), 'Fluxmaster supplies both defensive datasheet effects');
+assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('Seductive Gambit')), JSON.stringify(['Conditional | Reroll Hits | Reroll Wounds 1']), 'Seductive Gambit exposes its conditional offensive rerolls');
+assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('The Eternal Dance')), JSON.stringify(['Conditional | Unit-wide | Melee: Wound Rolls +1', 'Conditional | Defense Attack: Melee: Wound Rolls -1']), 'The Eternal Dance exposes both sides of its conditional melee effect');
+assert.strictEqual(JSON.stringify(app.unitAbilityModifierNames('Virulent Blessing (Psychic)')), JSON.stringify(['Conditional | Unit-wide | Damage +1']), 'Virulent Blessing exposes its conditional damage bonus');
 const collarTarget = { label: 'Flesh Hounds', abilities: ['Collar of Khorne'], defense: { T: 4, Sv: 7, W: 100, models: 1, totalWounds: 100 }, _unitKey: 'collar-target' };
 const collarNonPsychicAttacker = {
   label: 'Non-psychic attacker',
