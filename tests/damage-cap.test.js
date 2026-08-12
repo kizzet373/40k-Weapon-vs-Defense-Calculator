@@ -853,8 +853,8 @@ assert.strictEqual(
 );
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Daemon Lord of Khorne (Aura)')),
-  JSON.stringify(['Conditional | Unit-wide | Melee: Hit Rolls +1']),
-  'Daemon Lord aura aliases from Daemons Options map to their damage modifier'
+  JSON.stringify(['Unit-wide | Melee: Hit Rolls +1']),
+  'Daemon Lord aura aliases map to an always-on damage modifier'
 );
 assert.strictEqual(
   JSON.stringify(app.unitAbilityModifierNames('Master of Magicks (Psychic)')),
@@ -1004,12 +1004,12 @@ const nurgleAuraTarget = { label: 'Nurgle aura target', abilities: ['Daemon Lord
 app.matchup.conditionsMet = false;
 app.clearMatchupComputationCache();
 const nurgleAuraOff = app.computeMatchupCell(conditionalDefenseAttacker, nurgleAuraTarget).dmg;
-assert.strictEqual(app.effectiveDefense(nurgleAuraTarget).T, 4, 'conditional defensive profile modifiers are off by default');
+assert.strictEqual(app.effectiveDefense(nurgleAuraTarget).T, 5, 'aura defensive profile modifiers apply without Conditions Met');
 app.matchup.conditionsMet = true;
 app.clearMatchupComputationCache();
 const nurgleAuraOn = app.computeMatchupCell(conditionalDefenseAttacker, nurgleAuraTarget).dmg;
-assert.strictEqual(app.effectiveDefense(nurgleAuraTarget).T, 5, 'conditional defensive profile modifiers apply when Conditions Met is enabled');
-assert.ok(nurgleAuraOn < nurgleAuraOff, 'conditional defensive profile modifiers reduce matchup grid damage when Conditions Met is enabled');
+assert.strictEqual(app.effectiveDefense(nurgleAuraTarget).T, 5, 'aura defensive profile modifiers remain active with Conditions Met enabled');
+assert.ok(Math.abs(nurgleAuraOn - nurgleAuraOff) < 1e-9, 'Conditions Met does not toggle aura defensive profile modifiers');
 app.matchup.conditionsMet = false;
 app.clearMatchupComputationCache();
 const unmodifiedTarget = { label: 'Base target', defense: { T: 4, Sv: 7, W: 2, models: 1, totalWounds: 2 } };
