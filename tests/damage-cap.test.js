@@ -408,6 +408,33 @@ const optimalOrderCell = context.window.MatchupEngine.computeCell(
 );
 assert.ok(optimalOrderCell.weaponName.startsWith('1x Tank breaker'), 'weapon order is selected by best damage into the current worst legal defensive profile');
 
+const phasePriorityCell = context.window.MatchupEngine.computeCell(
+  {
+    label: 'Phase priority attacker',
+    _children: [
+      { label: 'Low ranged model', weapons: [{ name: 'Low ranged', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '1', modifiers: '', mode: 'ranged' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+      { label: 'High melee model', weapons: [{ name: 'High melee', range: 'Melee', A: '1', skill: 'auto', S: '99', AP: '6', D: '10', modifiers: '', mode: 'melee' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+      { label: 'High ranged model', weapons: [{ name: 'High ranged', range: '24', A: '1', skill: 'auto', S: '99', AP: '6', D: '4', modifiers: '', mode: 'ranged' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+      { label: 'Low melee model', weapons: [{ name: 'Low melee', range: 'Melee', A: '1', skill: 'auto', S: '99', AP: '6', D: '2', modifiers: '', mode: 'melee' }], defense: { T: 4, Sv: 3, W: 1, models: 1 } },
+    ],
+    defense: { T: 4, Sv: 3, W: 1, models: 4 },
+  },
+  { label: 'Phase priority target', defense: { T: 4, Sv: 7, W: 1000, models: 1, totalWounds: 1000 } },
+  {
+    includeFormula: true,
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+    isAbilityEnabled: () => true,
+    combineShootingProfiles: true,
+  }
+);
+assert.strictEqual(
+  phasePriorityCell.formulaItems.map(item => item.weaponName).join('|'),
+  'High ranged|Low ranged|High melee|Low melee',
+  'profiles resolve ranged then melee, highest to lowest damage within each phase'
+);
+
 const app = context.weaponVsDefenseApp();
 const scoreScaleUnit = { label: 'Score scale check', _unitKey: 'score-scale-check', _points: 100, defense: { T: 4, Sv: 3, W: 2, models: 1 } };
 app.matchup.metric = 'modelWounds';
@@ -1295,17 +1322,17 @@ const belakorTerminatorCell = app.computeMatchupCell(
 );
 app.formulaCell = belakorTerminatorCell;
 const belakorTerminatorSections = app.matchupFormulaSections();
-const belakorBladeLines = belakorTerminatorSections[0].lines.map(line => line.text || line);
-const belakorShadesLines = belakorTerminatorSections[1].lines.map(line => line.text || line);
-assert.ok(Math.abs(belakorTerminatorCell.dmg - 15.270276189378974) < 1e-9, "Be'lakor exact sequence reports post-spill damage including probability-weighted overkill");
-assert.ok(Math.abs(belakorTerminatorCell.pctModelWounds - (15.270276189378974 / 16)) < 1e-9, "Be'lakor Damage % includes probability-weighted overkill damage");
+const belakorShadesLines = belakorTerminatorSections[0].lines.map(line => line.text || line);
+const belakorBladeLines = belakorTerminatorSections[1].lines.map(line => line.text || line);
+assert.ok(Math.abs(belakorTerminatorCell.dmg - 14.483054229452971) < 1e-9, "Be'lakor exact sequence reports post-spill damage including probability-weighted overkill");
+assert.ok(Math.abs(belakorTerminatorCell.pctModelWounds - (14.483054229452971 / 16)) < 1e-9, "Be'lakor Damage % includes probability-weighted overkill damage");
 assert.ok(Math.abs(belakorTerminatorCell.kills - 3.140724917757548) < 1e-9, "Be'lakor reports probability-weighted models destroyed across both profiles");
 assert.ok(Math.abs(belakorTerminatorCell.pctUnitKilled - 0.4590320577627054) < 1e-9, "Be'lakor uses the exact probability of destroying all four terminators");
-assert.ok(belakorBladeLines.some(line => /^Spill Loss: .* = 4\.709 spill loss$/i.test(line)), 'variable Blade damage uses the full dice distribution for spill loss');
-assert.ok(belakorBladeLines.some(line => /^Total: 10\.604 damage \(10\.191 wounds \+ 0\.413 overkill\)$/i.test(line)), 'Blade total separates applied wounds from probability-weighted overkill');
-assert.ok(belakorBladeLines.some(line => /Models destroyed: 2\.408$/i.test(line)), 'Blade profile reports expected models destroyed');
-assert.ok(belakorShadesLines.some(line => /^~ .*1\.592 models left ~$/.test(line)), 'the second profile starts from the expected model state left by the Blade distribution');
-assert.ok(belakorShadesLines.some(line => /^Total: 4\.667 damage \(3\.276 wounds \+ 1\.391 overkill\)$/i.test(line)), 'D1 follow-up damage is allocated across every state left by the Blade');
+assert.ok(belakorShadesLines.some(line => /^Total: 4\.667 damage \(4\.667 wounds \+ 0 overkill\)$/i.test(line)), 'the ranged D1 profile resolves first without spill loss');
+assert.ok(belakorBladeLines.some(line => /^~ .*3\.205 models left ~$/.test(line)), 'the melee profile starts from the expected model state left by ranged attacks');
+assert.ok(belakorBladeLines.some(line => /^Spill Loss: .* = 5\.496 spill loss$/i.test(line)), 'variable Blade damage uses the full dice distribution for spill loss');
+assert.ok(belakorBladeLines.some(line => /^Total: 9\.816 damage \(8\.339 wounds \+ 1\.477 overkill\)$/i.test(line)), 'Blade total separates applied wounds from probability-weighted overkill');
+assert.ok(belakorBladeLines.some(line => /Models destroyed: 2\.346$/i.test(line)), 'Blade profile reports expected models destroyed');
 assert.strictEqual(app.formulaDestroyedSummaryText(), 'Models destroyed: 3.141 (T5 | 2+ 4++ | W4)', 'total result reports probability-weighted destroyed terminators');
 
 const halvedFlatFormulaCell = app.computeMatchupCell(
@@ -1757,6 +1784,27 @@ assert.ok(brassStampedeCell.dmg > 1, 'Brass Stampede pre-damage is added before 
 assert.ok(/^1\. Pre-Damage - Brass Stampede mortal wounds/i.test(brassStampedeSections[0]?.title || ''), 'Brass Stampede appears as the first Pre-Damage formula section');
 assert.strictEqual(brassStampedeCell.formulaItems[0]?.phase, 'preDamage', 'Brass Stampede formula item is tagged as pre-damage');
 assert.ok(brassStampedeSections[0].lines.some(line => /Damage: 50\.0% x 1d3 damage = 1 damage/i.test(line.text || line)), 'Brass Stampede formula shows the charge chance and dice damage expression');
+
+const genericImpactCell = context.window.MatchupEngine.computeCell(
+  {
+    label: 'Generic impact unit',
+    abilities: ['Impact Mortals'],
+    weapons: [{ name: 'Impact follow-up', range: 'Melee', A: '1', skill: 'auto', S: '4', AP: '0', D: '1', modifiers: '', mode: 'melee' }],
+    defense: { T: 4, Sv: 3, W: 3, models: 3 },
+  },
+  { label: 'Impact target', defense: { T: 4, Sv: 7, W: 20, models: 1, totalWounds: 20 } },
+  {
+    includeFormula: true,
+    conditionsMet: true,
+    isWeaponEnabled: () => true,
+    isMeleeEnabled: () => true,
+    effectiveWeaponModifiers: weapon => weapon.modifiers || '',
+    isAbilityEnabled: () => true,
+    combineShootingProfiles: true,
+  }
+);
+assert.strictEqual(genericImpactCell.formulaItems[0]?.phase, 'preDamage', 'generic Impact Mortals are restored as charge-time pre-damage');
+assert.ok(/^Impact Mortals mortal wounds$/i.test(genericImpactCell.formulaItems[0]?.weaponName || ''), 'impact mortal rules keep their imported ability name');
 
 const brassStampedeKillSummaryCell = app.computeMatchupCell(
   {

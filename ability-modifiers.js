@@ -54,6 +54,8 @@
     'Mischief Makers': ['Defense Attack: Melee: Hit Rolls -1'],
     'Mischief Makers (Aura)': ['Defense Attack: Melee: Hit Rolls -1'],
     'Brass Stampede': ['Conditional | Unit-wide | Mortal Wounds On Charge'],
+    'Impact Mortals': ['Conditional | Unit-wide | Mortal Wounds On Charge'],
+    'Impact Mortal Wounds': ['Conditional | Unit-wide | Mortal Wounds On Charge'],
     'Cutting Down the Foe': ['Conditional | Unit-wide | Melee: Strength +1 | Melee: Damage +1'],
     "Death's Heads": ['Conditional | Unit-wide | Reroll Wounds'],
     'Executioner': ['Bearer | Conditional | Hit Rolls +1'],

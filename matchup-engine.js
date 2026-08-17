@@ -332,10 +332,6 @@
     };
   }
 
-  function unitHasAbility(unit, pattern){
-    return (unit?.abilities || []).some(ability => pattern.test(String(ability || '')));
-  }
-
   function parentUnit(unit){
     return unit?._parentUnit || unit?._baseUnit?._parentUnit || null;
   }
@@ -374,12 +370,14 @@
     if(attackMode === 'shooting') return { dmg: 0, profile: null };
     if(!options?.conditionsMet) return { dmg: 0, profile: null };
     if(typeof options?.isMeleeEnabled === 'function' && !options.isMeleeEnabled()) return { dmg: 0, profile: null };
-    const inheritedFrom = parentUnit(unit);
-    const ownAbility = unitHasAbility(unit, /brass stampede/i);
-    const inheritedAbility = !ownAbility && inheritedFrom && !options?.suppressInheritedUnitAbilities && unitHasAbility(inheritedFrom, /brass stampede/i);
-    const abilityUnit = ownAbility ? unit : (inheritedAbility ? inheritedFrom : null);
-    if(!abilityUnit) return { dmg: 0, profile: null };
-    if(!isAbilityEnabled(abilityUnit, 'Brass Stampede', options)) return { dmg: 0, profile: null };
+    const service = window.AbilityModifierService;
+    const impactSource = specialAbilitySources(unit, options).find(({ ability }) =>
+      service?.modifiersForRule?.(ability).some(spec =>
+        service.parseModifierSpec?.(spec)?.modifiers?.some(modifier => /^Mortal Wounds On Charge$/i.test(modifier))
+      )
+    );
+    if(!impactSource) return { dmg: 0, profile: null };
+    const abilityName = impactSource.ability || 'Impact';
     const models = bloodcrusherChargeModelCount(unit);
     if(models <= 0) return { dmg: 0, profile: null };
     const chance = 0.5;
@@ -387,7 +385,7 @@
     const expectedPerModel = chance * window.WeaponCalc.parseNdX(dice).mean;
     return {
       dmg: models * expectedPerModel,
-      profile: { name: 'Brass Stampede mortal wounds', count: models, D: dice },
+      profile: { name: `${abilityName} mortal wounds`, count: models, D: dice },
       effect: { count: models, chance, dice, label: models === 1 ? 'model' : 'models' },
       phase: 'preDamage',
     };
@@ -396,7 +394,8 @@
   function specialAbilitySources(unit, options){
     const seen = new Set();
     const out = [];
-    [unit, ...leafAttackUnits(unit)].filter(Boolean).forEach(source => {
+    const inheritedFrom = options?.suppressInheritedUnitAbilities ? null : parentUnit(unit);
+    [unit, inheritedFrom, ...leafAttackUnits(unit)].filter(Boolean).forEach(source => {
       (source?.abilities || []).forEach(ability => {
         if(!isAbilityEnabled(source, ability, options)) return;
         const key = `${source?._unitKey || source?.label || 'unit'}|${ability}`;
@@ -1460,6 +1459,14 @@
     return groups;
   }
 
+  function attackGroupPhaseRank(group){
+    if(group?.type === 'mortal') return 2;
+    const phase = weaponPhase(group?.alternatives?.[0]?.weapon);
+    if(phase === 'shooting') return 0;
+    if(phase === 'melee') return 1;
+    return 2;
+  }
+
   function cloneStateForPhaseChoice(state){
     const cloned = (state || []).map(line => ({
       ...cloneTargetLine(line),
@@ -1832,7 +1839,9 @@
       : options;
 
     while(remainingGroups.length){
+      const activePhaseRank = Math.min(...remainingGroups.map(attackGroupPhaseRank));
       const choices = remainingGroups.map((group, index) => {
+        if(attackGroupPhaseRank(group) !== activePhaseRank) return null;
         if(group.type === 'mortal'){
           return {
             group,
@@ -1851,7 +1860,7 @@
           firstTargetDamage: bestAlternative?.firstTargetDamage || 0,
           choice: bestAlternative,
         };
-      });
+      }).filter(Boolean);
       const selected = choices.reduce((winner, candidate) => {
         if(candidate.firstTargetDamage > (winner?.firstTargetDamage ?? -1)) return candidate;
         if(Math.abs(candidate.firstTargetDamage - (winner?.firstTargetDamage ?? 0)) <= 1e-9 && candidate.group.index < winner.group.index) return candidate;
