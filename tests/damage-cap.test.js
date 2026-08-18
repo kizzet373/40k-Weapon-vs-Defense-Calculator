@@ -15,6 +15,7 @@ assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(child\)[
 assert.ok(/mergeManagerProfileLink[\s\S]*openUnitProfile\(unit, 'Unit'\)[\s\S]*mergeManagerUnitName/.test(indexHtml), 'merge manager unit names open the unit profile modal');
 assert.ok(/mergeManagerProfileLink[\s\S]*openUnitProfile\(child, 'Model'\)[\s\S]*mergeManagerChildName/.test(indexHtml), 'merge manager model names open the model profile modal');
 assert.ok(/weaponCustomModifiers\(section\.model, w\)[\s\S]*type="checkbox"[\s\S]*toggleCustomModifier\(section\.model, custom\.id\)/.test(indexHtml), 'weapon custom modifiers render as toggleable checkbox pills in the unit profile modal');
+assert.ok(/section\.modifierList\.length[\s\S]*formulaModifierPill[\s\S]*x-text="modifier"/.test(indexHtml), 'calculation modal renders applied modifiers as visible pills for every weapon profile');
 assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline rename button');
 assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
 assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
@@ -2083,6 +2084,14 @@ const scopedAttacker = { label: 'Scoped attacker', _viewKey: 'scoped-attacker', 
 app.addWeaponCustomModifier(scopedAttacker, scopedWeaponA, 'Strength +1');
 assert.ok(/Strength \+1/.test(app.effectiveWeaponModifiers(scopedWeaponA, scopedAttacker, customDefender)), 'weapon custom dropdown modifiers apply to the selected weapon profile');
 assert.ok(!/Strength \+1/.test(app.effectiveWeaponModifiers(scopedWeaponB, scopedAttacker, customDefender)), 'weapon custom dropdown modifiers do not leak to other weapon profiles');
+const fallbackScopedWeapon = { name: 'Fallback scoped blade', range: 'Melee', A: '2', skill: '3', S: '5', AP: '1', D: '2', modifiers: '', mode: 'melee' };
+const fallbackScopedAttacker = { label: 'Fallback scoped attacker', _unitKey: 'fallback-scoped-attacker', abilities: [], weapons: [fallbackScopedWeapon], defense: { T: 4, Sv: 3, W: 2, models: 1 } };
+app.addWeaponCustomModifier(fallbackScopedAttacker, fallbackScopedWeapon, 'Damage +1');
+assert.strictEqual(app.weaponCustomModifiers(fallbackScopedAttacker, fallbackScopedWeapon).length, 1, 'custom modifier pills resolve weapons whose fallback identity contains modifier separators');
+assert.ok(/Damage \+1/.test(app.effectiveWeaponModifiers(fallbackScopedWeapon, fallbackScopedAttacker, customDefender)), 'fallback-key weapon custom modifiers are included in calculations');
+const fallbackFormulaCell = app.computeMatchupCell(fallbackScopedAttacker, customDefender, { includeFormula: true });
+app.formulaCell = fallbackFormulaCell;
+assert.ok(app.matchupFormulaSections().some(section => section.modifierList.includes('Damage +1')), 'custom weapon modifiers are visible on their profile in the calculation modal');
 
 const persistedModifierApp = context.weaponVsDefenseApp();
 const persistedModifierForce = {

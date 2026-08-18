@@ -917,8 +917,13 @@
         <template x-for="(section, si) in matchupFormulaSections()" :key="`formula-section-${si}`">
           <section class="formulaSection">
             <div class="formulaSectionTitle" x-text="section.title"></div>
-            <template x-if="section.modifiers">
-              <div class="formulaSectionModifiers" x-text="section.modifiers"></div>
+            <template x-if="section.modifierList.length">
+              <div class="formulaSectionModifiers">
+                <span class="formulaModifierLabel">Modifiers:</span>
+                <template x-for="(modifier, mi) in section.modifierList" :key="`formula-section-${si}-modifier-${mi}`">
+                  <span class="modifier formulaModifierPill" x-text="modifier"></span>
+                </template>
+              </div>
             </template>
             <template x-for="(line, li) in section.lines" :key="`formula-section-${si}-line-${li}`">
               <div class="formulaLine" x-html="formulaLineHtml(line)"></div>

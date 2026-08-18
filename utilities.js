@@ -4598,6 +4598,7 @@ function weaponVsDefenseApp(){
         title: this.formulaItemTitle(item, index),
         name: item?.weaponName || `Profile ${index + 1}`,
         modifiers: item?.modifierText ? `Modifiers: ${item.modifierText}` : '',
+        modifierList: window.ArmyImportService?.splitModifiers(item?.modifierText || '') || [],
         lines: this.formulaItemLines(item, index),
         damage: this.formulaItemDamage(item),
       }));
@@ -4782,7 +4783,9 @@ function weaponVsDefenseApp(){
     },
 
     weaponNameMatchesScope(weapon, scope){
-      const rawScope = String(scope || '').trim();
+      const encodedScope = String(scope || '').trim();
+      let rawScope = encodedScope;
+      try{ rawScope = decodeURIComponent(encodedScope); }catch(_err){}
       if(rawScope && rawScope === this.weaponStateKey(weapon)) return true;
       const weaponName = this.normalizeMatchupName(weapon?.name);
       const wanted = this.normalizeMatchupName(rawScope);
@@ -5415,7 +5418,7 @@ function weaponVsDefenseApp(){
     scopedWeaponModifierText(w, value){
       const effect = this.cleanWeaponCustomModifierValue(value);
       if(!w || !effect) return effect;
-      return `Weapon: ${this.weaponStateKey(w)} | ${effect}`;
+      return `Weapon: ${encodeURIComponent(this.weaponStateKey(w))} | ${effect}`;
     },
 
     unitCustomModifiers(unit){
@@ -5434,7 +5437,11 @@ function weaponVsDefenseApp(){
       const weaponKey = this.weaponStateKey(weapon).toLowerCase();
       return this.unitCustomModifiers(unit).filter(modifier => {
         const parsed = this.parsedModifierSpec(modifier?.text || '');
-        return (parsed?.meta?.weapons || []).some(scope => String(scope || '').trim().toLowerCase() === weaponKey);
+        return (parsed?.meta?.weapons || []).some(scope => {
+          let decoded = String(scope || '').trim();
+          try{ decoded = decodeURIComponent(decoded); }catch(_err){}
+          return decoded.toLowerCase() === weaponKey;
+        });
       });
     },
 
