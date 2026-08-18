@@ -40,6 +40,7 @@
     'Warp Storms (Psychic)': ['Conditional | Pre-Damage Mortals: 1D3 3+'],
     'Slashing Dive': ['Conditional | Unit-wide | Pre-Damage Mortals Per Model: 1 4+'],
     '*Invulnerable Save': ['Defense Attack: Ranged: Invulnerable Save 5+'],
+    'Battle-lust': ['Bearer | Conditional | Weapon: Frostfang | Attacks +2'],
     'Blessed by the Plague God': ['Unit-wide | Defense: Invulnerable Save 4+'],
     'Poxbringer': ['Unit-wide | Critical Hits 5+'],
     'Bloodmaster': ['Unit-wide | Wound Rolls +1'],

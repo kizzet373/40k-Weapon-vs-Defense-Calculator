@@ -1949,6 +1949,18 @@ const kingsguardHammer = { name: 'Foehammer', range: 'Melee', A: '5', skill: '2'
 assert.ok(/Reroll Hits/i.test(app.effectiveWeaponModifiers(kingsguardHammer, kingsguard, { label: 'Enemy Character', _keywords: ['Character'], defense: { T: 5, Sv: 2, W: 6, models: 1 } })), 'Champion of The Kingsguard applies into Character targets');
 assert.ok(!/Reroll Hits/i.test(app.effectiveWeaponModifiers(kingsguardHammer, kingsguard, { label: 'Enemy unit', _keywords: ['Infantry'], defense: { T: 5, Sv: 2, W: 3, models: 1 } })), 'Champion of The Kingsguard does not apply into non-Character targets');
 
+const battleLustModel = { label: 'Battle-lust model', abilities: ['Battle-lust'], weapons: [], defense: { T: 6, Sv: 3, W: 6, models: 1 }, _unitKey: 'battle-lust-model' };
+const frostfang = { name: 'Frostfang', range: 'Melee', A: '5', skill: '2', S: '8', AP: '2', D: '2', modifiers: '', mode: 'melee', _weaponKey: 'frostfang' };
+const battleLustOtherWeapon = { name: 'Claws and teeth', range: 'Melee', A: '4', skill: '3', S: '5', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'battle-lust-other' };
+app.matchup.conditionsMet = false;
+app.clearMatchupComputationCache();
+assert.ok(!/Attacks \+2/i.test(app.effectiveWeaponModifiers(frostfang, battleLustModel, hardTarget)), 'Battle-lust does not apply before its Charge move condition is met');
+app.matchup.conditionsMet = true;
+app.clearMatchupComputationCache();
+assert.ok(/Attacks \+2/i.test(app.effectiveWeaponModifiers(frostfang, battleLustModel, hardTarget)), 'Battle-lust adds 2 attacks to Frostfang after charging');
+assert.ok(!/Attacks \+2/i.test(app.effectiveWeaponModifiers(battleLustOtherWeapon, battleLustModel, hardTarget)), 'Battle-lust does not add attacks to the model’s other weapons');
+assert.strictEqual(app.weaponEffectiveStat(frostfang, 'A', battleLustModel).text, '7', 'Battle-lust displays Frostfang with its charged Attacks characteristic');
+
 const veterans = { label: 'Legionaries', abilities: ['Veterans of the Long War'], weapons: [], defense: { T: 4, Sv: 3, W: 2, models: 5 }, _unitKey: 'veterans' };
 const veteransSword = { name: 'Chainsword', range: 'Melee', A: '10', skill: '3', S: '4', AP: '1', D: '1', modifiers: '', mode: 'melee', _weaponKey: 'veterans-sword' };
 const veteransGun = { name: 'Boltgun', range: '24', A: '10', skill: '3', S: '4', AP: '0', D: '1', modifiers: '', mode: 'ranged', _weaponKey: 'veterans-gun' };
