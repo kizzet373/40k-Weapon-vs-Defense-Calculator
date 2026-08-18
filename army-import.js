@@ -1492,6 +1492,7 @@
       mode: weapon.mode || '',
       _profileCount: profileCount,
       _count: Math.max(1, parseInt(weapon.count ?? weapon._count ?? 1, 10) || 1),
+      _modifierToggles: { ...(weapon.modifierToggles || weapon._modifierToggles || {}) },
     };
     const source = weaponRepairs.get(weaponRepairKey(repaired));
     if(source){
@@ -1526,6 +1527,9 @@
       _points: unit?.points ?? unit?._points ?? null,
       _enhancements: enhancements,
       _upgrades: (unit?.upgrades || unit?._upgrades || []).map(upgrade => ({ ...upgrade })),
+      _customModifiers: (unit?.customModifiers || unit?._customModifiers || []).map(modifier => ({ ...modifier })),
+      _disabledAbilities: [...(unit?.disabledAbilities || unit?._disabledAbilities || [])],
+      _disabledEnhancements: [...(unit?.disabledEnhancements || unit?._disabledEnhancements || [])],
       _unitKey: String(unit?.key || unit?._unitKey || unit?.viewKey || unit?.label || Math.random()),
       _groupId: String(unit?._groupId || unit?.key || unit?._unitKey || unit?.label || Math.random()),
       _isAggregate: (unit?.children || unit?._children || []).length > 0,
@@ -1585,6 +1589,9 @@
       _points: unit._points ?? null,
       _enhancements: (unit._enhancements || []).map(enh => ({ ...enh })),
       _upgrades: (unit._upgrades || []).map(upgrade => ({ ...upgrade })),
+      _customModifiers: (unit._customModifiers || []).map(modifier => ({ ...modifier })),
+      _disabledAbilities: [...(unit._disabledAbilities || [])],
+      _disabledEnhancements: [...(unit._disabledEnhancements || [])],
       _isCharacterUnit: !!unit._isCharacterUnit,
       _isCharacterModel: !!unit._isCharacterModel,
       _isLeaderModel: !!unit._isLeaderModel,
@@ -1841,6 +1848,31 @@
       }
 
       return changed;
+    },
+    setUnitModifierState(force, unit, state={}){
+      if(!force || !unit || !Array.isArray(force._importedUnits)) return false;
+      const unitKey = String(unit?._baseUnit?._unitKey || unit?._unitKey || '');
+      const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
+      const target = findUnitByIdentity(force._importedUnits, unitKey, groupId);
+      if(!target) return false;
+      if(Array.isArray(state.customModifiers)) target._customModifiers = state.customModifiers.map(modifier => ({ ...modifier }));
+      if(Array.isArray(state.disabledAbilities)) target._disabledAbilities = [...state.disabledAbilities];
+      if(Array.isArray(state.disabledEnhancements)) target._disabledEnhancements = [...state.disabledEnhancements];
+      return true;
+    },
+    setWeaponModifierState(force, unit, weapon, toggles={}){
+      if(!force || !unit || !weapon || !Array.isArray(force._importedUnits)) return false;
+      const unitKey = String(unit?._baseUnit?._unitKey || unit?._unitKey || '');
+      const groupId = String(unit?._baseUnit?._groupId || unit?._groupId || '');
+      const target = findUnitByIdentity(force._importedUnits, unitKey, groupId);
+      if(!target) return false;
+      const wantedKey = String(weapon?._weaponKey || '');
+      const candidates = target.weapons || [];
+      const matched = candidates.find(candidate => wantedKey && String(candidate?._weaponKey || '') === wantedKey)
+        || candidates.find(candidate => ['name','range','A','skill','S','AP','D','mode'].every(field => String(candidate?.[field] ?? '') === String(weapon?.[field] ?? '')));
+      if(!matched) return false;
+      matched._modifierToggles = { ...toggles };
+      return true;
     },
     getAllSelections,
     extractWeaponsFromNode,

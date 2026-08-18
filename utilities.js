@@ -1668,6 +1668,7 @@ function weaponVsDefenseApp(){
         w?.D || '',
         w?.mode || '',
         w?.modifiers || '',
+        JSON.stringify(w?._modifierToggles || {}),
       ].join('~')).sort().join('||');
       const abilities = (unit.abilities || []).map(x => String(x || '').trim()).filter(Boolean).sort().join('|');
       const modifiers = [
@@ -3717,6 +3718,7 @@ function weaponVsDefenseApp(){
         D: w.D || '',
         modifiers: w.modifiers || '',
         mode: w.mode || '',
+        modifierToggles: { ...(w._modifierToggles || {}) },
       }));
       return {
         key: String(unit?._unitKey || this.unitKey(unit)),
@@ -3730,6 +3732,9 @@ function weaponVsDefenseApp(){
         rules: (unit?._rules || []).map(rule => ({ ...rule })),
         ruleDescriptions: { ...(unit?._ruleDescriptions || {}) },
         enhancements: [...(unit?._enhancements || [])],
+        customModifiers: (unit?._customModifiers || []).map(modifier => ({ ...modifier })),
+        disabledAbilities: [...(unit?._disabledAbilities || [])],
+        disabledEnhancements: [...(unit?._disabledEnhancements || [])],
         keywords: [...(unit?._keywords || [])],
         isCharacterUnit: !!unit?._isCharacterUnit,
         isCharacterModel: !!unit?._isCharacterModel,
@@ -3966,6 +3971,26 @@ function weaponVsDefenseApp(){
         }
       });
       if(this.matchupModalOpen) this.refreshMatchupPresentation();
+    },
+
+    persistUnitModalModifierState(unit){
+      if(!unit) return;
+      const customModifiers = (unit._customModifiers || []).map(modifier => ({ ...modifier }));
+      const disabledAbilities = [...(unit._disabledAbilities || [])];
+      const disabledEnhancements = [...(unit._disabledEnhancements || [])];
+      this.rosterForces().forEach(force => window.ArmyImportService?.setUnitModifierState?.(force, unit, {
+        customModifiers,
+        disabledAbilities,
+        disabledEnhancements,
+      }));
+      this.saveCachedRosters();
+    },
+
+    persistWeaponModalModifierState(unit, weapon){
+      if(!weapon) return;
+      weapon._modifierToggles = { ...this.ensureModifierState(weapon) };
+      this.rosterForces().forEach(force => window.ArmyImportService?.setWeaponModifierState?.(force, unit, weapon, weapon._modifierToggles));
+      this.saveCachedRosters();
     },
 
     unitPointsText(unit){
@@ -4673,7 +4698,10 @@ function weaponVsDefenseApp(){
       if(!w) return;
       const state = this.ensureModifierState(w);
       state[mod] = !this.isWeaponModifierEnabled(w, mod);
-      this.invalidateMatchupForUnit(unit || this.profileUnit || this.activeUnit, 'attacker');
+      const owner = unit || this.profileUnit || this.activeUnit;
+      w._modifierToggles = { ...state };
+      this.persistWeaponModalModifierState(owner, w);
+      this.invalidateMatchupForUnit(owner, 'attacker');
     },
 
     unitModifierRuleNames(unit){
@@ -5136,10 +5164,10 @@ function weaponVsDefenseApp(){
       if(!state.abilities) state.abilities = {};
       if(!state.enhancements) state.enhancements = {};
       this.unitAbilityNames(unit).forEach(name => {
-        if(!(name in state.abilities)) state.abilities[name] = true;
+        if(!(name in state.abilities)) state.abilities[name] = !(unit?._disabledAbilities || []).includes(name);
       });
       this.unitEnhancementNames(unit).forEach(name => {
-        if(!(name in state.enhancements)) state.enhancements[name] = true;
+        if(!(name in state.enhancements)) state.enhancements[name] = !(unit?._disabledEnhancements || []).includes(name);
       });
       return state;
     },
@@ -5155,6 +5183,8 @@ function weaponVsDefenseApp(){
       if(!unit || !ability) return;
       const state = this.ensureUnitToggleState(unit);
       state.abilities[ability] = !this.isUnitAbilityEnabled(unit, ability);
+      unit._disabledAbilities = this.unitAbilityNames(unit).filter(name => state.abilities[name] === false);
+      this.persistUnitModalModifierState(unit);
       this.invalidateMatchupForUnit(unit, 'both');
     },
 
@@ -5169,6 +5199,8 @@ function weaponVsDefenseApp(){
       if(!unit || !enhancement) return;
       const state = this.ensureUnitToggleState(unit);
       state.enhancements[enhancement] = !this.isUnitEnhancementEnabled(unit, enhancement);
+      unit._disabledEnhancements = this.unitEnhancementNames(unit).filter(name => state.enhancements[name] === false);
+      this.persistUnitModalModifierState(unit);
       this.invalidateMatchupForUnit(unit, 'both');
     },
 
@@ -5389,8 +5421,25 @@ function weaponVsDefenseApp(){
     unitCustomModifiers(unit){
       const key = this.unitStateKey(unit);
       if(!key) return [];
-      if(!Array.isArray(this.unitCustomModifierState[key])) this.unitCustomModifierState[key] = [];
-      return this.unitCustomModifierState[key];
+      if(!Array.isArray(unit._customModifiers)){
+        unit._customModifiers = Array.isArray(this.unitCustomModifierState[key])
+          ? this.unitCustomModifierState[key].map(modifier => ({ ...modifier }))
+          : [];
+      }
+      this.unitCustomModifierState[key] = unit._customModifiers;
+      return unit._customModifiers;
+    },
+
+    weaponCustomModifiers(unit, weapon){
+      const weaponKey = this.weaponStateKey(weapon).toLowerCase();
+      return this.unitCustomModifiers(unit).filter(modifier => {
+        const parsed = this.parsedModifierSpec(modifier?.text || '');
+        return (parsed?.meta?.weapons || []).some(scope => String(scope || '').trim().toLowerCase() === weaponKey);
+      });
+    },
+
+    unitProfileCustomModifiers(unit){
+      return this.unitCustomModifiers(unit).filter(modifier => !this.parsedModifierSpec(modifier?.text || '')?.meta?.weapons?.length);
     },
 
     enabledUnitCustomModifierSpecs(unit){
@@ -5423,6 +5472,7 @@ function weaponVsDefenseApp(){
       const existing = this.unitCustomModifiers(unit).find(entry => String(entry?.text || '').trim().toLowerCase() === value.toLowerCase());
       if(existing){
         existing.enabled = true;
+        this.persistUnitModalModifierState(unit);
         this.invalidateMatchupForUnit(unit, 'both');
         return;
       }
@@ -5432,6 +5482,7 @@ function weaponVsDefenseApp(){
         label: label || this.customModifierOptionLabel(value),
         enabled: true,
       });
+      this.persistUnitModalModifierState(unit);
       this.invalidateMatchupForUnit(unit, 'both');
     },
 
@@ -5457,13 +5508,16 @@ function weaponVsDefenseApp(){
       const mod = this.unitCustomModifiers(unit).find(entry => entry.id === id);
       if(!mod) return;
       mod.enabled = !mod.enabled;
+      this.persistUnitModalModifierState(unit);
       this.invalidateMatchupForUnit(unit, 'both');
     },
 
     removeCustomModifier(unit, id){
       const key = this.unitStateKey(unit);
-      if(!key || !Array.isArray(this.unitCustomModifierState[key])) return;
-      this.unitCustomModifierState[key] = this.unitCustomModifierState[key].filter(entry => entry.id !== id);
+      if(!key) return;
+      unit._customModifiers = this.unitCustomModifiers(unit).filter(entry => entry.id !== id);
+      this.unitCustomModifierState[key] = unit._customModifiers;
+      this.persistUnitModalModifierState(unit);
       this.invalidateMatchupForUnit(unit, 'both');
     },
 

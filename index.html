@@ -1251,6 +1251,15 @@
                     <button type="button" class="ruleLink" @click="openRuleDescription({ type: 'Keyword', name: mod, title: mod, unit: section.model })" x-text="mod"></button>
                   </div>
                 </template>
+                <template x-for="custom in weaponCustomModifiers(section.model, w)" :key="`profile-w-custom-${wi}-${custom.id}`">
+                  <div class="customModifierItem weaponCustomModifierPill">
+                    <div class="toggleLine">
+                      <input type="checkbox" :checked="custom.enabled !== false" @change="toggleCustomModifier(section.model, custom.id)" />
+                      <button type="button" class="ruleLink" @click="openRuleDescription({ type: 'Custom Modifier', title: customModifierLabel(custom), modifier: custom, unit: section.model })" x-text="customModifierLabel(custom).replace(`${w.name || 'Weapon profile'}: `, '')"></button>
+                    </div>
+                    <button type="button" class="secondary tagX" @click="removeCustomModifier(section.model, custom.id)">x</button>
+                  </div>
+                </template>
               </div>
               <div class="customModifierRow weaponCustomModifierRow">
                 <select @change="addWeaponCustomModifier(section.model, w, $event.target.value); $event.target.value=''">
@@ -1296,10 +1305,10 @@
                 </template>
               </select>
             </div>
-            <template x-if="unitCustomModifiers(profileUnit).length === 0">
+            <template x-if="unitProfileCustomModifiers(profileUnit).length === 0">
               <div class="muted" style="font-size:12px">No custom modifiers.</div>
             </template>
-            <template x-for="mod in unitCustomModifiers(profileUnit)" :key="mod.id">
+            <template x-for="mod in unitProfileCustomModifiers(profileUnit)" :key="mod.id">
               <div class="customModifierItem">
                 <div class="toggleLine">
                   <input type="checkbox" :checked="mod.enabled !== false" @change="toggleCustomModifier(profileUnit, mod.id)" />

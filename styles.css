@@ -549,6 +549,7 @@ th,td{border-bottom:1px solid #1b2636;padding:6px 8px;text-align:left}
 .customModifierRow select{width:100%}
 .weaponCustomModifierRow{margin-top:8px}
 .customModifierItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:6px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.025)}
+.weaponCustomModifierPill{margin-top:4px;padding:4px 6px;background:rgba(76,201,240,.08);border-color:rgba(76,201,240,.24)}
 
 .defenseProfileList{display:grid;gap:6px}
 .defenseProfileLine{

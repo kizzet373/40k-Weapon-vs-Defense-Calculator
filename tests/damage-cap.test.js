@@ -14,6 +14,7 @@ assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(unit\)[\
 assert.ok(/mergeManagerDuplicateButton[\s\S]*duplicateMergeManagerItem\(child\)[\s\S]*>\s*Duplicate\s*<\/button>/.test(indexHtml), 'merge manager source model rows expose a Duplicate button');
 assert.ok(/mergeManagerProfileLink[\s\S]*openUnitProfile\(unit, 'Unit'\)[\s\S]*mergeManagerUnitName/.test(indexHtml), 'merge manager unit names open the unit profile modal');
 assert.ok(/mergeManagerProfileLink[\s\S]*openUnitProfile\(child, 'Model'\)[\s\S]*mergeManagerChildName/.test(indexHtml), 'merge manager model names open the model profile modal');
+assert.ok(/weaponCustomModifiers\(section\.model, w\)[\s\S]*type="checkbox"[\s\S]*toggleCustomModifier\(section\.model, custom\.id\)/.test(indexHtml), 'weapon custom modifiers render as toggleable checkbox pills in the unit profile modal');
 assert.ok(/promptMergeManagerRename\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline rename button');
 assert.ok(/promptMergeManagerRename\(child\)/.test(indexHtml), 'merge manager model rows expose an inline rename button');
 assert.ok(/deleteMergeManagerItem\(unit\)/.test(indexHtml), 'merge manager unit rows expose an inline delete button');
@@ -2082,6 +2083,41 @@ const scopedAttacker = { label: 'Scoped attacker', _viewKey: 'scoped-attacker', 
 app.addWeaponCustomModifier(scopedAttacker, scopedWeaponA, 'Strength +1');
 assert.ok(/Strength \+1/.test(app.effectiveWeaponModifiers(scopedWeaponA, scopedAttacker, customDefender)), 'weapon custom dropdown modifiers apply to the selected weapon profile');
 assert.ok(!/Strength \+1/.test(app.effectiveWeaponModifiers(scopedWeaponB, scopedAttacker, customDefender)), 'weapon custom dropdown modifiers do not leak to other weapon profiles');
+
+const persistedModifierApp = context.weaponVsDefenseApp();
+const persistedModifierForce = {
+  name: 'Persistent modifier force',
+  _unitMerges: [],
+  _importedUnits: [{
+    label: 'Persistent modifier unit',
+    _unitKey: 'persistent-modifier-unit',
+    _groupId: 'persistent-modifier-unit',
+    abilities: ['Oath of Moment'],
+    _enhancements: [{ name: 'Fierce Example' }],
+    weapons: [{ name: 'Persistent rifle', range: '24', A: '2', skill: '3', S: '4', AP: '0', D: '1', modifiers: 'Lethal Hits', mode: 'ranged', _weaponKey: 'persistent-rifle' }],
+    defense: { T: 4, Sv: 3, W: 2, models: 1 },
+    _children: [],
+  }],
+};
+persistedModifierApp.rosters = [{ label: 'Persistent modifier roster', data: { roster: { name: 'Persistent modifier roster', forces: [persistedModifierForce] } } }];
+let persistedUnit = persistedModifierApp.collectUnits(persistedModifierForce)[0];
+let persistedWeapon = persistedUnit.weapons[0];
+persistedModifierApp.openUnitProfile(persistedUnit, 'Unit');
+persistedModifierApp.addWeaponCustomModifier(persistedUnit, persistedWeapon, 'Strength +1');
+assert.strictEqual(persistedModifierApp.weaponCustomModifiers(persistedUnit, persistedWeapon).length, 1, 'weapon custom modifiers are exposed beside their weapon profile');
+assert.strictEqual(persistedModifierApp.unitProfileCustomModifiers(persistedUnit).length, 0, 'weapon-scoped custom modifiers are not duplicated in the unit-level list');
+persistedModifierApp.toggleCustomModifier(persistedUnit, persistedModifierApp.weaponCustomModifiers(persistedUnit, persistedWeapon)[0].id);
+persistedModifierApp.toggleWeaponModifier(persistedWeapon, 'Lethal Hits', persistedUnit);
+persistedModifierApp.toggleUnitAbility(persistedUnit, 'Oath of Moment');
+persistedModifierApp.toggleUnitEnhancement(persistedUnit, 'Fierce Example');
+persistedModifierApp.closeUnitProfile();
+persistedUnit = persistedModifierApp.collectUnits(persistedModifierForce)[0];
+persistedWeapon = persistedUnit.weapons[0];
+assert.strictEqual(persistedModifierApp.weaponCustomModifiers(persistedUnit, persistedWeapon)[0]?.enabled, false, 'custom weapon modifier checkbox state survives a grid unit rebuild');
+assert.strictEqual(persistedWeapon._modifierToggles?.['Lethal Hits'], false, 'imported weapon modifier checkbox state survives a grid unit rebuild');
+assert.ok(persistedUnit._disabledAbilities.includes('Oath of Moment'), 'ability modifier checkbox state survives a grid unit rebuild');
+assert.ok(persistedUnit._disabledEnhancements.includes('Fierce Example'), 'enhancement modifier checkbox state survives a grid unit rebuild');
+assert.ok(!/Strength \+1|Lethal Hits/.test(persistedModifierApp.effectiveWeaponModifiers(persistedWeapon, persistedUnit, customDefender)), 'disabled persisted modifiers remain excluded from calculations');
 
 const mixedDefender = {
   label: 'Mixed Terminators',
